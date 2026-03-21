@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.routers import auth, chat, date_requests, feedback, groups, matches, matching, profiles, reports
+from app.routers import admin, auth, chat, date_requests, feedback, groups, matches, matching, profiles, reports
 
 app = FastAPI(title="LoveGenie API")
 
@@ -13,6 +13,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.include_router(admin.router)
 app.include_router(auth.router)
 app.include_router(profiles.router)
 app.include_router(date_requests.router)
