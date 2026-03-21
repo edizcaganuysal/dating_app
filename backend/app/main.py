@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.routers import auth, date_requests, profiles
+from app.routers import auth, date_requests, matching, profiles
 
 app = FastAPI(title="LoveGenie API")
 
@@ -16,6 +16,7 @@ app.add_middleware(
 app.include_router(auth.router)
 app.include_router(profiles.router)
 app.include_router(date_requests.router)
+app.include_router(matching.router)
 
 
 @app.get("/api/health")
