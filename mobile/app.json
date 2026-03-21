@@ -1,0 +1,10 @@
+{
+  "expo": {
+    "name": "LoveGenie",
+    "slug": "lovegenie",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "scheme": "lovegenie",
+    "platforms": ["ios", "android"]
+  }
+}

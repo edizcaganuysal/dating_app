@@ -141,4 +141,4 @@ dating_app/
 
 ## Current Phase
 
-Building the autonomous pipeline. All phases will be executed by build.sh.
+Building Phase 0: Project Scaffolding. All previous phases are complete and tests pass.

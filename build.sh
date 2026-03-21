@@ -265,8 +265,8 @@ for prompt_file in "$PHASES_DIR"/phase_*.prompt; do
     [ -f "$prompt_file" ] || continue
 
     # Extract phase number from filename
-    local_basename=$(basename "$prompt_file")
-    phase_num=$(echo "$local_basename" | sed 's/phase_\([0-9]*\).*/\1/' | sed 's/^0*//' )
+    _basename=$(basename "$prompt_file")
+    phase_num=$(echo "$_basename" | sed 's/phase_\([0-9]*\).*/\1/' | sed 's/^0*//' )
     [ -z "$phase_num" ] && phase_num=0
 
     # Skip if before start-from
@@ -281,7 +281,7 @@ for prompt_file in "$PHASES_DIR"/phase_*.prompt; do
     fi
 
     # Read metadata
-    local meta_file="${prompt_file%.prompt}.meta"
+    meta_file="${prompt_file%.prompt}.meta"
     if [ -f "$meta_file" ]; then
         source "$meta_file"
     else
