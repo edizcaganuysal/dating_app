@@ -37,3 +37,16 @@ class DateGroupResponse(BaseModel):
 class BatchMatchingResponse(BaseModel):
     groups_formed: int
     groups: list[DateGroupResponse]
+
+
+class MatchResponse(BaseModel):
+    id: uuid.UUID
+    partner: "PublicProfileResponse"
+    chat_room_id: uuid.UUID
+    group_id: uuid.UUID
+    created_at: dt.datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+from app.schemas.profile import PublicProfileResponse  # noqa: E402

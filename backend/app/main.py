@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.routers import auth, date_requests, feedback, groups, matching, profiles
+from app.routers import auth, date_requests, feedback, groups, matches, matching, profiles
 
 app = FastAPI(title="LoveGenie API")
 
@@ -19,6 +19,7 @@ app.include_router(date_requests.router)
 app.include_router(matching.router)
 app.include_router(groups.router)
 app.include_router(feedback.router)
+app.include_router(matches.router)
 
 
 @app.get("/api/health")
