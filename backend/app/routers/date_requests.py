@@ -1,0 +1,197 @@
+import uuid
+
+from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
+
+from app.database import get_db
+from app.middleware.auth_middleware import get_current_user
+from app.models.date_request import AvailabilitySlot, DateRequest, PreGroupFriend
+from app.models.user import User
+from app.schemas.date_request import (
+    DateRequestCreate,
+    DateRequestResponse,
+    DateRequestUpdate,
+)
+
+router = APIRouter(prefix="/api/date-requests", tags=["date-requests"])
+
+
+def _to_response(dr: DateRequest) -> DateRequestResponse:
+    return DateRequestResponse(
+        id=dr.id,
+        user_id=dr.user_id,
+        group_size=dr.group_size,
+        activity=dr.activity,
+        status=dr.status,
+        availability_slots=dr.availability_slots,
+        pre_group_friend_ids=[f.friend_user_id for f in dr.pre_group_friends],
+        created_at=dr.created_at,
+    )
+
+
+def _load_options():
+    return [selectinload(DateRequest.availability_slots), selectinload(DateRequest.pre_group_friends)]
+
+
+@router.post("", status_code=status.HTTP_201_CREATED, response_model=DateRequestResponse)
+async def create_date_request(
+    data: DateRequestCreate,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    # Check no existing pending request
+    existing = await db.execute(
+        select(DateRequest).where(
+            DateRequest.user_id == current_user.id,
+            DateRequest.status == "pending",
+        )
+    )
+    if existing.scalar_one_or_none():
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="You already have a pending date request")
+
+    # Validate pre-group friends
+    max_friends = (data.group_size // 2) - 1
+    if len(data.pre_group_friend_ids) > max_friends:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"For a group of {data.group_size}, you can have at most {max_friends} pre-group friend(s)",
+        )
+
+    for friend_id in data.pre_group_friend_ids:
+        result = await db.execute(select(User).where(User.id == friend_id))
+        friend = result.scalar_one_or_none()
+        if not friend:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Friend {friend_id} not found")
+        if friend.gender != current_user.gender:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Pre-group friends must be the same gender as you",
+            )
+
+    # Create date request
+    dr = DateRequest(
+        user_id=current_user.id,
+        group_size=data.group_size,
+        activity=data.activity.value,
+        status="pending",
+    )
+    db.add(dr)
+    await db.flush()
+
+    # Create availability slots
+    for slot in data.availability_slots:
+        db.add(AvailabilitySlot(
+            date_request_id=dr.id,
+            date=slot.date,
+            time_window=slot.time_window.value,
+        ))
+
+    # Create pre-group friends
+    for friend_id in data.pre_group_friend_ids:
+        db.add(PreGroupFriend(date_request_id=dr.id, friend_user_id=friend_id))
+
+    await db.commit()
+
+    # Reload with relationships
+    result = await db.execute(
+        select(DateRequest).where(DateRequest.id == dr.id).options(*_load_options())
+    )
+    dr = result.scalar_one()
+    return _to_response(dr)
+
+
+@router.get("", response_model=list[DateRequestResponse])
+async def list_date_requests(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    result = await db.execute(
+        select(DateRequest)
+        .where(DateRequest.user_id == current_user.id)
+        .options(*_load_options())
+        .order_by(DateRequest.created_at.desc())
+    )
+    return [_to_response(dr) for dr in result.scalars().all()]
+
+
+@router.get("/{request_id}", response_model=DateRequestResponse)
+async def get_date_request(
+    request_id: uuid.UUID,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    result = await db.execute(
+        select(DateRequest).where(DateRequest.id == request_id).options(*_load_options())
+    )
+    dr = result.scalar_one_or_none()
+    if not dr:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Date request not found")
+    if dr.user_id != current_user.id and not current_user.is_admin:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized")
+    return _to_response(dr)
+
+
+@router.delete("/{request_id}", status_code=status.HTTP_200_OK)
+async def cancel_date_request(
+    request_id: uuid.UUID,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    result = await db.execute(
+        select(DateRequest).where(DateRequest.id == request_id)
+    )
+    dr = result.scalar_one_or_none()
+    if not dr:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Date request not found")
+    if dr.user_id != current_user.id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized")
+    if dr.status != "pending":
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Only pending requests can be cancelled")
+
+    dr.status = "cancelled"
+    await db.commit()
+    return {"message": "Date request cancelled"}
+
+
+@router.patch("/{request_id}", response_model=DateRequestResponse)
+async def update_date_request(
+    request_id: uuid.UUID,
+    data: DateRequestUpdate,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    result = await db.execute(
+        select(DateRequest).where(DateRequest.id == request_id).options(*_load_options())
+    )
+    dr = result.scalar_one_or_none()
+    if not dr:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Date request not found")
+    if dr.user_id != current_user.id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized")
+    if dr.status != "pending":
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Only pending requests can be updated")
+
+    if data.activity is not None:
+        dr.activity = data.activity.value
+
+    if data.availability_slots is not None:
+        # Delete old slots and create new ones
+        for slot in dr.availability_slots:
+            await db.delete(slot)
+        for slot in data.availability_slots:
+            db.add(AvailabilitySlot(
+                date_request_id=dr.id,
+                date=slot.date,
+                time_window=slot.time_window.value,
+            ))
+
+    await db.commit()
+
+    # Reload with relationships
+    result = await db.execute(
+        select(DateRequest).where(DateRequest.id == dr.id).options(*_load_options())
+    )
+    dr = result.scalar_one()
+    return _to_response(dr)
