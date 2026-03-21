@@ -463,3 +463,14 @@ async def get_analytics(
         total_reports_pending=pending_reports,
         no_show_count_total=no_show_total,
     )
+
+
+@router.post("/api/admin/seed", status_code=200)
+async def seed_database_endpoint(
+    current_user: User = Depends(get_admin_user),
+    db: AsyncSession = Depends(get_db),
+):
+    from app.seed import seed_database
+
+    await seed_database(session=db)
+    return {"detail": "Database seeded successfully"}
