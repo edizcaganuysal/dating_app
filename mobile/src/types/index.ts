@@ -114,20 +114,98 @@ export interface Match {
   created_at: string;
 }
 
+export interface ParticipantInfo {
+  user_id: string;
+  first_name: string;
+}
+
+export interface LastMessage {
+  content: string;
+  created_at: string;
+}
+
 export interface ChatRoom {
   id: string;
-  room_type: "group" | "one_on_one";
-  last_message: string | null;
+  room_type: "group" | "1v1";
+  last_message: LastMessage | null;
   group_id: string | null;
-  participants: PublicProfile[];
+  participants: ParticipantInfo[];
+  created_at: string;
 }
 
 export interface ChatMessage {
   id: string;
+  room_id?: string;
   sender_id: string;
   sender_name: string;
   content: string;
+  message_type?: string;
   created_at: string;
+}
+
+export interface GroupMemberProfile {
+  id: string;
+  first_name: string;
+  age: number;
+  gender: string;
+  bio: string | null;
+  interests: string[];
+  photo_urls: string[];
+  program: string | null;
+  is_selfie_verified: boolean;
+}
+
+export interface GroupMember {
+  user_id: string;
+  profile: GroupMemberProfile;
+}
+
+export interface GroupDetail {
+  id: string;
+  activity: string;
+  scheduled_date: string;
+  scheduled_time: string;
+  venue_name: string | null;
+  venue_address: string | null;
+  status: string;
+  members: GroupMember[];
+  chat_room_id: string | null;
+}
+
+export interface IcebreakersResponse {
+  prompts: string[];
+}
+
+export interface Venue {
+  name: string;
+  address: string;
+  neighborhood: string;
+  price_range: string;
+}
+
+export interface VenuesResponse {
+  activity: string;
+  venues: Venue[];
+}
+
+export interface RomanticInterestInput {
+  user_id: string;
+  interested: boolean;
+}
+
+export interface FeedbackCreateData {
+  experience_rating: number;
+  romantic_interests: RomanticInterestInput[];
+  block_user_ids: string[];
+  report_user_ids: string[];
+  report_category?: string;
+}
+
+export interface FeedbackResponse {
+  id: string;
+  group_id: string;
+  experience_rating: number;
+  submitted_at: string;
 }
 
 export interface RegisterData {

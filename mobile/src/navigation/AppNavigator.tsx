@@ -9,7 +9,13 @@ import VerifyEmailScreen from "../screens/VerifyEmailScreen";
 import ProfileSetupScreen from "../screens/ProfileSetupScreen";
 import HomeScreen from "../screens/HomeScreen";
 import DateRequestScreen from "../screens/DateRequestScreen";
+import GroupRevealScreen from "../screens/GroupRevealScreen";
+import ChatScreen from "../screens/ChatScreen";
+import ChatRoomsScreen from "../screens/ChatRoomsScreen";
+import PostDateScreen from "../screens/PostDateScreen";
+import MatchRevealScreen from "../screens/MatchRevealScreen";
 import { getMyProfile } from "../api/profiles";
+import { Match } from "../types";
 
 export type AuthStackParamList = {
   Login: { message?: string } | undefined;
@@ -21,6 +27,14 @@ export type HomeStackParamList = {
   HomeMain: undefined;
   DateRequest: undefined;
   GroupReveal: { groupId: string };
+  ChatDetail: { roomId: string };
+  PostDate: { groupId: string };
+  MatchReveal: { match: Match };
+};
+
+export type ChatStackParamList = {
+  ChatRooms: undefined;
+  ChatDetail: { roomId: string };
 };
 
 export type MainTabParamList = {
@@ -37,6 +51,7 @@ export type RootStackParamList = {
 
 const AuthStack = createNativeStackNavigator<AuthStackParamList>();
 const HomeStack = createNativeStackNavigator<HomeStackParamList>();
+const ChatStack = createNativeStackNavigator<ChatStackParamList>();
 const MainTab = createBottomTabNavigator<MainTabParamList>();
 const RootStack = createNativeStackNavigator<RootStackParamList>();
 
@@ -49,16 +64,8 @@ function PlaceholderScreen({ title }: { title: string }) {
   );
 }
 
-function GroupRevealScreen() {
-  return <PlaceholderScreen title="Group Reveal" />;
-}
-
 function MyDatesScreen() {
   return <PlaceholderScreen title="My Dates" />;
-}
-
-function ChatScreen() {
-  return <PlaceholderScreen title="Chat" />;
 }
 
 function ProfileScreen() {
@@ -98,7 +105,44 @@ function HomeStackNavigator() {
         component={GroupRevealScreen}
         options={{ title: "Your Group" }}
       />
+      <HomeStack.Screen
+        name="ChatDetail"
+        component={ChatScreen}
+        options={{ title: "Chat" }}
+      />
+      <HomeStack.Screen
+        name="PostDate"
+        component={PostDateScreen}
+        options={{ title: "Post-Date Feedback" }}
+      />
+      <HomeStack.Screen
+        name="MatchReveal"
+        component={MatchRevealScreen}
+        options={{ headerShown: false }}
+      />
     </HomeStack.Navigator>
+  );
+}
+
+function ChatStackNavigator() {
+  return (
+    <ChatStack.Navigator
+      screenOptions={{
+        headerStyle: { backgroundColor: "#E91E63" },
+        headerTintColor: "#fff",
+      }}
+    >
+      <ChatStack.Screen
+        name="ChatRooms"
+        component={ChatRoomsScreen}
+        options={{ title: "Chat" }}
+      />
+      <ChatStack.Screen
+        name="ChatDetail"
+        component={ChatScreen}
+        options={{ title: "Chat" }}
+      />
+    </ChatStack.Navigator>
   );
 }
 
@@ -123,12 +167,7 @@ function MainNavigator() {
       />
       <MainTab.Screen
         name="Chat"
-        component={ChatScreen}
-        options={{
-          headerShown: true,
-          headerStyle: { backgroundColor: "#E91E63" },
-          headerTintColor: "#fff",
-        }}
+        component={ChatStackNavigator}
       />
       <MainTab.Screen
         name="Profile"
