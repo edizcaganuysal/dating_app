@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
+trap 'stop_heartbeat 2>/dev/null; echo ""; echo "Pipeline interrupted. Resume with: ./build.sh --start-from <phase>"' EXIT INT TERM
 
 ##############################################################################
 # LoveGenie Autonomous Build Pipeline
@@ -248,7 +249,10 @@ This is the last attempt. Read the error carefully. Fix the root cause. The test
 
 Read CLAUDE.md for project context. Check that all imports are correct, all dependencies are installed, and all referenced files exist."
 
+    start_heartbeat "Phase $phase_num RETRY 2"
     claude -p "$retry2_prompt" --dangerously-skip-permissions 2>&1 | tee -a "$LOG_FILE" || true
+    stop_heartbeat
+    log "Retry 2 code generation done."
 
     install_deps
 
