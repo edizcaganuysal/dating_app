@@ -36,16 +36,53 @@ export interface AvailabilitySlot {
 export type TimeWindow = "morning" | "afternoon" | "evening" | "night";
 
 export type ActivityType =
-  | "coffee"
+  | "dinner"
+  | "bar"
   | "bowling"
-  | "hiking"
+  | "karaoke"
   | "board_games"
+  | "ice_skating"
+  | "hiking"
   | "cooking_class"
   | "trivia_night"
-  | "karaoke"
-  | "escape_room"
   | "mini_golf"
-  | "art_class";
+  | "escape_room"
+  | "art_gallery"
+  | "picnic"
+  | "museum";
+
+export interface VibeAnswer {
+  question: string;
+  answer: string;
+}
+
+export interface ProfileCreateData {
+  bio: string;
+  program: string;
+  year_of_study: number;
+  photo_urls: string[];
+  interests: string[];
+  vibe_answers: VibeAnswer[];
+  age_range_min: number;
+  age_range_max: number;
+}
+
+export interface ProfileUpdateData {
+  bio?: string;
+  program?: string;
+  year_of_study?: number;
+  photo_urls?: string[];
+  interests?: string[];
+  age_range_min?: number;
+  age_range_max?: number;
+}
+
+export interface DateRequestCreateData {
+  group_size: number;
+  activity: ActivityType;
+  availability_slots: AvailabilitySlot[];
+  pre_group_friend_ids?: string[];
+}
 
 export interface DateRequest {
   id: string;
@@ -54,6 +91,7 @@ export interface DateRequest {
   activity: ActivityType;
   status: string;
   availability_slots: AvailabilitySlot[];
+  pre_group_friend_ids: string[];
   created_at: string;
 }
 
