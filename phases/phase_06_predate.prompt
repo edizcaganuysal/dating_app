@@ -1,0 +1,54 @@
+You are building Phase 6 of the LoveGenie dating app. Read CLAUDE.md for full project context. Phases 0-5 are complete.
+
+Build pre-date features: group detail, icebreaker prompts, and venue suggestions.
+
+## 1. backend/app/routers/groups.py
+
+Prefix: `/api/groups`. All endpoints require auth.
+
+- `GET /api/groups/{group_id}` — Get group detail. Returns:
+  - Group info (activity, scheduled_date, scheduled_time, venue, status)
+  - List of members with their PUBLIC profiles (PublicProfileResponse from Phase 3 — NO private prefs)
+  - The group chat room ID
+  - Only accessible to group members or admins. Return 403 for non-members.
+
+- `GET /api/groups/{group_id}/icebreakers` — Return 3 random icebreaker prompts from a curated list. Prompts should be fun and light:
+  - "Everyone share your most controversial food take"
+  - "What's the worst first date you've ever been on?"
+  - "If you could have dinner with anyone, dead or alive, who?"
+  - "What's your go-to karaoke song?"
+  - "Hot take: what's an overrated movie?"
+  - "What's the most spontaneous thing you've ever done?"
+  - "Describe your ideal Sunday in 3 words"
+  - "What's a hill you'll die on?"
+  - "If you won the lottery tomorrow, what's the first thing you'd do?"
+  - "What's your comfort show you've rewatched way too many times?"
+  - Store these in a constant list, pick 3 at random.
+
+- `GET /api/groups/{group_id}/venues` — Return 3-4 venue suggestions based on the group's activity type. Hardcoded for Toronto MVP:
+  - dinner: ["Pai Northern Thai", "Gusto 101", "Byblos", "Richmond Station"]
+  - bar: ["Bar Raval", "Civil Liberties", "The Shameful Tiki Room", "Birreria Volo"]
+  - bowling: ["The Ballroom", "Playtime Bowl"]
+  - karaoke: ["Koreatown Karaoke", "Sing Sing", "Supermarket"]
+  - board_games: ["Snakes & Lattes", "Castle Board Game Cafe"]
+  - etc. (at least 2-3 options per activity)
+  - Each venue: {name, address, neighborhood, price_range ("$", "$$", "$$$")}
+
+## 2. Update backend/app/main.py
+
+Include the groups router.
+
+## 3. backend/tests/test_groups.py
+
+Use the matching helpers from Phase 5 to create matched groups for testing.
+
+1. `test_get_group_detail_as_member` — member can see group with all member profiles
+2. `test_get_group_detail_no_private_prefs` — verify response does NOT contain age_range_min/max for other members
+3. `test_get_group_detail_non_member` — non-member gets 403
+4. `test_icebreakers` — returns exactly 3 prompts, all strings
+5. `test_venues_for_activity` — group with activity="dinner" gets restaurant suggestions
+6. `test_venues_include_required_fields` — each venue has name, address, neighborhood, price_range
+
+IMPORTANT:
+- Group detail must use PublicProfileResponse for OTHER members — never expose private preferences
+- Venue data is just hardcoded constants for MVP, not a database table

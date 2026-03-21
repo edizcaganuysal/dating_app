@@ -1,0 +1,3 @@
+PHASE_NAME="Date Request System"
+TEST_CMD="cd backend && python -m pytest tests/ -v --tb=short 2>&1"
+COMMIT_MSG="phase-04: date request creation with availability, activities, group size, pre-grouping"

@@ -1,0 +1,3 @@
+PHASE_NAME="WebSocket Chat"
+TEST_CMD="cd backend && python -m pytest tests/ -v --tb=short 2>&1"
+COMMIT_MSG="phase-09: real-time WebSocket chat with message persistence and REST history"

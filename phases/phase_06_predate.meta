@@ -1,0 +1,3 @@
+PHASE_NAME="Pre-Date Features"
+TEST_CMD="cd backend && python -m pytest tests/ -v --tb=short 2>&1"
+COMMIT_MSG="phase-06: group reveal with icebreaker prompts and venue suggestions"

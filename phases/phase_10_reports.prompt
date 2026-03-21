@@ -1,0 +1,48 @@
+You are building Phase 10 of the LoveGenie dating app. Read CLAUDE.md for full project context. Phases 0-9 are complete.
+
+Build the no-show detection and reporting system.
+
+## 1. backend/app/services/noshow_service.py
+
+- `async def check_noshows(db: AsyncSession) -> list[User]`:
+  - Find all DateGroups where status="completed" (or scheduled_date is in the past)
+  - For each group, find members who have NOT submitted FeedbackRating within 48 hours of the scheduled date
+  - Increment no_show_count on those users
+  - If no_show_count >= 3: set is_suspended=True
+  - Return list of flagged users
+
+- `async def mark_groups_completed(db: AsyncSession)`:
+  - Find DateGroups where status="upcoming" and scheduled_date + scheduled_time is in the past
+  - Update their status to "completed"
+
+## 2. backend/app/routers/reports.py
+
+Prefix: `/api/reports`. Auth required.
+
+- `POST /api/reports` — Create a report (can also be done via feedback, but this allows standalone reporting)
+  - Body: reported_user_id, group_id (optional), category, description (optional)
+  - Creates Report record
+  - Return 201
+
+- `GET /api/admin/reports` — Admin only. List all reports. Query params: status (filter by pending/reviewed/resolved/dismissed), limit, offset
+- `GET /api/admin/reports/{report_id}` — Admin only. Get report detail with reporter and reported user info.
+- `PATCH /api/admin/reports/{report_id}` — Admin only. Update status and admin_notes. Body: status, admin_notes
+- `POST /api/admin/noshow-check` — Admin only. Trigger no-show check. Returns list of flagged users.
+
+## 3. Update backend/app/main.py
+
+Include the reports router.
+
+## 4. backend/tests/test_reports.py
+
+1. `test_create_report` — report a user, expect 201
+2. `test_admin_list_reports` — admin sees reports, non-admin gets 403
+3. `test_admin_resolve_report` — admin updates report status to "resolved" with notes
+4. `test_noshow_detection` — create a completed group where one member hasn't submitted feedback (with a past date). Run check_noshows. Verify that user's no_show_count incremented.
+5. `test_three_noshows_suspends` — user with no_show_count=2, trigger one more no-show, verify is_suspended=True
+6. `test_suspended_user_cannot_login` — suspended user tries to login, expect 403
+
+IMPORTANT:
+- No-show check is triggered manually by admin for MVP (no cron job)
+- The 48-hour window should be configurable or use a reasonable default
+- Suspended users should be blocked at login (the auth system from Phase 2 already checks is_suspended)

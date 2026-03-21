@@ -1,0 +1,108 @@
+You are building Phase 15 of the LoveGenie dating app. Read CLAUDE.md for full project context. Phases 0-14 are complete.
+
+Build the mobile app's group date flow: group reveal, chat, post-date feedback, and match reveal.
+
+## 1. mobile/src/api/chat.ts
+
+- `getChatRooms()` — GET /api/chat/rooms
+- `getChatMessages(roomId, limit?, before?)` — GET /api/chat/rooms/{roomId}/messages
+- `getGroupDetail(groupId)` — GET /api/groups/{groupId}
+- `getIcebreakers(groupId)` — GET /api/groups/{groupId}/icebreakers
+- `getVenueSuggestions(groupId)` — GET /api/groups/{groupId}/venues
+
+## 2. mobile/src/api/feedback.ts
+
+- `submitFeedback(groupId, data)` — POST /api/groups/{groupId}/feedback
+- `getMyFeedback(groupId)` — GET /api/groups/{groupId}/feedback/mine
+
+## 3. mobile/src/hooks/useChat.ts
+
+WebSocket hook for real-time chat:
+```typescript
+function useChat(roomId: string, token: string) {
+  const [messages, setMessages] = useState<ChatMessage[]>([])
+  const [isConnected, setIsConnected] = useState(false)
+  const wsRef = useRef<WebSocket | null>(null)
+
+  // Connect to ws://host/api/ws/chat/{roomId}?token={token}
+  // On message: parse JSON, add to messages
+  // On close: set isConnected=false, attempt reconnect after 3s
+  // sendMessage(content): send JSON {type: "message", content}
+  // sendTyping(): send JSON {type: "typing"}
+  // cleanup on unmount
+
+  return { messages, isConnected, sendMessage, sendTyping, loadHistory }
+}
+```
+
+`loadHistory`: calls getChatMessages REST endpoint for older messages (pagination).
+
+## 4. Screens
+
+### mobile/src/screens/GroupRevealScreen.tsx
+- Header: activity name + date/time
+- Member cards: show each member's photo, name, age, program. Use a horizontal scroll or grid layout.
+- Venue suggestions section: list of suggested venues with name, address, price range
+- Icebreaker section: show 3 icebreaker prompts
+- "Open Group Chat" button → navigates to ChatScreen with the group's chat room ID
+- Status indicator: "Upcoming" / "Today!" / "Completed"
+
+### mobile/src/screens/ChatScreen.tsx
+- Message list (FlatList, inverted for newest-at-bottom)
+- Each message: sender name, content, timestamp. Different style for own messages vs others.
+- Text input + send button at bottom
+- Typing indicator ("Sarah is typing...")
+- Load older messages on scroll to top (pagination)
+- Works for both group chat and 1-on-1 chat (same component, different room ID)
+
+### mobile/src/screens/PostDateScreen.tsx
+- Shown after a group date is completed (navigate from group detail or push notification)
+- **Experience Rating**: 1-5 stars (tap to rate)
+- **Romantic Interest**: for each other member in the group, show their photo + name with a heart button (yes/no toggle). Default: not selected.
+- **Block**: small "block" button next to each member. Confirmation dialog: "Block this person? You won't be matched with them again."
+- **Report**: "Report a member" button at bottom. Opens a modal with member picker + category picker (uncomfortable, inappropriate, misrepresentation, aggressive) + optional description.
+- **Submit** button: sends all feedback at once.
+- After submission: show "Thanks for your feedback!" If there are mutual matches, show a celebration screen and navigate to MatchRevealScreen.
+
+### mobile/src/screens/MatchRevealScreen.tsx
+- Celebration animation or design (can be simple for MVP — just a header "It's a match!")
+- Shows the matched partner's photo, name, and bio
+- "Send a message" button → navigates to ChatScreen with the 1-on-1 chat room ID
+- "Back to Home" button
+
+## 5. Update Navigation
+
+- GroupRevealScreen accessible from HomeScreen (tap on upcoming group)
+- ChatScreen accessible from: GroupRevealScreen (group chat), MatchRevealScreen (1-on-1), Chat tab (list of all rooms)
+- PostDateScreen accessible from GroupRevealScreen when group status is "completed"
+- MatchRevealScreen shown after submitting feedback if mutual matches found
+- Chat tab: show list of chat rooms (ChatRoomsScreen) → tap opens ChatScreen
+
+### mobile/src/screens/ChatRoomsScreen.tsx
+- List of all chat rooms the user is in
+- Group chats: show group activity + member names
+- Direct chats: show partner's name + photo
+- Last message preview + timestamp
+- Navigate to ChatScreen on tap
+
+## 6. Tests
+
+### mobile/__tests__/hooks/useChat.test.ts
+- Mock WebSocket. Verify connection URL includes room ID and token.
+- Verify sendMessage sends correct JSON format.
+- Verify received message is added to messages state.
+
+### mobile/__tests__/screens/ChatScreen.test.tsx
+- Renders message list and input field
+- Renders send button
+
+### mobile/__tests__/screens/PostDateScreen.test.tsx
+- Renders star rating
+- Renders interest toggles for each member
+- Renders submit button
+
+IMPORTANT:
+- ChatScreen must work for BOTH group chat and 1-on-1 chat — same component, different room ID
+- The WebSocket URL uses the token as a query parameter (not header)
+- Post-date feedback must include an entry for every other member (interested: true/false)
+- TypeScript must compile clean

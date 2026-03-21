@@ -1,0 +1,39 @@
+You are building Phase 8 of the LoveGenie dating app. Read CLAUDE.md for full project context. Phases 0-7 are complete.
+
+Build the match reveal system — when mutual interest is detected, create a 1-on-1 chat room and let users see their matches.
+
+## 1. backend/app/schemas/matching.py
+
+- `MatchResponse`: id, partner (PublicProfileResponse), chat_room_id (UUID), group_id (UUID), created_at
+
+## 2. Update the match creation logic
+
+In the `check_and_create_matches` function (from Phase 7 in matching_service.py), after creating each Match record:
+- Create a ChatRoom with room_type="direct"
+- Create ChatParticipant records for both users
+- Set match.chat_room_id to the new chat room's ID
+
+## 3. backend/app/routers/matches.py
+
+Prefix: `/api/matches`. Requires auth.
+
+- `GET /api/matches` — List all of the current user's mutual matches. Return list of MatchResponse with partner's public profile and the 1-on-1 chat room ID.
+- `GET /api/matches/{match_id}` — Get a specific match. Must be one of the two matched users. Returns MatchResponse.
+
+## 4. Update backend/app/main.py
+
+Include the matches router.
+
+## 5. backend/tests/test_matches.py
+
+1. `test_mutual_match_has_chat_room` — Create a group, submit feedback with mutual interest, verify the Match has a non-null chat_room_id
+2. `test_list_my_matches` — User with a match sees it in GET /api/matches
+3. `test_match_includes_partner_profile` — Match response includes partner's public profile (name, photos, bio, etc.)
+4. `test_no_private_prefs_in_match` — Partner profile in match does NOT include age_range_min/max
+5. `test_empty_matches_list` — User with no matches gets empty list
+6. `test_cannot_see_others_match` — User C tries to GET a match between User A and B, expect 403
+
+IMPORTANT:
+- Each Match gets its own direct ChatRoom, separate from the group chat
+- The group chat (from matching) stays open — this is for the group. The direct chat is for the matched pair.
+- Match response must use PublicProfileResponse for the partner

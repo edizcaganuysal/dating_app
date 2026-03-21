@@ -1,0 +1,3 @@
+PHASE_NAME="Mobile Profile and Date Request"
+TEST_CMD="cd mobile && npx tsc --noEmit 2>&1 && npx jest --passWithNoTests --forceExit 2>&1"
+COMMIT_MSG="phase-14: mobile profile setup, home screen, and date request creation"

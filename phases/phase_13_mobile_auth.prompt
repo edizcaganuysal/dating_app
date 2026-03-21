@@ -1,0 +1,109 @@
+You are building Phase 13 of the LoveGenie dating app. Read CLAUDE.md for full project context. Phases 0-12 are complete (full backend is done).
+
+Build the mobile app's auth flow: API client, auth context, navigation, and auth screens.
+
+## 1. mobile/src/types/index.ts
+
+Define TypeScript interfaces matching the backend schemas:
+- `User`: id, email, first_name, last_name, gender, age, is_email_verified, is_selfie_verified, is_admin
+- `PublicProfile`: id, first_name, age, gender, program, year_of_study, bio, photo_urls, interests, is_selfie_verified
+- `PrivateProfile extends PublicProfile`: age_range_min, age_range_max
+- `DateRequest`: id, user_id, group_size, activity, status, availability_slots, created_at
+- `AvailabilitySlot`: date, time_window
+- `DateGroup`: id, activity, scheduled_date, scheduled_time, venue_name, venue_address, status, members (PublicProfile[])
+- `Match`: id, partner (PublicProfile), chat_room_id, group_id, created_at
+- `ChatRoom`: id, room_type, last_message, group_id, participants
+- `ChatMessage`: id, sender_id, sender_name, content, created_at
+- `ActivityType`: union of all activity strings
+- `TimeWindow`: "morning" | "afternoon" | "evening" | "night"
+
+## 2. mobile/src/api/client.ts
+
+- Create an axios instance with `baseURL` set to `http://localhost:8000` (configurable)
+- Add request interceptor: if token exists in AsyncStorage, add `Authorization: Bearer <token>` header
+- Add response interceptor: on 401, clear token and navigate to login
+- Export the configured instance
+
+## 3. mobile/src/api/auth.ts
+
+- `register(data)` — POST /api/auth/register
+- `verifyEmail(email, otp)` — POST /api/auth/verify-email
+- `login(email, password)` — POST /api/auth/login, store token in AsyncStorage
+- `getMe()` — GET /api/auth/me
+- `logout()` — clear token from AsyncStorage
+
+## 4. mobile/src/context/AuthContext.tsx
+
+React Context providing:
+- `user: User | null`
+- `token: string | null`
+- `isLoading: boolean` (checking stored token on app start)
+- `login(email, password): Promise<void>`
+- `register(data): Promise<{otp: string}>`
+- `verifyEmail(email, otp): Promise<void>`
+- `logout(): void`
+
+On mount: check AsyncStorage for existing token, if found call getMe() to validate, set user.
+
+## 5. mobile/src/navigation/AppNavigator.tsx
+
+- If not authenticated: show Auth stack (LoginScreen → RegisterScreen → VerifyEmailScreen)
+- If authenticated but no profile: show ProfileSetupScreen (will be built in phase 14, just show placeholder text for now)
+- If authenticated with profile: show Main tab navigator with tabs: Home, My Dates, Chat, Profile (placeholders for now, just Text components)
+
+Use `@react-navigation/native-stack` for stack, `@react-navigation/bottom-tabs` for tabs.
+
+## 6. Mobile Screens
+
+### mobile/src/screens/LoginScreen.tsx
+- Email input, password input, login button
+- "Don't have an account? Register" link → navigate to Register
+- On submit: call auth context login, handle errors (show alert)
+- Clean, simple design using React Native StyleSheet
+
+### mobile/src/screens/RegisterScreen.tsx
+- Fields: first_name, last_name, email (.edu hint), password, phone, gender (picker: Male/Female), age
+- Email validation hint: "Use your university email (.utoronto.ca, .edu)"
+- On submit: call register, navigate to VerifyEmailScreen with email + OTP (for dev display)
+
+### mobile/src/screens/VerifyEmailScreen.tsx
+- Email display (readonly), OTP input (6 digits)
+- In dev mode: show the OTP from registration response for easy testing
+- On submit: call verifyEmail, on success navigate to Login with success message
+
+## 7. mobile/App.tsx
+
+Wrap everything in AuthProvider and NavigationContainer:
+```tsx
+<AuthProvider>
+  <NavigationContainer>
+    <AppNavigator />
+  </NavigationContainer>
+</AuthProvider>
+```
+
+## 8. Tests
+
+### mobile/__tests__/api/auth.test.ts
+- Mock axios. Test that register calls POST /api/auth/register with correct payload
+- Test that login stores token in AsyncStorage
+- Test that logout clears AsyncStorage
+
+### mobile/__tests__/screens/LoginScreen.test.tsx
+- Renders email and password inputs
+- Renders login button
+- Renders register link
+
+## 9. Jest Configuration
+
+Update `mobile/jest.config.js` if needed:
+- Mock `@react-native-async-storage/async-storage`
+- Mock `@react-navigation` modules
+- Set `transformIgnorePatterns` to handle node_modules that need transformation
+
+IMPORTANT:
+- All API calls go through the axios client with token interceptor
+- AsyncStorage is the token store — no other persistence mechanism
+- Navigation structure: AuthStack (not logged in) vs MainTabs (logged in)
+- TypeScript must compile: `npx tsc --noEmit` must pass
+- Keep styles simple — no external UI library, just StyleSheet

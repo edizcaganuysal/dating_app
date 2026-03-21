@@ -1,0 +1,3 @@
+PHASE_NAME="Project Scaffolding"
+TEST_CMD="cd backend && pip install -r requirements.txt -q && python -c 'import fastapi; import sqlalchemy; print(\"Backend deps OK\")' && cd ../mobile && npm install --silent 2>/dev/null && npx tsc --noEmit && cd ../dashboard && npm install --silent 2>/dev/null && npx tsc --noEmit"
+COMMIT_MSG="phase-00: scaffold project structure with backend, mobile, and dashboard skeletons"

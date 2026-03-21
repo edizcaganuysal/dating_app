@@ -1,0 +1,71 @@
+You are building Phase 9 of the LoveGenie dating app. Read CLAUDE.md for full project context. Phases 0-8 are complete.
+
+Build the real-time WebSocket chat system for both group chats and 1-on-1 chats.
+
+## 1. backend/app/websocket/manager.py
+
+Create `ConnectionManager`:
+```python
+class ConnectionManager:
+    def __init__(self):
+        self.active_connections: dict[str, list[WebSocket]] = {}  # room_id -> [connections]
+
+    async def connect(self, websocket: WebSocket, room_id: str, user_id: str)
+    async def disconnect(self, websocket: WebSocket, room_id: str)
+    async def broadcast(self, room_id: str, message: dict, exclude_sender: str = None)
+```
+
+Singleton instance: `manager = ConnectionManager()`
+
+## 2. backend/app/websocket/handlers.py
+
+- `async def authenticate_ws(websocket: WebSocket, token: str, db: AsyncSession) -> User`
+  - Decode JWT token, fetch user, return user or close connection with 4001 code
+- `async def handle_chat_message(data: dict, user: User, room_id: str, db: AsyncSession)`
+  - Validate user is a participant of the room
+  - Save ChatMessage to database
+  - Broadcast to all connections in the room (including sender)
+  - Message format: `{"type": "message", "id": str(msg.id), "sender_id": str(user.id), "sender_name": user.first_name, "content": content, "created_at": iso_timestamp}`
+- `async def handle_typing(user: User, room_id: str)`
+  - Broadcast typing indicator: `{"type": "typing", "user_id": str(user.id), "user_name": user.first_name}`
+
+## 3. backend/app/routers/chat.py
+
+Prefix: `/api/chat` for REST, `/api/ws` for WebSocket.
+
+### WebSocket endpoint:
+- `WS /api/ws/chat/{room_id}?token=<jwt_token>`
+  - Authenticate via token query param
+  - Verify user is a participant of the room
+  - Add to ConnectionManager
+  - Listen for messages: `{"type": "message", "content": "..."} ` or `{"type": "typing"}`
+  - On disconnect: remove from ConnectionManager
+  - On invalid message format: send error back to sender only
+
+### REST endpoints (require auth):
+- `GET /api/chat/rooms` — List all chat rooms the user participates in. Return: room_id, room_type ("group"/"direct"), last_message (content + timestamp), unread indicator, group_id (if group chat), other participants' names.
+- `GET /api/chat/rooms/{room_id}/messages` — Paginated message history. Query params: limit (default 50), before (cursor — message ID to fetch before). Return messages in reverse chronological order.
+
+## 4. Update backend/app/main.py
+
+Include the chat router.
+
+## 5. backend/tests/test_chat.py
+
+For WebSocket testing, use Starlette's TestClient which supports `with client.websocket_connect(url) as ws`.
+Note: Use the SYNCHRONOUS TestClient (from starlette.testclient) for WebSocket tests, not the async httpx client.
+
+1. `test_ws_connect_authenticated` — connect with valid token to a room the user is in, expect successful connection
+2. `test_ws_connect_no_token` — connect without token, expect connection closed
+3. `test_ws_connect_non_member` — connect to a room the user is NOT in, expect connection closed
+4. `test_ws_send_receive_message` — two users connected to same room, user A sends message, user B receives it
+5. `test_message_persisted` — send a message via WS, then fetch via REST GET /messages, verify it's there
+6. `test_list_chat_rooms` — user in 2 rooms (1 group, 1 direct), GET /api/chat/rooms returns both
+7. `test_message_pagination` — send 60 messages, fetch with limit=50, verify 50 returned, fetch with before=oldest_id, verify remaining 10
+
+IMPORTANT:
+- WebSocket auth uses token as query parameter, not header (WebSocket doesn't support custom headers easily)
+- Messages must be persisted to the database before broadcasting
+- The ConnectionManager is in-memory — if the server restarts, active connections are lost (acceptable for MVP)
+- REST message history is the source of truth; WS is for real-time delivery
+- For WebSocket tests, you need to use Starlette's sync TestClient, NOT httpx.AsyncClient

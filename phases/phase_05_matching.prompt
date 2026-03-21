@@ -1,0 +1,78 @@
+You are building Phase 5 of the LoveGenie dating app. Read CLAUDE.md for full project context. Phases 0-4 are complete.
+
+Build the batch matching engine — the core algorithm that groups compatible users into date groups.
+
+## 1. backend/app/services/matching_service.py
+
+Implement `async def run_batch_matching(db: AsyncSession) -> list[DateGroup]`:
+
+### Algorithm Steps:
+
+1. **Fetch pool**: Get all DateRequests with status="pending"
+2. **Group by activity**: Split requests by their activity type
+3. **For each activity group**:
+   a. Find all pairs of requests with overlapping availability (same date + time_window)
+   b. For each overlapping date+time, try to form groups:
+      - Separate users into male and female pools
+      - Check age compatibility: every user must fall within every other user's age_range_min/max
+      - Check blocked pairs: no two users in the group can have a BlockedPair record
+      - Respect pre-group constraints: friends must be in the same group
+      - Target group sizes matching the requests (4 or 6)
+
+4. **Scoring** (for choosing between possible groups):
+   - Interest overlap: count shared interests between all cross-gender pairs, sum them
+   - Vibe alignment: count matching vibe answers between cross-gender pairs
+   - Attractiveness variance penalty: compute std_dev of attractiveness_scores, penalize high variance
+   - `group_score = interest_score + vibe_score - (attractiveness_variance * 10)`
+
+5. **Greedy assignment**:
+   - Generate candidate groups, score them
+   - Sort by score descending
+   - Assign highest-scoring group
+   - Remove assigned users from pool
+   - Repeat until pool exhausted
+
+6. **For each formed group**:
+   - Create a DateGroup record
+   - Create GroupMember records for each user
+   - Update each user's DateRequest status to "matched"
+   - Create a ChatRoom (type="group") and ChatParticipant records for all members
+
+7. **Return**: list of created DateGroup objects
+
+### Helper functions:
+- `check_age_compatibility(users: list[User]) -> bool`
+- `check_no_blocked_pairs(user_ids: list[UUID], db) -> bool`
+- `compute_group_score(males: list[User], females: list[User]) -> float`
+- `get_overlapping_slots(requests: list[DateRequest]) -> dict[tuple[date, str], list[DateRequest]]`
+
+## 2. backend/app/routers/matching.py
+
+Prefix: `/api/matching`
+
+- `POST /api/admin/matching/run-batch` — Admin only. Triggers `run_batch_matching()`. Returns list of formed groups with member info.
+- `GET /api/matching/my-groups` — Auth required. Returns all DateGroups where the current user is a member. Include member public profiles.
+
+## 3. Update backend/app/main.py
+
+Include the matching router.
+
+## 4. backend/tests/test_matching.py
+
+Create helper to quickly create a user with profile and pending date request.
+
+Tests:
+1. `test_match_6_compatible_users` — Create 3M + 3F with same activity, overlapping availability, compatible ages. Run batch. Verify 1 group of 6 created. Verify all requests status="matched". Verify group chat room created.
+2. `test_match_8_users_into_two_groups` — Create 4M + 4F, all requesting group_size=4. Run batch. Verify 2 groups of 4.
+3. `test_pregroup_friends_stay_together` — User A and B are pre-grouped. Verify they end up in the same group.
+4. `test_blocked_pair_never_grouped` — User A blocked User B. Create requests. Verify they are NOT in the same group.
+5. `test_no_match_different_activities` — 3M want "bowling", 3F want "karaoke". Run batch. Verify no groups formed.
+6. `test_no_match_no_availability_overlap` — 3M available Saturday, 3F available Sunday. Verify no groups.
+7. `test_leftover_users_stay_pending` — Create 5M + 3F requesting group_size=4. Only 1 group of 4 formed. 1M stays pending (unmatched).
+8. `test_my_groups_endpoint` — After matching, verify GET /api/matching/my-groups returns the group with member profiles.
+
+IMPORTANT:
+- The matching algorithm must be robust — handle edge cases gracefully (empty pools, odd numbers, etc.)
+- Pre-group constraints: if A and B are pre-grouped, they count toward the same gender count. If A requests group_size=4 with friend B, the group needs exactly 2 of the opposite gender.
+- BlockedPair check: query for ANY blocked pair between any two users in the candidate group
+- All database operations async

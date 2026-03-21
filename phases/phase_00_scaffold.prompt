@@ -1,0 +1,62 @@
+You are building Phase 0 of the LoveGenie dating app. Read CLAUDE.md for full project context.
+
+Create the project scaffolding for all three components. Do NOT implement any business logic yet — just the skeleton.
+
+## Backend Setup
+
+1. Create `backend/requirements.txt`:
+```
+fastapi==0.115.0
+uvicorn[standard]==0.30.0
+sqlalchemy[asyncio]==2.0.35
+alembic==1.13.0
+asyncpg==0.30.0
+pydantic==2.9.0
+pydantic-settings==2.5.0
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+python-multipart==0.0.9
+websockets==13.0
+httpx==0.27.0
+pytest==8.3.0
+pytest-asyncio==0.24.0
+```
+
+2. Create `backend/app/__init__.py` (empty)
+3. Create `backend/app/main.py` with a minimal FastAPI app:
+   - Title: "LoveGenie API"
+   - CORS middleware allowing all origins (dev only)
+   - A single `GET /api/health` endpoint returning `{"status": "ok"}`
+4. Create `backend/app/config.py`:
+   - Use pydantic-settings `BaseSettings` class
+   - Fields: DATABASE_URL, DATABASE_TEST_URL, SECRET_KEY, ALGORITHM (default "HS256"), ACCESS_TOKEN_EXPIRE_MINUTES (default 1440)
+   - `model_config = SettingsConfigDict(env_file=".env")`
+
+## Mobile Setup
+
+1. Initialize an Expo project in `mobile/`:
+   - Create `mobile/package.json` with dependencies: expo (^52.0.0), react, react-native, typescript, @types/react, @react-navigation/native, @react-navigation/native-stack, @react-navigation/bottom-tabs, react-native-screens, react-native-safe-area-context, axios, @react-native-async-storage/async-storage
+   - Dev dependencies: jest, @testing-library/react-native, @types/jest, react-test-renderer, typescript
+2. Create `mobile/tsconfig.json` with strict TypeScript config extending expo's base
+3. Create `mobile/app.json` with name "LoveGenie", slug "lovegenie"
+4. Create `mobile/App.tsx` — minimal component that renders a Text element saying "LoveGenie"
+5. Create `mobile/src/types/index.ts` — empty file with a comment "// TypeScript interfaces will be added here"
+6. Create `mobile/jest.config.js` with preset "jest-expo" or a basic react-native jest config
+
+## Dashboard Setup
+
+1. Create `dashboard/package.json` with dependencies: next (^15.0.0), react (^19.0.0), react-dom (^19.0.0), typescript, @types/react, @types/node, tailwindcss (^4.0.0), @tailwindcss/postcss
+   - Dev dependencies: jest, @testing-library/react, @testing-library/jest-dom, @types/jest, ts-jest
+2. Create `dashboard/tsconfig.json` extending Next.js defaults
+3. Create `dashboard/next.config.ts` — minimal Next.js config
+4. Create `dashboard/postcss.config.mjs` with tailwindcss plugin
+5. Create `dashboard/src/app/layout.tsx` — root layout with html/body, import globals.css
+6. Create `dashboard/src/app/globals.css` — just `@import "tailwindcss";`
+7. Create `dashboard/src/app/page.tsx` — simple page saying "LoveGenie Admin Dashboard"
+8. Create `dashboard/jest.config.ts` with ts-jest preset for Next.js
+
+IMPORTANT:
+- Do NOT install dependencies — build.sh handles that
+- Do NOT run any commands — just create the files
+- Keep everything minimal — later phases add the actual code
+- Make sure all TypeScript files will compile with `npx tsc --noEmit`

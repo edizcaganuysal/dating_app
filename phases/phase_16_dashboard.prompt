@@ -1,0 +1,118 @@
+You are building Phase 16 of the LoveGenie dating app. Read CLAUDE.md for full project context. Phases 0-15 are complete.
+
+Build the admin dashboard as a Next.js web application.
+
+## 1. dashboard/src/lib/api.ts
+
+Create a fetch wrapper for the admin API:
+- Base URL: `http://localhost:8000` (configurable via env)
+- `fetchApi(path, options?)` — adds Authorization header from stored token, handles JSON parsing, throws on non-2xx
+- `login(email, password)` — POST /api/auth/login, store token in localStorage
+- `getUsers(params?)` — GET /api/admin/users
+- `getUserDetail(id)` — GET /api/admin/users/{id}
+- `updateUser(id, data)` — PATCH /api/admin/users/{id}
+- `getPendingRequests()` — GET /api/admin/date-requests/pending
+- `createManualGroup(data)` — POST /api/admin/matching/manual
+- `runBatchMatching()` — POST /api/admin/matching/run-batch
+- `getReports(params?)` — GET /api/admin/reports
+- `updateReport(id, data)` — PATCH /api/admin/reports/{id}
+- `getAnalytics()` — GET /api/admin/analytics
+- `triggerNoshowCheck()` — POST /api/admin/noshow-check
+- `seedDatabase()` — POST /api/admin/seed
+
+## 2. Dashboard Layout
+
+### dashboard/src/app/layout.tsx
+- Root layout with Tailwind CSS
+- Inter font from next/font
+- Dark theme (dark background, light text) — modern admin look
+
+### dashboard/src/components/Sidebar.tsx (client component)
+- Fixed sidebar with navigation links:
+  - Dashboard (overview)
+  - Matching (manual matching)
+  - Users
+  - Reports
+  - Analytics
+- LoveGenie logo/text at top
+- Active link highlighting
+- Logout button at bottom
+
+### dashboard/src/components/AdminAuthGuard.tsx (client component)
+- Check for auth token in localStorage
+- If no token: show login form
+- If token: render children
+- Include login form: email + password inputs + submit button
+
+## 3. Pages
+
+### dashboard/src/app/page.tsx
+Redirect to /dashboard
+
+### dashboard/src/app/dashboard/page.tsx — Overview
+- Stats cards in a grid: Total Users, Active Users, Total Groups, Total Matches, Pending Reports, Avg Rating
+- Fetch from /api/admin/analytics
+- Each card: icon, label, value, trend color
+
+### dashboard/src/app/matching/page.tsx — Manual Matching
+This is the most important page for MVP.
+
+- **Pending Requests Table**: show all pending date requests with columns: User Name, Gender, Age, Activity, Group Size, Availability, Pre-grouped With, Created At
+- **Manual Match Form**:
+  - Select users from the pending requests (checkboxes)
+  - Show selected users count and gender split (e.g., "Selected: 2M, 2F")
+  - Activity dropdown, date picker, time input
+  - "Create Group" button — calls createManualGroup
+  - Validation: must be 4 or 6, equal gender split
+- **"Run Batch Matching" button** — triggers automatic matching, shows results
+- Color-code rows by activity for easy visual grouping
+
+### dashboard/src/app/users/page.tsx — User List
+- Search bar (searches name/email)
+- Filter: gender, suspended status
+- Table: Name, Email, Gender, Age, Verified, Suspended, No-Shows, Groups, Matches, Joined
+- Click row → navigate to user detail
+- Pagination
+
+### dashboard/src/app/users/[id]/page.tsx — User Detail
+- User profile card: photo, name, email, age, gender, program, bio, interests
+- Status badges: verified, selfie verified, suspended, admin
+- Actions: Suspend/Unsuspend button, Make Admin button
+- Tabs or sections:
+  - Groups: list of groups this user has been in
+  - Matches: list of mutual matches
+  - Reports Filed: reports this user has made
+  - Reports Received: reports against this user
+  - Date Requests: current and past requests
+
+### dashboard/src/app/reports/page.tsx — Report Queue
+- Filter by status (pending, reviewed, resolved, dismissed)
+- Table: Reporter, Reported User, Category, Group, Date, Status
+- Click to expand: show description, admin notes
+- Action buttons: Mark as Reviewed, Resolve, Dismiss
+- Admin notes text input on each report
+
+### dashboard/src/app/analytics/page.tsx — Analytics
+- Summary stats (same as dashboard overview but more detailed)
+- For MVP, just display the numbers in a clean layout — no charts library needed
+- Sections: User Stats, Matching Stats, Feedback Stats, Safety Stats
+- "Seed Database" button (dev only) — calls seedDatabase endpoint
+- "Check No-Shows" button — calls triggerNoshowCheck
+
+## 4. Tests
+
+### dashboard/__tests__/api.test.ts
+- Mock fetch. Verify getUsers calls GET /api/admin/users
+- Verify createManualGroup sends correct payload
+
+### dashboard/__tests__/matching.test.tsx
+- Renders pending requests table heading
+- Renders "Create Group" button
+
+IMPORTANT:
+- Use Tailwind CSS for ALL styling
+- Use "use client" directive only on components that need interactivity (forms, buttons, state)
+- The matching page is the most critical page — admins will live here for MVP
+- Make the UI clean and functional, not flashy
+- TypeScript must compile: `npx tsc --noEmit` and `npm run build` must both pass
+- Use standard HTML table elements styled with Tailwind, not a table library

@@ -1,0 +1,58 @@
+You are building Phase 7 of the LoveGenie dating app. Read CLAUDE.md for full project context. Phases 0-6 are complete.
+
+Build post-date feedback: experience ratings, romantic interest indication, blocking, and behavior flagging.
+
+## 1. backend/app/schemas/feedback.py
+
+- `RomanticInterestInput`: user_id (UUID), interested (bool)
+- `FeedbackCreate`: experience_rating (int, 1-5), romantic_interests (list[RomanticInterestInput]), block_user_ids (list[UUID], default empty), report_user_ids (list[UUID], default empty), report_category (Optional[str])
+- `FeedbackResponse`: id, group_id, experience_rating, submitted_at
+
+## 2. backend/app/routers/feedback.py
+
+Prefix: `/api/groups/{group_id}/feedback`. Requires auth.
+
+- `POST /api/groups/{group_id}/feedback` — Submit feedback for a group date.
+  - User must be a member of the group
+  - User cannot submit feedback twice for the same group
+  - Creates FeedbackRating record
+  - Creates RomanticInterest records for each member (interested true/false)
+  - For each user_id in block_user_ids: create BlockedPair (blocker=current_user, blocked=target)
+  - For each user_id in report_user_ids: create Report with the given category
+  - **Check for mutual matches**: After saving, check if ALL members of the group have now submitted feedback. If yes, find all pairs where BOTH users indicated `interested=True` for each other. For each mutual pair, create a Match record.
+  - Return 201
+
+- `GET /api/groups/{group_id}/feedback/mine` — Get the current user's feedback for this group (or 404 if not submitted yet)
+
+## 3. backend/app/services/matching_service.py (update)
+
+Add a function `async def check_and_create_matches(group_id: UUID, db: AsyncSession) -> list[Match]`:
+- Fetch all RomanticInterest records for this group
+- Find mutual pairs (A interested in B AND B interested in A)
+- For each mutual pair, create a Match record
+- Return created matches
+- This is called by the feedback router after each feedback submission, but only processes when ALL members have submitted.
+
+## 4. Update backend/app/main.py
+
+Include the feedback router.
+
+## 5. backend/tests/test_feedback.py
+
+Create a helper that sets up a matched group of 4 (2M + 2F) ready for feedback.
+
+1. `test_submit_feedback` — submit valid feedback, expect 201
+2. `test_submit_feedback_not_member` — non-member submits, expect 403
+3. `test_submit_feedback_twice` — submit twice for same group, expect 409
+4. `test_rating_out_of_range` — rating=6, expect 422
+5. `test_mutual_interest_creates_match` — all 4 members submit. M1 likes F1, F1 likes M1. Verify Match created for M1-F1.
+6. `test_one_sided_interest_no_match` — M1 likes F1, F1 does NOT like M1. Verify no Match.
+7. `test_block_creates_blocked_pair` — M1 blocks F2. Verify BlockedPair record exists.
+8. `test_report_creates_report` — M1 reports F2 for "inappropriate". Verify Report record with correct category.
+9. `test_matches_only_checked_when_all_submitted` — 3 of 4 members submit (with mutual interests). Verify NO matches created yet. Then 4th submits. Now verify match created.
+
+IMPORTANT:
+- Mutual match detection must only run when ALL group members have submitted feedback
+- A user can indicate interest in multiple people (it's yes/no per person)
+- Blocking is separate from "not interested" — you can not be interested without blocking
+- The romantic_interests list should include an entry for every OTHER member in the group

@@ -1,0 +1,3 @@
+PHASE_NAME="Database Seeding"
+TEST_CMD="cd backend && python -m pytest tests/ -v --tb=short 2>&1"
+COMMIT_MSG="phase-12: database seeding with 20 demo users, groups, and matches"

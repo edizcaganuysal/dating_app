@@ -1,0 +1,3 @@
+PHASE_NAME="User Profiles"
+TEST_CMD="cd backend && python -m pytest tests/ -v --tb=short 2>&1"
+COMMIT_MSG="phase-03: user profile CRUD with vibe-check questions and selfie verification"

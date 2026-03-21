@@ -1,0 +1,49 @@
+You are building Phase 4 of the LoveGenie dating app. Read CLAUDE.md for full project context. Phases 0-3 are complete.
+
+Build the date request system.
+
+## 1. backend/app/schemas/date_request.py
+
+- `ActivityType` — string enum with values: "dinner", "bar", "bowling", "karaoke", "board_games", "ice_skating", "hiking", "cooking_class", "trivia_night", "mini_golf", "escape_room", "art_gallery", "picnic", "museum"
+- `TimeWindow` — string enum: "morning", "afternoon", "evening", "night"
+- `AvailabilitySlotCreate`: date (date), time_window (TimeWindow)
+- `DateRequestCreate`: group_size (Literal[4, 6]), activity (ActivityType), availability_slots (list[AvailabilitySlotCreate], min 1), pre_group_friend_ids (list[UUID], default empty, max 2)
+- `DateRequestResponse`: id, user_id, group_size, activity, status, availability_slots, pre_group_friend_ids, created_at
+
+## 2. backend/app/routers/date_requests.py
+
+Prefix: `/api/date-requests`. All endpoints require auth.
+
+- `POST /api/date-requests` — Create a date request.
+  - Validate group_size is 4 or 6
+  - Validate pre_group_friend_ids: each friend must exist, must be same gender as requester, max 2 friends
+  - For group of 4: max 1 friend (2 guys total = half the group)
+  - For group of 6: max 2 friends (3 guys total = half the group)
+  - Check user doesn't already have a pending request
+  - Create DateRequest + AvailabilitySlots + PreGroupFriends
+  - Return 201
+
+- `GET /api/date-requests` — List current user's date requests (all statuses)
+- `GET /api/date-requests/{id}` — Get a specific date request (only if owned by user or user is admin)
+- `DELETE /api/date-requests/{id}` — Cancel a date request (set status to "cancelled"). Only if status is "pending" and owned by user.
+- `PATCH /api/date-requests/{id}` — Update availability slots or activity. Only if status is "pending".
+
+## 3. Update backend/app/main.py
+
+Include the date_requests router.
+
+## 4. backend/tests/test_date_requests.py
+
+1. `test_create_date_request` — valid request with 2 availability slots, expect 201
+2. `test_create_invalid_group_size` — group_size=5, expect 422
+3. `test_create_with_valid_friend` — create 2 same-gender users, user A lists user B as friend, expect 201
+4. `test_create_with_wrong_gender_friend` — user A (male) lists female user as friend, expect 400
+5. `test_create_with_too_many_friends` — group_size=4 with 2 friends (would make 3 same gender), expect 400
+6. `test_create_duplicate_pending` — user with pending request tries to create another, expect 409
+7. `test_list_own_requests` — create request, list, verify it appears
+8. `test_cancel_request` — create then DELETE, verify status changes to cancelled
+9. `test_cancel_others_request` — user B tries to cancel user A's request, expect 403
+
+IMPORTANT:
+- Pre-group validation is critical: friend count + 1 (the requester) must be <= group_size / 2
+- Use the auth helpers from conftest.py to create test users with profiles

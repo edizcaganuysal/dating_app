@@ -1,0 +1,3 @@
+PHASE_NAME="Admin Dashboard API"
+TEST_CMD="cd backend && python -m pytest tests/ -v --tb=short 2>&1"
+COMMIT_MSG="phase-11: admin API with user management, manual matching, and analytics"

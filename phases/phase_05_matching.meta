@@ -1,0 +1,3 @@
+PHASE_NAME="Batch Matching Engine"
+TEST_CMD="cd backend && python -m pytest tests/ -v --tb=short 2>&1"
+COMMIT_MSG="phase-05: batch matching engine with compatibility scoring and constraint satisfaction"

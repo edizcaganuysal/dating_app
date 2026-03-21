@@ -1,0 +1,84 @@
+You are building Phase 14 of the LoveGenie dating app. Read CLAUDE.md for full project context. Phases 0-13 are complete.
+
+Build the mobile app's profile setup, home screen, and date request creation.
+
+## 1. mobile/src/api/profiles.ts
+
+- `createProfile(data)` — POST /api/profiles
+- `getMyProfile()` — GET /api/profiles/me
+- `updateProfile(data)` — PATCH /api/profiles/me
+- `selfieVerify()` — POST /api/profiles/selfie-verify
+
+## 2. mobile/src/api/dates.ts
+
+- `createDateRequest(data)` — POST /api/date-requests
+- `getMyDateRequests()` — GET /api/date-requests
+- `cancelDateRequest(id)` — DELETE /api/date-requests/{id}
+- `getMyGroups()` — GET /api/matching/my-groups
+- `getMyMatches()` — GET /api/matches
+
+## 3. Screens
+
+### mobile/src/screens/ProfileSetupScreen.tsx
+
+Multi-step form (use state to track current step):
+
+**Step 1 — Photos**: "Add at least 3 photos". Show 6 photo slots (3 required, 3 optional). For MVP, use text inputs for photo URLs (real photo upload comes later). Show a "Selfie Verify" button (calls the stub endpoint).
+
+**Step 2 — About You**: Program (text input), Year of Study (picker 1-6), Bio (text area, max 500 chars).
+
+**Step 3 — Interests**: Grid of interest chips from the curated list. Tap to toggle. Must select at least 1. Interests: hiking, cooking, reading, gaming, photography, music, travel, fitness, art, movies, dancing, coffee, food, sports, yoga, volunteering.
+
+**Step 4 — Vibe Check**: 5 questions, each with 2 options (A/B). Use the questions from IDEA.md:
+- "Friday night: house party or cozy bar?"
+- "Pineapple on pizza: yes or no?"
+- "Road trip or beach vacation?"
+- "Early bird or night owl?"
+- "Cook at home or eat out?"
+
+**Step 5 — Preferences (Private)**: Age range slider (min/max, 18-30). Note: "This is private and only used for matching."
+
+Submit button on final step: calls createProfile, navigates to Home.
+
+### mobile/src/screens/HomeScreen.tsx
+
+- Welcome message with user's first name
+- **Upcoming Groups** section: list of DateGroups with status="upcoming". Each shows activity, date/time, member count. Tap to navigate to GroupRevealScreen (placeholder for now).
+- **Recent Matches** section: list of matches. Each shows partner name + photo. Tap to navigate to chat (placeholder).
+- **Create Date Request** button (floating action button or prominent CTA) → navigates to DateRequestScreen.
+- If no groups or matches: show encouraging message "Create your first date request!"
+
+### mobile/src/screens/DateRequestScreen.tsx
+
+- **Activity Picker**: horizontal scrollable list of activity chips (from ActivityType enum). Tap to select one.
+- **Group Size**: toggle between 4 and 6.
+- **Availability**: date picker + time window selector. Can add multiple slots. Each slot shows the date and time window. Swipe to delete.
+- **Bring Friends** (optional): text input for friend's email or user search. For MVP, just a text field where they can enter a friend's user ID. Show "optional" label.
+- **Submit** button: creates the date request, shows success message, navigates back to Home.
+
+## 4. Update Navigation
+
+In AppNavigator.tsx:
+- After auth, check if user has a profile (bio is set). If not, show ProfileSetupScreen.
+- Main tabs: Home, My Dates (list of date requests), Chat (placeholder), Profile (show/edit profile)
+- Home tab has a stack navigator for: HomeScreen → DateRequestScreen, HomeScreen → GroupRevealScreen (placeholder)
+
+## 5. Tests
+
+### mobile/__tests__/api/profiles.test.ts
+- Mock axios. Verify createProfile calls POST /api/profiles with correct data.
+- Verify getMyProfile calls GET /api/profiles/me.
+
+### mobile/__tests__/api/dates.test.ts
+- Verify createDateRequest calls POST /api/date-requests.
+- Verify getMyGroups calls GET /api/matching/my-groups.
+
+### mobile/__tests__/screens/ProfileSetupScreen.test.tsx
+- Renders step 1 (photo inputs)
+- Can navigate between steps
+
+IMPORTANT:
+- Profile setup is a required step — users cannot access the main app without completing it
+- The vibe check questions must match exactly what the backend expects (5 questions with specific text)
+- Keep UI simple and functional — we'll polish design later
+- TypeScript must compile clean

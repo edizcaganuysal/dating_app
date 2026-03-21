@@ -1,0 +1,3 @@
+PHASE_NAME="Admin Dashboard Frontend"
+TEST_CMD="cd dashboard && npx tsc --noEmit 2>&1 && npx jest --passWithNoTests --forceExit 2>&1 && npm run build 2>&1"
+COMMIT_MSG="phase-16: admin dashboard with manual matching, user management, reports, analytics"

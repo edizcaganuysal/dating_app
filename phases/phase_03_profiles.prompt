@@ -1,0 +1,42 @@
+You are building Phase 3 of the LoveGenie dating app. Read CLAUDE.md for full project context. Phases 0-2 are complete.
+
+Build user profile management: creation, retrieval, updates, and selfie verification.
+
+## 1. backend/app/schemas/profile.py
+
+- `VibeAnswerCreate`: question (str), answer (str)
+- `ProfileCreate`: bio (str, max 500 chars), program (str), year_of_study (int, 1-6), photo_urls (list[str], min 3), interests (list[str], min 1), vibe_answers (list[VibeAnswerCreate], exactly 5), age_range_min (int, 18-99), age_range_max (int, 18-99)
+- `ProfileUpdate`: all fields optional
+- `PublicProfileResponse`: id, first_name, age, gender, program, year_of_study, bio, photo_urls, interests, is_selfie_verified — NO private preferences (age_range_min/max), NO attractiveness_score, NO elo_score
+- `PrivateProfileResponse(PublicProfileResponse)`: adds age_range_min, age_range_max — only for the user's own profile
+
+## 2. backend/app/routers/profiles.py
+
+Prefix: `/api/profiles`. All endpoints require auth.
+
+- `POST /api/profiles` — Create/complete profile. Updates the user's bio, program, year_of_study, photo_urls, interests, age_range_min, age_range_max. Creates VibeAnswer records. Returns 201 with PrivateProfileResponse.
+- `GET /api/profiles/me` — Get own profile (PrivateProfileResponse — includes private prefs)
+- `PATCH /api/profiles/me` — Partial update. Only update provided fields.
+- `GET /api/profiles/{user_id}` — Get another user's PUBLIC profile (PublicProfileResponse — NO private prefs). Return 404 if user doesn't exist.
+- `POST /api/profiles/selfie-verify` — Stub: just sets is_selfie_verified=True on the user. Returns 200 `{"message": "Selfie verified"}`.
+
+## 3. Update backend/app/main.py
+
+Include the profiles router.
+
+## 4. backend/tests/test_profiles.py
+
+Write these tests:
+1. `test_create_profile` — auth user, POST /api/profiles with full data, expect 201
+2. `test_create_profile_min_photos` — provide only 2 photos, expect 422
+3. `test_get_own_profile` — create profile, GET /api/profiles/me, verify private prefs ARE included
+4. `test_get_other_profile_public` — create 2 users with profiles, user A gets user B's profile, verify private prefs are NOT in response
+5. `test_update_profile` — PATCH with new bio, verify only bio changed
+6. `test_selfie_verify` — POST /api/profiles/selfie-verify, verify is_selfie_verified becomes True
+7. `test_profile_unauthorized` — all endpoints return 401 without token
+
+IMPORTANT:
+- PublicProfileResponse must NEVER include age_range_min, age_range_max, attractiveness_score, or elo_score
+- PrivateProfileResponse is ONLY used for GET /api/profiles/me
+- Use the existing auth system from Phase 2 to create test users (register + verify + login)
+- Create a helper function in conftest.py to register+verify+login a test user and return the token

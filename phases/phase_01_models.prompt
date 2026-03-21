@@ -1,0 +1,173 @@
+You are building Phase 1 of the LoveGenie dating app. Read CLAUDE.md for full project context. Phase 0 (scaffolding) is complete.
+
+Create the database layer: models, connection setup, and Alembic migrations.
+
+## 1. backend/app/database.py
+
+Create the async database connection:
+- `create_async_engine` with the DATABASE_URL from config
+- `async_sessionmaker` with `class_=AsyncSession`, `expire_on_commit=False`
+- `Base = DeclarativeBase()` (SQLAlchemy 2.0 style)
+- `async def get_db()` — async generator yielding a session
+
+## 2. Database Models
+
+All models use:
+- UUID primary keys (`Mapped[uuid.UUID]` with `default_factory=uuid.uuid4`)
+- `created_at: Mapped[datetime]` with `server_default=func.now()`
+- `updated_at: Mapped[datetime]` with `server_default=func.now()`, `onupdate=func.now()`
+
+### backend/app/models/user.py
+```python
+class User(Base):
+    __tablename__ = "users"
+    id, email, password_hash, first_name, last_name, phone
+    university_domain: str  # e.g., "utoronto.ca"
+    is_email_verified: bool = False
+    email_otp: Optional[str]  # 6-digit OTP for verification
+    is_selfie_verified: bool = False
+    is_admin: bool = False
+    is_suspended: bool = False
+    no_show_count: int = 0
+    gender: str  # "male" or "female"
+    age: int
+    program: Optional[str]
+    year_of_study: Optional[int]
+    bio: Optional[str]
+    photo_urls: list  # JSON array of photo URLs (use JSON type)
+    interests: list  # JSON array of interest strings
+    age_range_min: int = 18  # PRIVATE - never exposed to others
+    age_range_max: int = 30  # PRIVATE - never exposed to others
+    attractiveness_score: float = 5.0  # ML score, hidden
+    elo_score: float = 1000.0  # Updated after dates
+    created_at, updated_at
+
+class VibeAnswer(Base):
+    __tablename__ = "vibe_answers"
+    id, user_id (FK -> users.id), question: str, answer: str
+```
+
+### backend/app/models/date_request.py
+```python
+class DateRequest(Base):
+    __tablename__ = "date_requests"
+    id, user_id (FK), group_size: int (4 or 6)
+    activity: str  # enum value
+    status: str = "pending"  # pending, matched, cancelled, expired
+    created_at, updated_at
+
+class AvailabilitySlot(Base):
+    __tablename__ = "availability_slots"
+    id, date_request_id (FK), date: date, time_window: str  # "morning", "afternoon", "evening", "night"
+
+class PreGroupFriend(Base):
+    __tablename__ = "pre_group_friends"
+    id, date_request_id (FK), friend_user_id (FK -> users.id)
+```
+
+### backend/app/models/group.py
+```python
+class DateGroup(Base):
+    __tablename__ = "date_groups"
+    id, activity: str, scheduled_date: date, scheduled_time: str
+    venue_name: Optional[str], venue_address: Optional[str]
+    status: str = "upcoming"  # upcoming, completed, cancelled
+    created_at
+
+class GroupMember(Base):
+    __tablename__ = "group_members"
+    id, group_id (FK -> date_groups.id), user_id (FK -> users.id)
+    date_request_id (FK -> date_requests.id, nullable)
+```
+
+### backend/app/models/match.py
+```python
+class Match(Base):
+    __tablename__ = "matches"
+    id, group_id (FK -> date_groups.id)
+    user1_id (FK -> users.id), user2_id (FK -> users.id)
+    chat_room_id (FK -> chat_rooms.id, nullable)  # Set after chat room created
+    created_at
+```
+
+### backend/app/models/chat.py
+```python
+class ChatRoom(Base):
+    __tablename__ = "chat_rooms"
+    id, room_type: str  # "group" or "direct"
+    group_id: Optional[UUID] (FK -> date_groups.id, nullable)
+    created_at
+
+class ChatParticipant(Base):
+    __tablename__ = "chat_participants"
+    id, room_id (FK -> chat_rooms.id), user_id (FK -> users.id)
+
+class ChatMessage(Base):
+    __tablename__ = "chat_messages"
+    id, room_id (FK -> chat_rooms.id), sender_id (FK -> users.id)
+    content: str, message_type: str = "text"  # text, system
+    created_at
+```
+
+### backend/app/models/report.py
+```python
+class FeedbackRating(Base):
+    __tablename__ = "feedback_ratings"
+    id, group_id (FK), user_id (FK)
+    experience_rating: int  # 1-5
+    created_at
+
+class RomanticInterest(Base):
+    __tablename__ = "romantic_interests"
+    id, group_id (FK), from_user_id (FK), to_user_id (FK)
+    interested: bool
+    created_at
+
+class BlockedPair(Base):
+    __tablename__ = "blocked_pairs"
+    id, blocker_id (FK -> users.id), blocked_id (FK -> users.id)
+    created_at
+
+class Report(Base):
+    __tablename__ = "reports"
+    id, reporter_id (FK), reported_id (FK), group_id (FK, nullable)
+    category: str  # "uncomfortable", "inappropriate", "misrepresentation", "aggressive"
+    description: Optional[str]
+    status: str = "pending"  # pending, reviewed, resolved, dismissed
+    admin_notes: Optional[str]
+    created_at, updated_at
+```
+
+### backend/app/models/__init__.py
+Re-export ALL model classes from this file so Alembic can discover them.
+
+## 3. Alembic Setup
+
+1. Run `cd backend && alembic init alembic` conceptually — but actually create the files manually:
+   - `backend/alembic.ini` — set `sqlalchemy.url` to empty (we override in env.py)
+   - `backend/alembic/env.py` — import Base and all models, use async engine from config, set `target_metadata = Base.metadata`
+   - `backend/alembic/script.py.mako` — standard template
+   - `backend/alembic/versions/` — empty directory with `__init__.py`
+2. Create the initial migration file manually in `backend/alembic/versions/001_initial.py` that creates all tables.
+   Use `op.create_table(...)` for each model. Make sure all foreign keys, indexes, and constraints are included.
+
+## 4. Tests
+
+Create `backend/tests/__init__.py` (empty).
+Create `backend/tests/conftest.py`:
+- Use `DATABASE_TEST_URL` from environment for the test database
+- Create an async engine and sessionmaker for tests
+- Fixture `db_session` that creates all tables before the test session and drops them after
+- Fixture `client` that provides an `httpx.AsyncClient` configured with the FastAPI app and test DB override
+
+Create `backend/tests/test_models.py`:
+- Test that all tables can be created (`Base.metadata.create_all`)
+- Test inserting a User and reading it back
+- Test inserting a DateRequest linked to a User
+
+IMPORTANT:
+- Use SQLAlchemy 2.0 `Mapped[]` and `mapped_column()` syntax throughout
+- All columns that store JSON (photo_urls, interests) should use `JSON` column type
+- Foreign keys use `ForeignKey("table_name.id")` string syntax
+- Make sure models/__init__.py imports and re-exports every model class
+- The alembic env.py must import from app.models to register all models with Base.metadata

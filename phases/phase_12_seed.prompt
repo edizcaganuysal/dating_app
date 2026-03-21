@@ -1,0 +1,57 @@
+You are building Phase 12 of the LoveGenie dating app. Read CLAUDE.md for full project context. Phases 0-11 are complete.
+
+Build a database seeding script with realistic demo data.
+
+## 1. backend/app/seed.py
+
+Create a seeding script that populates the database with realistic demo data for development and testing.
+
+### Data to create:
+
+**20 Users** (10 male, 10 female):
+- Use realistic names, .utoronto.ca emails
+- All email-verified and selfie-verified
+- One user is an admin (admin@mail.utoronto.ca, password: "admin123")
+- Ages between 19-24
+- Programs: Computer Science, Business, Engineering, Psychology, Biology, Economics, English, Math, Pre-Med, Art History
+- Bios: short, realistic bios (1-2 sentences each)
+- Interests from: ["hiking", "cooking", "reading", "gaming", "photography", "music", "travel", "fitness", "art", "movies", "dancing", "coffee", "food", "sports", "yoga", "volunteering"]
+- 5 vibe answers each
+- Varied attractiveness_scores (3.0-8.0) and elo_scores (800-1200)
+- Photo URLs: use placeholder URLs like "https://picsum.photos/seed/{user_name}/400/500"
+
+**Date Requests**:
+- 8 pending date requests (4M, 4F) with overlapping availability for upcoming weekend
+- Mix of activities: 4 for "bowling", 4 for "dinner"
+
+**2 Completed Groups** (already matched, dates happened):
+- Group 1: 4 people (2M+2F), activity=bowling, status=completed
+- Group 2: 6 people (3M+3F), activity=dinner, status=completed
+- All members have submitted feedback
+
+**1 Mutual Match** from Group 1 with a direct chat room and some messages
+
+**Some BlockedPairs and Reports** for testing admin views
+
+### Implementation:
+
+- Create an async function `async def seed_database()`
+- Make it idempotent: check if admin user exists, if so skip seeding
+- Hash passwords properly using the auth service
+- Create all relationships correctly (group members, chat participants, etc.)
+- Callable via: `python -m app.seed` (add `if __name__ == "__main__"` block with asyncio.run)
+- Also add an admin-only endpoint: `POST /api/admin/seed` that calls the same function
+
+## 2. backend/tests/test_seed.py
+
+1. `test_seed_creates_users` — run seed, verify 20 users exist
+2. `test_seed_creates_admin` — verify admin user exists with is_admin=True
+3. `test_seed_creates_groups` — verify at least 2 groups exist
+4. `test_seed_creates_match` — verify at least 1 match exists with chat room
+5. `test_seed_is_idempotent` — run seed twice, verify still 20 users (not 40)
+
+IMPORTANT:
+- Use realistic data that would make sense for UofT students
+- All passwords should be properly hashed (not stored in plain text)
+- The admin user should be easy to remember: admin@mail.utoronto.ca / admin123
+- Seed data should demonstrate the full flow: pending requests, matched groups, feedback, matches

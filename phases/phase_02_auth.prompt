@@ -1,0 +1,78 @@
+You are building Phase 2 of the LoveGenie dating app. Read CLAUDE.md for full project context. Phases 0-1 are complete — the project is scaffolded and database models exist.
+
+Build the authentication system: registration, email verification, login, and auth middleware.
+
+## 1. backend/app/schemas/auth.py
+
+Create Pydantic v2 schemas:
+- `RegisterRequest`: email (str), password (str, min 8 chars), first_name, last_name, phone (str), gender (Literal["male", "female"]), age (int, ge=18, le=99)
+- `LoginRequest`: email, password
+- `TokenResponse`: access_token (str), token_type (str = "bearer")
+- `VerifyEmailRequest`: email (str), otp (str)
+- `UserResponse`: id, email, first_name, last_name, gender, age, is_email_verified, is_selfie_verified, is_admin, created_at — use `model_config = ConfigDict(from_attributes=True)`
+
+## 2. backend/app/services/auth_service.py
+
+- `hash_password(password: str) -> str` using passlib bcrypt
+- `verify_password(plain: str, hashed: str) -> bool`
+- `create_access_token(data: dict) -> str` using python-jose HS256, expiry from config
+- `decode_access_token(token: str) -> dict` — raises HTTPException 401 on invalid
+- `generate_otp() -> str` — random 6-digit string
+- `is_valid_university_email(email: str) -> bool` — returns True if email domain ends with `.edu`, `.utoronto.ca`, `.mail.utoronto.ca`, or other known university domains. For MVP, accept: `.edu`, `.utoronto.ca`, `.mail.utoronto.ca`, `.yorku.ca`, `.ryerson.ca`, `.torontomu.ca`, `.ocadu.ca`
+
+## 3. backend/app/middleware/auth_middleware.py
+
+- `async def get_current_user(...)` — FastAPI dependency. Extracts Bearer token from Authorization header, decodes JWT, fetches user from DB. Raises 401 if token invalid or user not found. Raises 403 if user is suspended.
+- `async def get_admin_user(...)` — calls get_current_user, then checks is_admin. Raises 403 if not admin.
+
+## 4. backend/app/routers/auth.py
+
+All endpoints prefixed with `/api/auth`.
+
+- `POST /api/auth/register`:
+  - Validate university email domain
+  - Check for duplicate email (409 if exists)
+  - Hash password, create User record
+  - Generate OTP, store on user, log it: `print(f"OTP for {email}: {otp}")`
+  - Return 201 with `{"message": "Registration successful. Check your email for OTP.", "otp": otp}` (include OTP in response for dev/testing convenience)
+
+- `POST /api/auth/verify-email`:
+  - Find user by email, compare OTP
+  - If match: set is_email_verified=True, clear OTP
+  - Return 200 `{"message": "Email verified"}`
+  - If wrong: return 400
+
+- `POST /api/auth/login`:
+  - Find user by email, verify password
+  - If not verified: return 400 "Please verify your email first"
+  - If suspended: return 403 "Account suspended"
+  - Return TokenResponse with JWT containing `{"sub": str(user.id)}`
+
+- `GET /api/auth/me`:
+  - Requires auth (get_current_user dependency)
+  - Return UserResponse
+
+## 5. Update backend/app/main.py
+
+- Import and include the auth router
+- Keep the health endpoint
+
+## 6. backend/tests/test_auth.py
+
+Write these tests using the async test client from conftest.py:
+1. `test_register_valid_edu_email` — register with `test@mail.utoronto.ca`, expect 201
+2. `test_register_invalid_email_domain` — register with `test@gmail.com`, expect 400
+3. `test_register_duplicate_email` — register same email twice, expect 409 on second
+4. `test_verify_email_correct_otp` — register, then verify with OTP from response, expect 200
+5. `test_verify_email_wrong_otp` — verify with wrong OTP, expect 400
+6. `test_login_success` — register + verify + login, expect 200 with access_token
+7. `test_login_unverified` — register without verify + login, expect 400
+8. `test_login_wrong_password` — register + verify + login with wrong password, expect 401
+9. `test_me_with_token` — login + GET /api/auth/me with token, expect 200 with user data
+10. `test_me_without_token` — GET /api/auth/me without token, expect 401
+
+IMPORTANT:
+- All database operations must be async
+- Use `select()` not `query()` (SQLAlchemy 2.0 style)
+- The conftest.py from phase 1 should already handle test DB setup; update it if needed
+- Make sure the test client overrides the `get_db` dependency to use the test database session

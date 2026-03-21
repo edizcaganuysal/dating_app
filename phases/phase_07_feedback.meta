@@ -1,0 +1,3 @@
+PHASE_NAME="Post-Date Feedback"
+TEST_CMD="cd backend && python -m pytest tests/ -v --tb=short 2>&1"
+COMMIT_MSG="phase-07: post-date feedback with ratings, romantic interest, blocking, and behavior flags"
