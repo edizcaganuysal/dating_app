@@ -1,3 +1,4 @@
+import uuid
 from typing import AsyncGenerator
 
 import pytest_asyncio
@@ -58,3 +59,27 @@ async def client(db_session: AsyncSession) -> AsyncGenerator[AsyncClient, None]:
     ) as ac:
         yield ac
     app.dependency_overrides.clear()
+
+
+async def create_verified_user(client: AsyncClient, suffix: str = "") -> tuple[str, dict]:
+    """Register, verify, and login a test user. Returns (token, user_data)."""
+    unique = suffix or uuid.uuid4().hex[:8]
+    email = f"test{unique}@utoronto.ca"
+    password = "TestPassword123!"
+
+    reg_resp = await client.post("/api/auth/register", json={
+        "email": email,
+        "password": password,
+        "first_name": f"Test{unique}",
+        "last_name": "User",
+        "phone": "1234567890",
+        "gender": "male",
+        "age": 21,
+    })
+    otp = reg_resp.json()["otp"]
+
+    await client.post("/api/auth/verify-email", json={"email": email, "otp": otp})
+
+    login_resp = await client.post("/api/auth/login", json={"email": email, "password": password})
+    token = login_resp.json()["access_token"]
+    return token, {"email": email, "first_name": f"Test{unique}"}
