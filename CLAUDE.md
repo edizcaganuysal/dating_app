@@ -141,4 +141,4 @@ dating_app/
 
 ## Current Phase
 
-Building Phase 0: Project Scaffolding. All previous phases are complete and tests pass.
+Phase 1 (Database Models and Migrations) is complete. All previous phases are complete and tests pass.

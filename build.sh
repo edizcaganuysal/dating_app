@@ -43,6 +43,30 @@ log_section() {
     echo "================================================================" | tee -a "$LOG_FILE"
 }
 
+# ── Heartbeat: prints elapsed time every 30s while Claude is working ────────
+start_heartbeat() {
+    local phase_label="$1"
+    HEARTBEAT_START=$(date +%s)
+    (
+        while true; do
+            sleep 30
+            local now=$(date +%s)
+            local elapsed=$(( (now - HEARTBEAT_START) / 60 ))
+            local secs=$(( (now - HEARTBEAT_START) % 60 ))
+            echo "[$(date '+%H:%M:%S')] ... still working on $phase_label (${elapsed}m ${secs}s elapsed)"
+        done
+    ) &
+    HEARTBEAT_PID=$!
+}
+
+stop_heartbeat() {
+    if [ -n "${HEARTBEAT_PID:-}" ]; then
+        kill "$HEARTBEAT_PID" 2>/dev/null || true
+        wait "$HEARTBEAT_PID" 2>/dev/null || true
+        unset HEARTBEAT_PID
+    fi
+}
+
 # ── Python Virtual Environment ──────────────────────────────────────────────
 setup_venv() {
     if [ ! -d "$VENV_DIR" ]; then
@@ -164,12 +188,16 @@ run_phase() {
     build_prompt=$(cat "$prompt_file")
 
     # Step 1: Run Claude to build
-    log "Invoking Claude Code for phase $phase_num..."
+    log "Invoking Claude Code for phase $phase_num... (you'll see a heartbeat every 30s)"
     local claude_exit_code=0
+    start_heartbeat "Phase $phase_num: $phase_name"
     claude -p "$build_prompt" --dangerously-skip-permissions 2>&1 | tee -a "$LOG_FILE" || claude_exit_code=$?
+    stop_heartbeat
 
     if [ $claude_exit_code -ne 0 ]; then
         log "WARNING: Claude exited with code $claude_exit_code for phase $phase_num"
+    else
+        log "Claude finished phase $phase_num code generation."
     fi
 
     # Re-install deps (Claude may have added new ones)
@@ -195,7 +223,10 @@ Fix ONLY the failing issues. Do NOT rewrite everything from scratch. The test co
 
 Read CLAUDE.md for project context."
 
+    start_heartbeat "Phase $phase_num RETRY 1"
     claude -p "$retry_prompt" --dangerously-skip-permissions 2>&1 | tee -a "$LOG_FILE" || true
+    stop_heartbeat
+    log "Retry 1 code generation done."
 
     install_deps
 
