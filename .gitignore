@@ -38,3 +38,5 @@ coverage/
 
 # Docker
 pgdata/
+backend/uploads/*
+!backend/uploads/.gitkeep
