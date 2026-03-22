@@ -17,8 +17,8 @@ import { AuthStackParamList } from "../navigation/AppNavigator";
 type Props = NativeStackScreenProps<AuthStackParamList, "VerifyEmail">;
 
 export default function VerifyEmailScreen({ navigation, route }: Props) {
-  const { verifyEmail } = useAuth();
-  const { email, otp: devOtp } = route.params;
+  const { verifyEmail, login } = useAuth();
+  const { email, otp: devOtp, password } = route.params;
   const [otp, setOtp] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -30,6 +30,16 @@ export default function VerifyEmailScreen({ navigation, route }: Props) {
     setLoading(true);
     try {
       await verifyEmail(email, otp);
+      // Auto-login after verification so user goes straight to onboarding
+      if (password) {
+        try {
+          await login(email, password);
+          // AuthContext will set user, AppNavigator will show ProfileSetup
+          return;
+        } catch {
+          // If auto-login fails, fall back to login screen
+        }
+      }
       navigation.navigate("Login", {
         message: "Email verified! Please log in.",
       });

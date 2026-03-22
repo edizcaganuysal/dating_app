@@ -17,47 +17,92 @@ import { AuthStackParamList } from "../navigation/AppNavigator";
 
 type Props = NativeStackScreenProps<AuthStackParamList, "Register">;
 
+const VALID_DOMAINS = [".edu", ".utoronto.ca", ".mail.utoronto.ca", ".yorku.ca", ".ryerson.ca", ".torontomu.ca", ".ocadu.ca"];
+
+function isUniversityEmail(email: string): boolean {
+  const domain = email.toLowerCase().split("@")[1] || "";
+  return VALID_DOMAINS.some((d) => {
+    const suffix = d.replace(/^\./, "");
+    return domain === suffix || domain.endsWith("." + suffix);
+  });
+}
+
 export default function RegisterScreen({ navigation }: Props) {
   const { register } = useAuth();
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [phone, setPhone] = useState("");
   const [gender, setGender] = useState<"male" | "female">("male");
   const [age, setAge] = useState("");
   const [loading, setLoading] = useState(false);
+  const [errors, setErrors] = useState<string[]>([]);
+
+  function validate(): string[] {
+    const errs: string[] = [];
+
+    if (!firstName.trim()) errs.push("First name is required.");
+    if (!lastName.trim()) errs.push("Last name is required.");
+
+    if (!email.trim()) {
+      errs.push("Email is required.");
+    } else if (!email.includes("@")) {
+      errs.push("Enter a valid email address.");
+    } else if (!isUniversityEmail(email.trim())) {
+      const domain = email.trim().split("@")[1] || "";
+      errs.push(`'${domain}' is not a recognized university email. Use your .utoronto.ca, .yorku.ca, or .edu email.`);
+    }
+
+    if (!password) {
+      errs.push("Password is required.");
+    } else {
+      if (password.length < 8) errs.push("Password must be at least 8 characters.");
+      if (!/[A-Z]/.test(password)) errs.push("Password must contain at least one uppercase letter.");
+    }
+
+    const ageNum = parseInt(age, 10);
+    if (!age.trim()) {
+      errs.push("Age is required.");
+    } else if (isNaN(ageNum) || ageNum < 18 || ageNum > 99) {
+      errs.push("Age must be between 18 and 99.");
+    }
+
+    return errs;
+  }
 
   async function handleRegister() {
-    if (!firstName.trim() || !lastName.trim() || !email.trim() || !password || !phone.trim()) {
-      Alert.alert("Error", "Please fill in all fields");
+    const validationErrors = validate();
+    if (validationErrors.length > 0) {
+      setErrors(validationErrors);
       return;
     }
-    const ageNum = parseInt(age, 10);
-    if (isNaN(ageNum) || ageNum < 18 || ageNum > 99) {
-      Alert.alert("Error", "Please enter a valid age (18-99)");
-      return;
-    }
+    setErrors([]);
 
     setLoading(true);
     try {
       const result = await register({
         first_name: firstName.trim(),
         last_name: lastName.trim(),
-        email: email.trim(),
+        email: email.trim().toLowerCase(),
         password,
-        phone: phone.trim(),
+        phone: "",
         gender,
-        age: ageNum,
+        age: parseInt(age, 10),
       });
       navigation.navigate("VerifyEmail", {
-        email: email.trim(),
+        email: email.trim().toLowerCase(),
         otp: result.otp,
+        password,
       });
     } catch (error: any) {
-      const message =
-        error.response?.data?.detail || "Registration failed. Please try again.";
-      Alert.alert("Registration Failed", message);
+      const detail = error.response?.data?.detail;
+      if (detail) {
+        setErrors([detail]);
+      } else if (error.code === "ERR_NETWORK" || error.message?.includes("Network")) {
+        setErrors([`Cannot reach the server. Make sure the backend is running. (${error.message})`]);
+      } else {
+        setErrors([`Unexpected error: ${error.message || String(error)}`]);
+      }
     } finally {
       setLoading(false);
     }
@@ -71,8 +116,16 @@ export default function RegisterScreen({ navigation }: Props) {
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <Text style={styles.title}>Create Account</Text>
 
+        {errors.length > 0 && (
+          <View style={styles.errorBox}>
+            {errors.map((err, i) => (
+              <Text key={i} style={styles.errorText}>• {err}</Text>
+            ))}
+          </View>
+        )}
+
         <TextInput
-          style={styles.input}
+          style={[styles.input, !firstName.trim() && errors.length > 0 && styles.inputError]}
           placeholder="First Name"
           value={firstName}
           onChangeText={setFirstName}
@@ -80,7 +133,7 @@ export default function RegisterScreen({ navigation }: Props) {
           testID="first-name-input"
         />
         <TextInput
-          style={styles.input}
+          style={[styles.input, !lastName.trim() && errors.length > 0 && styles.inputError]}
           placeholder="Last Name"
           value={lastName}
           onChangeText={setLastName}
@@ -88,8 +141,8 @@ export default function RegisterScreen({ navigation }: Props) {
           testID="last-name-input"
         />
         <TextInput
-          style={styles.input}
-          placeholder="Email"
+          style={[styles.input, errors.some(e => e.includes("email")) && styles.inputError]}
+          placeholder="Email (e.g. you@mail.utoronto.ca)"
           value={email}
           onChangeText={setEmail}
           keyboardType="email-address"
@@ -98,26 +151,21 @@ export default function RegisterScreen({ navigation }: Props) {
           testID="email-input"
         />
         <Text style={styles.hint}>
-          Use your university email (.utoronto.ca, .edu)
+          Must be a university email (.utoronto.ca, .yorku.ca, .edu, etc.)
         </Text>
         <TextInput
-          style={styles.input}
+          style={[styles.input, errors.some(e => e.includes("assword")) && styles.inputError]}
           placeholder="Password"
           value={password}
           onChangeText={setPassword}
           secureTextEntry
           testID="password-input"
         />
+        <Text style={styles.hint}>
+          Min 8 characters, at least one uppercase letter
+        </Text>
         <TextInput
-          style={styles.input}
-          placeholder="Phone Number"
-          value={phone}
-          onChangeText={setPhone}
-          keyboardType="phone-pad"
-          testID="phone-input"
-        />
-        <TextInput
-          style={styles.input}
+          style={[styles.input, errors.some(e => e.includes("Age")) && styles.inputError]}
           placeholder="Age"
           value={age}
           onChangeText={setAge}
@@ -204,6 +252,19 @@ const styles = StyleSheet.create({
     color: "#E91E63",
     marginBottom: 30,
   },
+  errorBox: {
+    backgroundColor: "#FFEBEE",
+    borderWidth: 1,
+    borderColor: "#EF9A9A",
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 16,
+  },
+  errorText: {
+    color: "#C62828",
+    fontSize: 14,
+    marginBottom: 2,
+  },
   input: {
     borderWidth: 1,
     borderColor: "#ddd",
@@ -212,6 +273,10 @@ const styles = StyleSheet.create({
     fontSize: 16,
     marginBottom: 12,
     backgroundColor: "#f9f9f9",
+  },
+  inputError: {
+    borderColor: "#EF5350",
+    backgroundColor: "#FFF8F8",
   },
   hint: {
     fontSize: 12,

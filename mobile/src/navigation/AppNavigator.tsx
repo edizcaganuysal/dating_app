@@ -20,7 +20,7 @@ import { Match } from "../types";
 export type AuthStackParamList = {
   Login: { message?: string } | undefined;
   Register: undefined;
-  VerifyEmail: { email: string; otp?: string };
+  VerifyEmail: { email: string; otp?: string; password?: string };
 };
 
 export type HomeStackParamList = {

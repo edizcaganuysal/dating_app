@@ -10,7 +10,7 @@ class RegisterRequest(BaseModel):
     password: str = Field(min_length=8)
     first_name: str
     last_name: str
-    phone: str
+    phone: str = ""
     gender: Literal["male", "female"]
     age: int = Field(ge=18, le=99)
 

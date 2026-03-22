@@ -57,24 +57,42 @@ export interface VibeAnswer {
 }
 
 export interface ProfileCreateData {
-  bio: string;
+  onboarding_path?: string;
   program: string;
   year_of_study: number;
+  relationship_intent?: string;
   photo_urls: string[];
   interests: string[];
+  prompts?: { prompt: string; answer: string }[];
   vibe_answers: VibeAnswer[];
   age_range_min: number;
   age_range_max: number;
+  bio?: string;
+  // Thorough-only
+  social_energy?: number;
+  humor_styles?: string[];
+  communication_pref?: string;
+  conflict_style?: string;
+  drinking?: string;
+  smoking?: string;
+  exercise?: string;
+  diet?: string;
+  sleep_schedule?: string;
+  group_role?: string[];
+  ideal_group_size?: string;
+  dealbreakers?: string[];
 }
 
 export interface ProfileUpdateData {
-  bio?: string;
   program?: string;
   year_of_study?: number;
+  relationship_intent?: string;
   photo_urls?: string[];
   interests?: string[];
+  prompts?: { prompt: string; answer: string }[];
   age_range_min?: number;
   age_range_max?: number;
+  bio?: string;
 }
 
 export interface DateRequestCreateData {
@@ -213,7 +231,7 @@ export interface RegisterData {
   password: string;
   first_name: string;
   last_name: string;
-  phone: string;
+  phone?: string;
   gender: string;
   age: number;
 }

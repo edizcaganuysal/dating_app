@@ -25,17 +25,38 @@ router = APIRouter(prefix="/api/auth", tags=["auth"])
 
 @router.post("/register", status_code=status.HTTP_201_CREATED)
 async def register(req: RegisterRequest, db: AsyncSession = Depends(get_db)):
+    # Validate email is a university domain
     if not is_valid_university_email(req.email):
+        domain = req.email.split("@")[-1] if "@" in req.email else "unknown"
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Must use a valid university email address",
+            detail=f"'{domain}' is not a recognized university email domain. Use your .utoronto.ca, .yorku.ca, .torontomu.ca, or .edu email.",
         )
 
+    # Validate password strength: min 8 chars + at least 1 uppercase
+    if len(req.password) < 8:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Password must be at least 8 characters long.",
+        )
+    if not any(c.isupper() for c in req.password):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Password must contain at least one uppercase letter.",
+        )
+
+    # Validate required fields
+    if not req.first_name.strip():
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="First name is required.")
+    if not req.last_name.strip():
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Last name is required.")
+
+    # Check duplicate email
     result = await db.execute(select(User).where(User.email == req.email.lower().strip()))
     if result.scalar_one_or_none():
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail="Email already registered",
+            detail="An account with this email already exists.",
         )
 
     otp = generate_otp()

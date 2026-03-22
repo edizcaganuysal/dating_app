@@ -33,8 +33,14 @@ export default function LoginScreen({ navigation, route }: Props) {
     try {
       await login(email.trim(), password);
     } catch (error: any) {
-      const message =
-        error.response?.data?.detail || "Login failed. Please try again.";
+      let message = error.response?.data?.detail;
+      if (!message) {
+        if (error.code === "ERR_NETWORK" || error.message?.includes("Network")) {
+          message = `Cannot reach the server. Make sure the backend is running. (${error.message})`;
+        } else {
+          message = `Unexpected error: ${error.message || String(error)}`;
+        }
+      }
       Alert.alert("Login Failed", message);
     } finally {
       setLoading(false);
