@@ -132,13 +132,42 @@ dating_app/
 2. Group sizes are exactly 4 or 6, with equal gender split (2M/2F or 3M/3F)
 3. Pre-grouped friends must be the same gender as the requesting user
 4. **Blocked pairs** (explicit "do not match again") can NEVER be in the same group
-5. Not indicating romantic interest is NEUTRAL — only explicit blocks prevent future grouping
-6. Mutual romantic interest (both say yes) creates a Match and auto-creates a 1-on-1 ChatRoom
-7. Group chat stays open permanently after the date
-8. 3 no-shows without notice -> account suspension
-9. **Private preferences** (age range, gender preference) are NEVER exposed to other users or in any API response except the user's own profile
-10. Admin endpoints require `is_admin=True` on the User model
+5. **Dealbreakers** are HARD filters — if user A has "smoking" as dealbreaker and user B smokes regularly, they cannot be grouped
+6. Not indicating romantic interest is NEUTRAL — only explicit blocks prevent future grouping
+7. Mutual romantic interest (both say yes) creates a Match and auto-creates a 1-on-1 ChatRoom
+8. Group chat stays open permanently after the date
+9. 3 no-shows without notice -> account suspension
+10. **Private preferences** (age range, dealbreakers) are NEVER exposed to other users
+11. **Relationship intent** IS shown publicly on profiles
+12. Admin endpoints require `is_admin=True` on the User model
+13. Selfie verification requires admin approval — `selfie_status` goes from "none" → "pending" → "verified"/"rejected"
+
+## Onboarding
+
+Users choose between Quick (6 steps) or Thorough (9 steps) onboarding. Thorough collects personality, lifestyle, social style, and dealbreakers which improve matching quality. All data is selection-based (no free text except one optional prompt).
+
+## Matching Algorithm
+
+Score = interest_overlap + vibe_alignment*1.5 + personality_score*2.0 + lifestyle_score + intent_bonus - attractiveness_variance - dealbreaker_penalty
+
+## Future Features
+
+See TODO.md for planned future improvements. **Do NOT implement items from TODO.md unless explicitly instructed by the user.**
+
+## Testing Workflow
+
+When the user needs to test changes, automatically:
+1. Kill and restart the backend: `lsof -ti:8000 | xargs kill -9 2>/dev/null; cd backend && uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload &`
+2. Kill and restart the dashboard: `lsof -ti:3000 | xargs kill -9 2>/dev/null; cd dashboard && npm run dev -- -p 3000 &`
+3. Tell the user to run `npx expo start --clear` in their own terminal for the mobile app
+4. Verify backend is healthy with `curl -s http://localhost:8000/api/health`
+
+Do NOT ask the user to start backend or dashboard manually — just do it.
+
+## Git Commits
+
+When making git commits, do NOT include any Co-Authored-By lines or AI attribution. All commits are authored by the user. Keep commit messages clean and professional.
 
 ## Current Phase
 
-Phase 1 (Database Models and Migrations) is complete. All previous phases are complete and tests pass.
+All 18 build phases complete. Onboarding overhaul complete.
