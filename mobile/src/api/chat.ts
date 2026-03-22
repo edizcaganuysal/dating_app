@@ -32,3 +32,8 @@ export const getVenueSuggestions = async (groupId: string): Promise<VenuesRespon
   const response = await apiClient.get(`/api/groups/${groupId}/venues`);
   return response.data;
 };
+
+export const askGenie = async (roomId: string, question: string): Promise<ChatMessage> => {
+  const response = await apiClient.post(`/api/chat/rooms/${roomId}/ask-genie`, { question });
+  return response.data;
+};

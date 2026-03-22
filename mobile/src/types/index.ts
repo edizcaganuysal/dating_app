@@ -41,15 +41,13 @@ export type ActivityType =
   | "bowling"
   | "karaoke"
   | "board_games"
-  | "ice_skating"
-  | "hiking"
   | "cooking_class"
   | "trivia_night"
   | "mini_golf"
   | "escape_room"
-  | "art_gallery"
-  | "picnic"
-  | "museum";
+  | "arcade";
+
+export const GENIE_USER_ID = "00000000-0000-0000-0000-000000000001";
 
 export interface VibeAnswer {
   question: string;

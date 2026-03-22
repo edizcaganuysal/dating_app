@@ -398,6 +398,24 @@ async def run_batch_matching(db: AsyncSession) -> list[DateGroup]:
                 )
                 db.add(participant)
 
+            # Send Genie welcome message
+            member_names = []
+            for req in all_reqs:
+                result = await db.execute(select(User).where(User.id == req.user_id))
+                u = result.scalar_one_or_none()
+                if u:
+                    member_names.append(u.first_name)
+
+            from app.services.chat_ai_service import send_welcome_message
+            await send_welcome_message(
+                room_id=chat_room.id,
+                activity=date_group.activity,
+                member_names=member_names,
+                scheduled_date=str(date_group.scheduled_date) if date_group.scheduled_date else "",
+                scheduled_time=date_group.scheduled_time or "",
+                db=db,
+            )
+
             assigned_user_ids.update(all_uids)
             formed_groups.append(date_group)
 

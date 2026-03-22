@@ -30,6 +30,7 @@ export default function useChat(roomId: string, token: string) {
           sender_id: data.sender_id,
           sender_name: data.sender_name,
           content: data.content,
+          message_type: data.message_type || 'text',
           created_at: data.created_at,
         };
         setMessages((prev) => [...prev, msg]);

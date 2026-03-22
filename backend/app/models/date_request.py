@@ -2,7 +2,7 @@ import datetime as dt
 import uuid
 from typing import Optional
 
-from sqlalchemy import Date, ForeignKey, String, func
+from sqlalchemy import Date, ForeignKey, JSON, String, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
@@ -48,6 +48,20 @@ class PreGroupFriend(Base):
 
     date_request: Mapped["DateRequest"] = relationship(back_populates="pre_group_friends")
     friend: Mapped["User"] = relationship()
+
+
+class DateRequestTemplate(Base):
+    __tablename__ = "date_request_templates"
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id"))
+    name: Mapped[str] = mapped_column(String(100))
+    activities: Mapped[list] = mapped_column(JSON, default=list)
+    group_size: Mapped[int] = mapped_column(default=4)
+    friend_ids: Mapped[list] = mapped_column(JSON, default=list)
+    created_at: Mapped[dt.datetime] = mapped_column(server_default=func.now())
+
+    user: Mapped["User"] = relationship()
 
 
 # Needed for type resolution

@@ -34,11 +34,20 @@ export const uploadPhoto = async (uri: string): Promise<{ url: string }> => {
   return response.data;
 };
 
-export const selfieVerify = async (uri: string): Promise<{ message: string; selfie_url: string }> => {
+export const selfieVerify = async (
+  uri: string,
+  isVideo: boolean = false,
+): Promise<{ message: string; selfie_url: string; status: string; verification?: any }> => {
   const formData = new FormData();
-  const filename = uri.split('/').pop() || 'selfie.jpg';
-  const ext = filename.split('.').pop()?.toLowerCase() || 'jpg';
-  const mimeType = ext === 'png' ? 'image/png' : 'image/jpeg';
+  const filename = uri.split('/').pop() || (isVideo ? 'selfie.mp4' : 'selfie.jpg');
+  const ext = filename.split('.').pop()?.toLowerCase() || (isVideo ? 'mp4' : 'jpg');
+
+  let mimeType: string;
+  if (isVideo) {
+    mimeType = ext === 'mov' ? 'video/quicktime' : 'video/mp4';
+  } else {
+    mimeType = ext === 'png' ? 'image/png' : 'image/jpeg';
+  }
 
   formData.append('file', {
     uri,
@@ -48,6 +57,7 @@ export const selfieVerify = async (uri: string): Promise<{ message: string; self
 
   const response = await apiClient.post('/api/profiles/selfie-verify', formData, {
     headers: { 'Content-Type': 'multipart/form-data' },
+    timeout: 60000, // 60s timeout for video processing + AI verification
   });
   return response.data;
 };

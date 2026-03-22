@@ -7,7 +7,7 @@ from sqlalchemy.orm import selectinload
 
 from app.database import get_db
 from app.middleware.auth_middleware import get_current_user
-from app.models.date_request import AvailabilitySlot, DateRequest, PreGroupFriend
+from app.models.date_request import AvailabilitySlot, DateRequest, DateRequestTemplate, PreGroupFriend
 from app.models.user import User
 from app.schemas.date_request import (
     DateRequestCreate,
@@ -41,15 +41,16 @@ async def create_date_request(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    # Check no existing pending request
+    # Check no existing pending request for the SAME activity
     existing = await db.execute(
         select(DateRequest).where(
             DateRequest.user_id == current_user.id,
             DateRequest.status == "pending",
+            DateRequest.activity == data.activity.value,
         )
     )
     if existing.scalar_one_or_none():
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="You already have a pending date request")
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=f"You already have a pending request for {data.activity.value}")
 
     # Validate pre-group friends
     max_friends = (data.group_size // 2) - 1
@@ -195,3 +196,61 @@ async def update_date_request(
     )
     dr = result.scalar_one()
     return _to_response(dr)
+
+
+# ── Templates ───────────────────────────────────────────────────────────────
+
+@router.get("/templates/list")
+async def list_templates(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    result = await db.execute(
+        select(DateRequestTemplate)
+        .where(DateRequestTemplate.user_id == current_user.id)
+        .order_by(DateRequestTemplate.created_at.desc())
+    )
+    templates = list(result.scalars().all())
+    return [
+        {
+            "id": str(t.id),
+            "name": t.name,
+            "activities": t.activities,
+            "group_size": t.group_size,
+            "friend_ids": t.friend_ids,
+            "created_at": t.created_at.isoformat(),
+        }
+        for t in templates
+    ]
+
+
+@router.post("/templates", status_code=201)
+async def save_template(
+    body: dict,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    template = DateRequestTemplate(
+        user_id=current_user.id,
+        name=body.get("name", "My Template"),
+        activities=body.get("activities", []),
+        group_size=body.get("group_size", 4),
+        friend_ids=body.get("friend_ids", []),
+    )
+    db.add(template)
+    await db.commit()
+    return {"id": str(template.id), "name": template.name}
+
+
+@router.delete("/templates/{template_id}", status_code=200)
+async def delete_template(
+    template_id: uuid.UUID,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    template = await db.get(DateRequestTemplate, template_id)
+    if not template or template.user_id != current_user.id:
+        raise HTTPException(status_code=404, detail="Template not found")
+    await db.delete(template)
+    await db.commit()
+    return {"detail": "Template deleted"}

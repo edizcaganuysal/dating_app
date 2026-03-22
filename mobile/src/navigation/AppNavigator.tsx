@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Text, View, StyleSheet, ActivityIndicator } from "react-native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
+import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "../context/AuthContext";
 import LoginScreen from "../screens/LoginScreen";
 import RegisterScreen from "../screens/RegisterScreen";
@@ -14,8 +15,12 @@ import ChatScreen from "../screens/ChatScreen";
 import ChatRoomsScreen from "../screens/ChatRoomsScreen";
 import PostDateScreen from "../screens/PostDateScreen";
 import MatchRevealScreen from "../screens/MatchRevealScreen";
+import MyDatesScreen from "../screens/MyDatesScreen";
+import ProfileScreen from "../screens/ProfileScreen";
+import FriendsScreen from "../screens/FriendsScreen";
 import { getMyProfile } from "../api/profiles";
 import { Match } from "../types";
+import useNotifications from "../hooks/useNotifications";
 
 export type AuthStackParamList = {
   Login: { message?: string } | undefined;
@@ -37,6 +42,11 @@ export type ChatStackParamList = {
   ChatDetail: { roomId: string };
 };
 
+export type ProfileStackParamList = {
+  ProfileMain: undefined;
+  Friends: undefined;
+};
+
 export type MainTabParamList = {
   Home: undefined;
   MyDates: undefined;
@@ -52,25 +62,9 @@ export type RootStackParamList = {
 const AuthStack = createNativeStackNavigator<AuthStackParamList>();
 const HomeStack = createNativeStackNavigator<HomeStackParamList>();
 const ChatStack = createNativeStackNavigator<ChatStackParamList>();
+const ProfileStack = createNativeStackNavigator<ProfileStackParamList>();
 const MainTab = createBottomTabNavigator<MainTabParamList>();
 const RootStack = createNativeStackNavigator<RootStackParamList>();
-
-function PlaceholderScreen({ title }: { title: string }) {
-  return (
-    <View style={styles.placeholder}>
-      <Text style={styles.placeholderText}>{title}</Text>
-      <Text style={styles.placeholderSub}>Coming soon</Text>
-    </View>
-  );
-}
-
-function MyDatesScreen() {
-  return <PlaceholderScreen title="My Dates" />;
-}
-
-function ProfileScreen() {
-  return <PlaceholderScreen title="Profile" />;
-}
 
 function AuthNavigator() {
   return (
@@ -146,15 +140,53 @@ function ChatStackNavigator() {
   );
 }
 
+function ProfileStackNavigator() {
+  return (
+    <ProfileStack.Navigator
+      screenOptions={{
+        headerStyle: { backgroundColor: "#E91E63" },
+        headerTintColor: "#fff",
+      }}
+    >
+      <ProfileStack.Screen
+        name="ProfileMain"
+        component={ProfileScreen}
+        options={{ title: "Profile" }}
+      />
+      <ProfileStack.Screen
+        name="Friends"
+        component={FriendsScreen}
+        options={{ title: "Friends" }}
+      />
+    </ProfileStack.Navigator>
+  );
+}
+
 function MainNavigator() {
+  // Set up push notification listeners for navigation on tap
+  useNotifications();
+
   return (
     <MainTab.Navigator
       screenOptions={{
         headerShown: false,
         tabBarActiveTintColor: "#E91E63",
+        tabBarInactiveTintColor: "#888",
       }}
     >
-      <MainTab.Screen name="Home" component={HomeStackNavigator} />
+      <MainTab.Screen
+        name="Home"
+        component={HomeStackNavigator}
+        options={{
+          tabBarIcon: ({ focused, color, size }) => (
+            <Ionicons
+              name={focused ? "home" : "home-outline"}
+              size={size}
+              color={color}
+            />
+          ),
+        }}
+      />
       <MainTab.Screen
         name="MyDates"
         component={MyDatesScreen}
@@ -163,19 +195,39 @@ function MainNavigator() {
           headerShown: true,
           headerStyle: { backgroundColor: "#E91E63" },
           headerTintColor: "#fff",
+          tabBarIcon: ({ focused, color, size }) => (
+            <Ionicons
+              name={focused ? "calendar" : "calendar-outline"}
+              size={size}
+              color={color}
+            />
+          ),
         }}
       />
       <MainTab.Screen
         name="Chat"
         component={ChatStackNavigator}
+        options={{
+          tabBarIcon: ({ focused, color, size }) => (
+            <Ionicons
+              name={focused ? "chatbubble" : "chatbubble-outline"}
+              size={size}
+              color={color}
+            />
+          ),
+        }}
       />
       <MainTab.Screen
         name="Profile"
-        component={ProfileScreen}
+        component={ProfileStackNavigator}
         options={{
-          headerShown: true,
-          headerStyle: { backgroundColor: "#E91E63" },
-          headerTintColor: "#fff",
+          tabBarIcon: ({ focused, color, size }) => (
+            <Ionicons
+              name={focused ? "person" : "person-outline"}
+              size={size}
+              color={color}
+            />
+          ),
         }}
       />
     </MainTab.Navigator>
@@ -239,21 +291,5 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     backgroundColor: "#fff",
-  },
-  placeholder: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "#fff",
-  },
-  placeholderText: {
-    fontSize: 24,
-    fontWeight: "bold",
-    color: "#E91E63",
-    marginBottom: 8,
-  },
-  placeholderSub: {
-    fontSize: 16,
-    color: "#999",
   },
 });

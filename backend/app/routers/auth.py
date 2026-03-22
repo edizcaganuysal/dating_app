@@ -126,6 +126,36 @@ async def login(req: LoginRequest, db: AsyncSession = Depends(get_db)):
             detail="Account suspended",
         )
 
+    # Test user: reset profile on every login so onboarding repeats
+    if user.email == "test1@mail.utoronto.ca":
+        user.program = None
+        user.bio = None
+        user.interests = []
+        user.prompts = []
+        user.photo_urls = []
+        user.onboarding_path = None
+        user.relationship_intent = None
+        user.social_energy = None
+        user.humor_styles = []
+        user.communication_pref = None
+        user.conflict_style = None
+        user.drinking = None
+        user.smoking = None
+        user.exercise = None
+        user.diet = None
+        user.sleep_schedule = None
+        user.group_role = []
+        user.ideal_group_size = None
+        user.dealbreakers = []
+        user.selfie_status = "none"
+        user.is_selfie_verified = False
+        user.selfie_urls = []
+        # Delete old vibe answers
+        from sqlalchemy import delete
+        from app.models.user import VibeAnswer
+        await db.execute(delete(VibeAnswer).where(VibeAnswer.user_id == user.id))
+        await db.commit()
+
     token = create_access_token({"sub": str(user.id)})
     return TokenResponse(access_token=token)
 
@@ -133,3 +163,18 @@ async def login(req: LoginRequest, db: AsyncSession = Depends(get_db)):
 @router.get("/me", response_model=UserResponse)
 async def get_me(current_user: User = Depends(get_current_user)):
     return current_user
+
+
+@router.post("/push-token")
+async def register_push_token(
+    data: dict,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Register an Expo push token for push notifications."""
+    token = data.get("push_token", "").strip()
+    if not token:
+        raise HTTPException(status_code=400, detail="push_token is required")
+    current_user.push_token = token
+    await db.commit()
+    return {"message": "Push token registered"}

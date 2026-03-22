@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useState } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { User, RegisterData, RegisterResponse } from "../types";
 import * as authApi from "../api/auth";
+import { registerForPushNotifications } from "../hooks/useNotifications";
 
 interface AuthContextType {
   user: User | null;
@@ -31,6 +32,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setToken(storedToken);
         const me = await authApi.getMe();
         setUser(me);
+        // Register push token silently
+        registerForPushNotifications().catch(() => {});
       }
     } catch {
       await AsyncStorage.removeItem("token");
@@ -46,6 +49,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setToken(response.access_token);
     const me = await authApi.getMe();
     setUser(me);
+    // Register push token after login
+    registerForPushNotifications().catch(() => {});
   }
 
   async function handleRegister(data: RegisterData): Promise<RegisterResponse> {

@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, ScrollView, Alert,
   ActivityIndicator, Image, ActionSheetIOS, Platform, Dimensions, TextInput,
+  KeyboardAvoidingView,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import * as ImagePicker from 'expo-image-picker';
@@ -17,45 +18,247 @@ const PROGRAMS = [
   'Computer Science', 'Engineering', 'Business', 'Economics', 'Psychology',
   'Biology', 'Pre-Med', 'Math', 'Physics', 'Chemistry', 'English', 'History',
   'Political Science', 'Sociology', 'Art', 'Music', 'Philosophy', 'Nursing',
-  'Law', 'Architecture', 'Environmental Science', 'Other',
+  'Law', 'Architecture', 'Environmental Science', 'Communications',
+  'Kinesiology', 'Education', 'Data Science', 'Neuroscience',
+  'International Relations', 'Film Studies', 'Linguistics', 'Anthropology',
+  'Other',
 ];
 
-const INTERESTS = [
-  'hiking', 'cooking', 'reading', 'gaming', 'photography', 'music',
-  'travel', 'fitness', 'art', 'movies', 'dancing', 'coffee',
-  'food', 'sports', 'yoga', 'volunteering', 'concerts', 'board games',
-  'thrifting', 'podcasts', 'writing', 'fashion',
+// ── Interest System (Tinder-style with categories + recommendations) ──
+
+interface InterestCategory {
+  name: string;
+  emoji: string;
+  interests: string[];
+}
+
+const INTEREST_CATEGORIES: InterestCategory[] = [
+  {
+    name: 'Sports & Fitness', emoji: '💪',
+    interests: [
+      'Hiking', 'Running', 'Gym', 'Yoga', 'Swimming', 'Cycling',
+      'Basketball', 'Soccer', 'Tennis', 'Rock Climbing', 'Surfing',
+      'Martial Arts', 'Volleyball', 'Skiing', 'Skateboarding',
+      'Dance Fitness', 'Golf', 'Boxing',
+    ],
+  },
+  {
+    name: 'Music', emoji: '🎵',
+    interests: [
+      'Live Music', 'Concerts', 'Singing', 'Guitar', 'Piano', 'DJing',
+      'K-Pop', 'Hip Hop', 'R&B', 'Jazz', 'Indie', 'Classical Music',
+      'Vinyl Records', 'Karaoke', 'Music Production',
+    ],
+  },
+  {
+    name: 'Creative', emoji: '🎨',
+    interests: [
+      'Photography', 'Art', 'Painting', 'Drawing', 'Writing', 'Poetry',
+      'Graphic Design', 'Filmmaking', 'Crafts', 'Pottery', 'Tattoos',
+      'Calligraphy', 'Interior Design', 'Fashion Design',
+    ],
+  },
+  {
+    name: 'Food & Drink', emoji: '🍕',
+    interests: [
+      'Cooking', 'Baking', 'Coffee', 'Wine', 'Craft Beer', 'Brunch',
+      'Foodie', 'Trying New Restaurants', 'Mixology', 'Sushi',
+      'BBQ', 'Vegan Food', 'Street Food', 'Tea',
+    ],
+  },
+  {
+    name: 'Entertainment', emoji: '🎬',
+    interests: [
+      'Movies', 'TV Shows', 'Anime', 'Gaming', 'Board Games',
+      'Podcasts', 'Stand-up Comedy', 'Theatre', 'Reading', 'Trivia',
+      'True Crime', 'Manga', 'Reality TV', 'Documentaries',
+    ],
+  },
+  {
+    name: 'Outdoors & Travel', emoji: '✈️',
+    interests: [
+      'Travel', 'Camping', 'Beach', 'Road Trips', 'Nature',
+      'Gardening', 'Stargazing', 'Backpacking', 'Fishing',
+      'Scuba Diving', 'Bird Watching', 'National Parks',
+    ],
+  },
+  {
+    name: 'Social', emoji: '🎉',
+    interests: [
+      'Dancing', 'House Parties', 'Volunteering', 'Networking',
+      'Bar Hopping', 'Festivals', 'Clubbing', 'Brunching',
+      'Game Nights', 'Wine Tasting Events',
+    ],
+  },
+  {
+    name: 'Lifestyle', emoji: '✨',
+    interests: [
+      'Fashion', 'Thrifting', 'Skincare', 'Meditation', 'Astrology',
+      'Journaling', 'Self-Care', 'Pets', 'Dogs', 'Cats',
+      'Plant Parent', 'Minimalism', 'Sustainability',
+    ],
+  },
+  {
+    name: 'Intellectual', emoji: '🧠',
+    interests: [
+      'Science', 'History', 'Philosophy', 'Politics', 'Languages',
+      'Psychology', 'Space', 'Technology', 'Startups', 'Investing',
+      'Economics', 'Debate', 'Current Events',
+    ],
+  },
 ];
+
+const ALL_INTERESTS = INTEREST_CATEGORIES.flatMap(c => c.interests);
+
+const RECOMMENDATIONS: Record<string, string[]> = {
+  'Hiking': ['Camping', 'Rock Climbing', 'Nature', 'Travel', 'Photography', 'National Parks', 'Backpacking'],
+  'Running': ['Gym', 'Cycling', 'Dance Fitness', 'Yoga', 'Swimming', 'Marathon'],
+  'Gym': ['Running', 'Boxing', 'Yoga', 'Dance Fitness', 'Swimming', 'Cycling'],
+  'Yoga': ['Meditation', 'Self-Care', 'Dance Fitness', 'Skincare', 'Hiking', 'Gym'],
+  'Swimming': ['Surfing', 'Scuba Diving', 'Beach', 'Running', 'Gym'],
+  'Cycling': ['Running', 'Hiking', 'Travel', 'Gym', 'Road Trips'],
+  'Basketball': ['Soccer', 'Volleyball', 'Gym', 'Gaming', 'House Parties'],
+  'Soccer': ['Basketball', 'Volleyball', 'Running', 'Gym'],
+  'Tennis': ['Golf', 'Running', 'Gym', 'Cycling'],
+  'Rock Climbing': ['Hiking', 'Camping', 'Gym', 'Surfing', 'Backpacking'],
+  'Surfing': ['Beach', 'Swimming', 'Scuba Diving', 'Travel', 'Skateboarding'],
+  'Skateboarding': ['Surfing', 'Hip Hop', 'Photography', 'Streetwear'],
+  'Live Music': ['Concerts', 'Festivals', 'Indie', 'Bar Hopping', 'Dancing'],
+  'Concerts': ['Live Music', 'Festivals', 'Dancing', 'Bar Hopping', 'Music Production'],
+  'Singing': ['Karaoke', 'Guitar', 'Piano', 'Music Production'],
+  'Guitar': ['Singing', 'Piano', 'Songwriting', 'Indie', 'Live Music'],
+  'Piano': ['Guitar', 'Classical Music', 'Singing', 'Jazz'],
+  'DJing': ['Music Production', 'Clubbing', 'House Parties', 'Hip Hop', 'Dancing'],
+  'K-Pop': ['Dancing', 'Anime', 'Manga', 'Fashion', 'Karaoke'],
+  'Hip Hop': ['Dancing', 'DJing', 'R&B', 'Concerts', 'Fashion'],
+  'Photography': ['Art', 'Travel', 'Filmmaking', 'Nature', 'Hiking', 'Graphic Design'],
+  'Art': ['Photography', 'Painting', 'Drawing', 'Museums', 'Pottery', 'Crafts'],
+  'Painting': ['Drawing', 'Art', 'Pottery', 'Crafts', 'Photography'],
+  'Drawing': ['Painting', 'Art', 'Graphic Design', 'Tattoos', 'Calligraphy'],
+  'Writing': ['Poetry', 'Reading', 'Journaling', 'Podcasts', 'Philosophy'],
+  'Poetry': ['Writing', 'Reading', 'Philosophy', 'Journaling'],
+  'Filmmaking': ['Photography', 'Movies', 'Theatre', 'Graphic Design'],
+  'Cooking': ['Baking', 'Foodie', 'Trying New Restaurants', 'Wine', 'BBQ'],
+  'Baking': ['Cooking', 'Coffee', 'Foodie', 'Brunch'],
+  'Coffee': ['Tea', 'Brunch', 'Reading', 'Cooking', 'Baking'],
+  'Wine': ['Craft Beer', 'Cooking', 'Foodie', 'Wine Tasting Events', 'Brunch'],
+  'Foodie': ['Cooking', 'Trying New Restaurants', 'Street Food', 'Brunch', 'Travel'],
+  'Movies': ['TV Shows', 'Anime', 'Documentaries', 'Theatre', 'Stand-up Comedy'],
+  'TV Shows': ['Movies', 'Reality TV', 'Anime', 'Documentaries', 'Podcasts'],
+  'Anime': ['Manga', 'Gaming', 'K-Pop', 'Movies', 'Drawing'],
+  'Gaming': ['Anime', 'Board Games', 'Trivia', 'Movies', 'Technology'],
+  'Board Games': ['Gaming', 'Trivia', 'Game Nights', 'House Parties'],
+  'Podcasts': ['Reading', 'True Crime', 'Psychology', 'Current Events'],
+  'Reading': ['Writing', 'Podcasts', 'Philosophy', 'Coffee', 'History'],
+  'Travel': ['Backpacking', 'Road Trips', 'Photography', 'Beach', 'Camping', 'Foodie'],
+  'Camping': ['Hiking', 'Nature', 'Stargazing', 'Fishing', 'National Parks'],
+  'Beach': ['Surfing', 'Swimming', 'Travel', 'Scuba Diving'],
+  'Dancing': ['Live Music', 'Festivals', 'Clubbing', 'K-Pop', 'Hip Hop', 'Salsa'],
+  'House Parties': ['Bar Hopping', 'Game Nights', 'Dancing', 'Mixology', 'Clubbing'],
+  'Volunteering': ['Sustainability', 'Community', 'Networking'],
+  'Festivals': ['Live Music', 'Concerts', 'Dancing', 'Travel', 'Camping'],
+  'Fashion': ['Thrifting', 'Photography', 'Skincare', 'Interior Design', 'K-Pop'],
+  'Thrifting': ['Fashion', 'Sustainability', 'Vintage', 'Shopping'],
+  'Meditation': ['Yoga', 'Self-Care', 'Journaling', 'Mindfulness', 'Skincare'],
+  'Astrology': ['Tarot', 'Meditation', 'Journaling', 'Self-Care'],
+  'Dogs': ['Cats', 'Pets', 'Hiking', 'Nature', 'Parks'],
+  'Cats': ['Dogs', 'Pets', 'Reading', 'Gaming'],
+  'Technology': ['Startups', 'Investing', 'Gaming', 'Science', 'Space'],
+  'Startups': ['Technology', 'Investing', 'Networking', 'Economics'],
+  'Philosophy': ['Psychology', 'History', 'Reading', 'Writing', 'Debate'],
+  'Psychology': ['Philosophy', 'Reading', 'Podcasts', 'Self-Care'],
+  'True Crime': ['Podcasts', 'Documentaries', 'Psychology', 'Reading'],
+};
 
 const HUMOR_STYLES = ['Sarcastic', 'Goofy', 'Dry', 'Dark', 'Wholesome', 'Witty'];
-const COMMUNICATION_PREFS = ['Texter', 'Caller', 'In-person'];
-const CONFLICT_STYLES = ['Talk it out immediately', 'Need space first', 'Avoid confrontation'];
+const COMMUNICATION_PREFS = ['Texter', 'Caller', 'In-person', 'Voice notes'];
+const CONFLICT_STYLES = ['Talk it out immediately', 'Need space first', 'Avoid confrontation', 'Write it out'];
 const DRINKING_OPTIONS = ['Never', 'Socially', 'Regularly'];
 const SMOKING_OPTIONS = ['Never', 'Socially', 'Regularly'];
 const EXERCISE_OPTIONS = ['Never', 'Sometimes', 'Often', 'Daily'];
-const DIET_OPTIONS = ['No restrictions', 'Vegetarian', 'Vegan', 'Halal', 'Kosher', 'Other'];
+const DIET_OPTIONS = ['No restrictions', 'Vegetarian', 'Vegan', 'Halal', 'Kosher', 'Gluten-free', 'Pescatarian'];
 const SLEEP_OPTIONS = ['Early bird', 'Night owl', 'Depends on the day'];
-const GROUP_ROLES = ['Starts conversations', 'Tells jokes', 'Listens quietly', 'Plans everything', 'Goes with the flow', 'Gets everyone hyped'];
+const GROUP_ROLES = ['Starts conversations', 'Tells jokes', 'Listens quietly', 'Plans everything', 'Goes with the flow', 'Gets everyone hyped', 'The photographer', 'The DJ'];
 const GROUP_SIZES = ['Intimate (3-4)', 'Medium (5-6)', 'The more the merrier'];
-const DEALBREAKERS = ['Smoking', 'Heavy drinking', 'No sense of humor', 'Too quiet', 'Too loud', 'Different religion', 'Different politics', 'Long distance'];
+const DEALBREAKERS = [
+  'Smoking', 'Heavy drinking', 'No sense of humor', 'Too quiet',
+  'Too loud', 'Different religion', 'Different politics', 'Long distance',
+  'No ambition', 'Bad hygiene', 'Rude to service staff', 'Always on phone',
+];
+
+// ── Prompts (fill-in-the-blank style with options + custom) ──
 
 const PROMPTS = [
-  "I'm the friend who...",
-  "My ideal date is...",
-  "A perfect Sunday looks like...",
-  "The way to my heart is...",
+  "My ideal first date would be...",
+  "The quickest way to my heart is...",
+  "I'm looking for someone who...",
+  "On a Sunday morning you'll find me...",
   "I geek out about...",
-  "My most unpopular opinion is...",
-  "I'll know it's real when...",
-  "Two truths and a lie:",
+  "My friends would describe me as...",
+  "A dealbreaker for me is...",
+  "My love language is...",
+  "The most spontaneous thing I've done is...",
+  "I'll never shut up about...",
 ];
 
 const PROMPT_OPTIONS: Record<string, string[]> = {
-  "I'm the friend who...": ["Always has a plan", "Makes everyone laugh", "Gives the best advice", "Is always down for anything", "Brings the snacks"],
-  "My ideal date is...": ["Dinner and deep conversation", "Something adventurous outdoors", "Cozy movie night", "Exploring a new neighborhood", "Cooking together at home"],
-  "A perfect Sunday looks like...": ["Brunch with friends", "Sleeping in and reading", "Hiking or sports", "Farmers market and coffee", "Binge-watching a series"],
-  "The way to my heart is...": ["Making me laugh", "Thoughtful surprises", "Quality time together", "Good food", "Deep conversations"],
-  "I geek out about...": ["Music and concerts", "Sports stats", "True crime podcasts", "Tech and startups", "History and culture"],
+  "My ideal first date would be...": [
+    "Dinner and deep conversation", "Something adventurous outdoors",
+    "Cozy movie night at home", "Exploring a new neighborhood",
+    "Cooking together", "A museum or gallery", "Live music and drinks",
+    "Coffee and a long walk",
+  ],
+  "The quickest way to my heart is...": [
+    "Making me laugh", "Thoughtful surprises", "Quality time together",
+    "Good food", "Deep late-night conversations", "A handwritten note",
+    "Planning something special", "Being genuinely curious about my life",
+  ],
+  "I'm looking for someone who...": [
+    "Makes me laugh until I cry", "Is ambitious and driven",
+    "Loves adventure as much as I do", "Can hold a deep conversation",
+    "Is kind to everyone", "Doesn't take themselves too seriously",
+    "Shares my values", "Challenges me to grow",
+  ],
+  "On a Sunday morning you'll find me...": [
+    "At brunch with friends", "Sleeping in and reading",
+    "At the gym or on a run", "At the farmers market",
+    "Binge-watching something", "Cooking a big breakfast",
+    "Hiking somewhere scenic", "Doing absolutely nothing",
+  ],
+  "I geek out about...": [
+    "Music and concerts", "Sports stats", "True crime podcasts",
+    "Tech and startups", "History and culture", "Space and astronomy",
+    "Cooking techniques", "Film theory",
+  ],
+  "My friends would describe me as...": [
+    "The planner of the group", "The life of the party",
+    "The therapist friend", "Always down for anything",
+    "Loyal to a fault", "The funny one",
+    "The chill one", "The adventurous one",
+  ],
+  "A dealbreaker for me is...": [
+    "Not having a sense of humor", "Being closed-minded",
+    "Poor communication", "Not being ambitious",
+    "Being rude to strangers", "Not liking animals",
+    "No emotional intelligence", "Being too competitive",
+  ],
+  "My love language is...": [
+    "Words of affirmation", "Quality time",
+    "Physical touch", "Acts of service",
+    "Gift giving", "Cooking for someone",
+    "Planning thoughtful experiences", "Writing letters",
+  ],
+  "The most spontaneous thing I've done is...": [
+    "Booked a last-minute trip", "Went skydiving",
+    "Moved to a new city alone", "Said yes to a blind date",
+    "Quit my job to follow a dream", "Road trip with no plan",
+  ],
+  "I'll never shut up about...": [
+    "My latest Netflix obsession", "That one trip I took",
+    "My pet", "This amazing restaurant I found",
+    "The book I'm reading", "My side project",
+    "A conspiracy theory", "My workout routine",
+  ],
 };
 
 const VIBE_QUESTIONS: { question: string; optionA: string; optionB: string }[] = [
@@ -70,22 +273,47 @@ interface PhotoSlot { localUri: string; serverUrl: string; }
 
 // ── Helper Components ──────────────────────────────────────────────────────
 
-function ChipSelect({ options, selected, onToggle, multi = false, max }: {
+function ChipSelect({ options, selected, onToggle, multi = false, max, showOther, otherValue, onOtherChange }: {
   options: string[]; selected: string[]; onToggle: (v: string) => void; multi?: boolean; max?: number;
+  showOther?: boolean; otherValue?: string; onOtherChange?: (v: string) => void;
 }) {
+  const [showOtherInput, setShowOtherInput] = useState(false);
+  const isOtherSelected = selected.includes('__other__');
+
   return (
-    <View style={styles.chipRow}>
-      {options.map(opt => {
-        const isSelected = selected.includes(opt);
-        const disabled = multi && max !== undefined && selected.length >= max && !isSelected;
-        return (
-          <TouchableOpacity key={opt} disabled={disabled}
-            style={[styles.chip, isSelected && styles.chipSelected, disabled && styles.chipDisabled]}
-            onPress={() => onToggle(opt)}>
-            <Text style={[styles.chipText, isSelected && styles.chipTextSelected]}>{opt}</Text>
+    <View>
+      <View style={styles.chipRow}>
+        {options.map(opt => {
+          const isSelected = selected.includes(opt);
+          const disabled = multi && max !== undefined && selected.length >= max && !isSelected;
+          return (
+            <TouchableOpacity key={opt} disabled={disabled}
+              style={[styles.chip, isSelected && styles.chipSelected, disabled && styles.chipDisabled]}
+              onPress={() => onToggle(opt)}>
+              <Text style={[styles.chipText, isSelected && styles.chipTextSelected]}>{opt}</Text>
+            </TouchableOpacity>
+          );
+        })}
+        {showOther && (
+          <TouchableOpacity
+            style={[styles.chip, styles.chipOther, isOtherSelected && styles.chipSelected]}
+            onPress={() => {
+              setShowOtherInput(!showOtherInput);
+              if (!isOtherSelected) onToggle('__other__');
+            }}>
+            <Text style={[styles.chipText, isOtherSelected && styles.chipTextSelected]}>+ Custom</Text>
           </TouchableOpacity>
-        );
-      })}
+        )}
+      </View>
+      {showOther && (showOtherInput || isOtherSelected) && (
+        <TextInput
+          style={styles.otherInput}
+          placeholder="Type your answer..."
+          value={otherValue || ''}
+          onChangeText={onOtherChange}
+          maxLength={50}
+        />
+      )}
     </View>
   );
 }
@@ -120,14 +348,17 @@ export default function ProfileSetupScreen() {
 
   // Shared state
   const [photos, setPhotos] = useState<(PhotoSlot | null)[]>([null, null, null, null, null, null]);
-  const [selfieVerified, setSelfieVerified] = useState(false);
   const [selfieUri, setSelfieUri] = useState<string | null>(null);
+  const [selfieStatus, setSelfieStatus] = useState<'none' | 'verifying' | 'verified' | 'failed'>('none');
+  const [selfieMessage, setSelfieMessage] = useState('');
   const [program, setProgram] = useState('');
+  const [customProgram, setCustomProgram] = useState('');
   const [yearOfStudy, setYearOfStudy] = useState(2);
   const [intent, setIntent] = useState('open');
   const [selectedInterests, setSelectedInterests] = useState<string[]>([]);
+  const [interestSearch, setInterestSearch] = useState('');
   const [selectedPrompts, setSelectedPrompts] = useState<{ prompt: string; answer: string }[]>([]);
-  const [customPromptText, setCustomPromptText] = useState('');
+  const [customPromptTexts, setCustomPromptTexts] = useState<Record<string, string>>({});
   const [vibeAnswers, setVibeAnswers] = useState<(string | null)[]>([null, null, null, null, null]);
   const [ageMin, setAgeMin] = useState(18);
   const [ageMax, setAgeMax] = useState(25);
@@ -135,16 +366,22 @@ export default function ProfileSetupScreen() {
   // Thorough-only state
   const [socialEnergy, setSocialEnergy] = useState(3);
   const [humorStyles, setHumorStyles] = useState<string[]>([]);
+  const [customHumor, setCustomHumor] = useState('');
   const [commPref, setCommPref] = useState('');
+  const [customCommPref, setCustomCommPref] = useState('');
   const [conflictStyle, setConflictStyle] = useState('');
+  const [customConflictStyle, setCustomConflictStyle] = useState('');
   const [drinking, setDrinking] = useState('');
   const [smoking, setSmoking] = useState('');
   const [exercise, setExercise] = useState('');
   const [diet, setDiet] = useState('');
+  const [customDiet, setCustomDiet] = useState('');
   const [sleepSchedule, setSleepSchedule] = useState('');
   const [groupRoles, setGroupRoles] = useState<string[]>([]);
+  const [customGroupRole, setCustomGroupRole] = useState('');
   const [idealGroupSize, setIdealGroupSize] = useState('');
   const [dealbreakers, setDealbreakers] = useState<string[]>([]);
+  const [customDealbreaker, setCustomDealbreaker] = useState('');
 
   const photoCount = photos.filter(p => p !== null).length;
 
@@ -155,6 +392,29 @@ export default function ProfileSetupScreen() {
   const steps = path === 'thorough' ? thoroughSteps : quickSteps;
   const totalSteps = steps.length;
   const currentStepName = steps[step] || '';
+
+  // ── Interest recommendations ──
+
+  const recommendedInterests = useMemo(() => {
+    if (selectedInterests.length === 0) return [];
+    const recs = new Set<string>();
+    for (const interest of selectedInterests) {
+      const related = RECOMMENDATIONS[interest] || [];
+      for (const r of related) {
+        if (!selectedInterests.includes(r)) recs.add(r);
+      }
+    }
+    return Array.from(recs).slice(0, 12);
+  }, [selectedInterests]);
+
+  const filteredCategories = useMemo(() => {
+    if (!interestSearch.trim()) return INTEREST_CATEGORIES;
+    const q = interestSearch.toLowerCase();
+    return INTEREST_CATEGORIES.map(cat => ({
+      ...cat,
+      interests: cat.interests.filter(i => i.toLowerCase().includes(q)),
+    })).filter(cat => cat.interests.length > 0);
+  }, [interestSearch]);
 
   // ── Photo handling ──
 
@@ -177,8 +437,10 @@ export default function ProfileSetupScreen() {
           const updated = [...photos];
           updated[index] = { localUri: result.assets[0].uri, serverUrl: url };
           setPhotos(updated);
-        } catch (e: any) { Alert.alert('Upload Failed', e?.response?.data?.detail || 'Could not upload.'); }
-        finally { setUploading(false); }
+        } catch (e: any) {
+          const detail = e?.response?.data?.detail || 'Could not upload.';
+          Alert.alert('Upload Failed', detail);
+        } finally { setUploading(false); }
       }
     } catch { Alert.alert('Error', 'Could not access photos.'); }
   };
@@ -198,19 +460,42 @@ export default function ProfileSetupScreen() {
     }
   };
 
-  const handleSelfie = async () => {
+  const handleVideoSelfie = async () => {
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
-    if (status !== 'granted') { Alert.alert('Permission Required', 'Camera access needed.'); return; }
-    const result = await ImagePicker.launchCameraAsync({ allowsEditing: false, cameraType: ImagePicker.CameraType.front, quality: 0.8 });
-    if (!result.canceled && result.assets[0]) {
-      setUploading(true);
-      try {
-        await selfieVerify(result.assets[0].uri);
-        setSelfieVerified(true);
+    if (status !== 'granted') { Alert.alert('Permission Required', 'Camera access is needed for selfie verification.'); return; }
+
+    try {
+      const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: ['videos'],
+        cameraType: ImagePicker.CameraType.front,
+        videoMaxDuration: 5,
+        videoQuality: ImagePicker.UIImagePickerControllerQualityType.Medium,
+        allowsEditing: false,
+      });
+
+      if (!result.canceled && result.assets[0]) {
         setSelfieUri(result.assets[0].uri);
-        Alert.alert('Submitted!', 'Your selfie is pending admin verification.');
-      } catch (e: any) { Alert.alert('Failed', e?.response?.data?.detail || 'Could not verify.'); }
-      finally { setUploading(false); }
+        setSelfieStatus('verifying');
+        setSelfieMessage('Analyzing your video...');
+
+        try {
+          const response = await selfieVerify(result.assets[0].uri, true);
+
+          if (response.status === 'verified') {
+            setSelfieStatus('verified');
+            setSelfieMessage('Identity confirmed');
+          } else {
+            setSelfieStatus('failed');
+            setSelfieMessage(response.message || 'We couldn\'t verify your identity. Please try again.');
+          }
+        } catch (e: any) {
+          setSelfieStatus('failed');
+          setSelfieMessage(e?.response?.data?.detail || 'Verification failed. Please try again.');
+        }
+      }
+    } catch {
+      setSelfieStatus('failed');
+      setSelfieMessage('Could not access camera.');
     }
   };
 
@@ -229,20 +514,34 @@ export default function ProfileSetupScreen() {
     else if (!max || list.length < max) setter([...list, item]);
   };
 
+  const resolveCustom = (value: string, customValue: string): string => {
+    if (value === '__other__' && customValue.trim()) return customValue.trim();
+    return value;
+  };
+
   // ── Validation ──
 
   const canProceed = (): boolean => {
     switch (currentStepName) {
       case 'photos': return photoCount >= 3;
-      case 'basics': return program !== '' && intent !== '';
-      case 'interests': return selectedInterests.length >= 1;
-      case 'prompts': return selectedPrompts.length >= 2;
+      case 'basics': {
+        const hasProgram = program === 'Other' ? customProgram.trim() !== '' : program !== '';
+        return hasProgram && intent !== '';
+      }
+      case 'interests': return selectedInterests.length >= 3;
+      case 'prompts': {
+        if (selectedPrompts.length < 2) return false;
+        // Make sure custom prompts have actual text
+        return selectedPrompts.every(sp =>
+          sp.answer !== '__custom__' || (customPromptTexts[sp.prompt] || '').trim().length > 0,
+        );
+      }
       case 'vibes': return vibeAnswers.every(a => a !== null);
       case 'preferences': return ageMin >= 18 && ageMax <= 99 && ageMin <= ageMax;
       case 'personality': return humorStyles.length >= 1 && commPref !== '' && conflictStyle !== '';
       case 'lifestyle': return drinking !== '' && smoking !== '' && exercise !== '';
       case 'social': return groupRoles.length >= 1 && idealGroupSize !== '';
-      case 'dealbreakers': return true; // Optional
+      case 'dealbreakers': return true;
       case 'vibes_prefs': return vibeAnswers.every(a => a !== null) && ageMin >= 18 && ageMax <= 99;
       default: return false;
     }
@@ -255,31 +554,53 @@ export default function ProfileSetupScreen() {
     try {
       const photoUrls = photos.filter(p => p !== null).map(p => p!.serverUrl);
       const vibes: VibeAnswer[] = VIBE_QUESTIONS.map((q, i) => ({ question: q.question, answer: vibeAnswers[i]! }));
+      const finalProgram = program === 'Other' ? customProgram.trim() : program;
+
+      // Resolve custom prompt answers
+      const finalPrompts = selectedPrompts.map(sp => {
+        if (sp.answer === '__custom__') {
+          return { prompt: sp.prompt, answer: (customPromptTexts[sp.prompt] || '').trim() };
+        }
+        return sp;
+      });
 
       await createProfile({
         onboarding_path: path || 'quick',
-        program,
+        program: finalProgram,
         year_of_study: yearOfStudy,
         relationship_intent: intent,
         photo_urls: photoUrls,
-        interests: selectedInterests,
-        prompts: selectedPrompts,
+        interests: selectedInterests.map(i => i.toLowerCase()),
+        prompts: finalPrompts,
         vibe_answers: vibes,
         age_range_min: ageMin,
         age_range_max: ageMax,
         ...(path === 'thorough' ? {
           social_energy: socialEnergy,
-          humor_styles: humorStyles.map(h => h.toLowerCase()),
-          communication_pref: commPref.toLowerCase().replace(/-/g, '_'),
-          conflict_style: conflictStyle === 'Talk it out immediately' ? 'talk_immediately' : conflictStyle === 'Need space first' ? 'need_space' : 'avoid',
+          humor_styles: humorStyles.filter(h => h !== '__other__').map(h => h.toLowerCase()).concat(
+            customHumor.trim() ? [customHumor.trim().toLowerCase()] : [],
+          ),
+          communication_pref: resolveCustom(commPref, customCommPref).toLowerCase().replace(/-/g, '_').replace(/ /g, '_'),
+          conflict_style: (() => {
+            const resolved = resolveCustom(conflictStyle, customConflictStyle);
+            if (resolved === 'Talk it out immediately') return 'talk_immediately';
+            if (resolved === 'Need space first') return 'need_space';
+            if (resolved === 'Avoid confrontation') return 'avoid';
+            if (resolved === 'Write it out') return 'write_it_out';
+            return resolved.toLowerCase().replace(/ /g, '_');
+          })(),
           drinking: drinking.toLowerCase(),
           smoking: smoking.toLowerCase(),
           exercise: exercise.toLowerCase(),
-          diet: diet.toLowerCase().replace(/ /g, '_'),
+          diet: resolveCustom(diet, customDiet).toLowerCase().replace(/ /g, '_'),
           sleep_schedule: sleepSchedule === 'Early bird' ? 'early_bird' : sleepSchedule === 'Night owl' ? 'night_owl' : 'depends',
-          group_role: groupRoles.map(r => r.toLowerCase().replace(/ /g, '_')),
+          group_role: groupRoles.filter(r => r !== '__other__').map(r => r.toLowerCase().replace(/ /g, '_')).concat(
+            customGroupRole.trim() ? [customGroupRole.trim().toLowerCase().replace(/ /g, '_')] : [],
+          ),
           ideal_group_size: idealGroupSize.includes('3-4') ? 'intimate' : idealGroupSize.includes('5-6') ? 'medium' : 'large',
-          dealbreakers: dealbreakers.map(d => d.toLowerCase().replace(/ /g, '_')),
+          dealbreakers: dealbreakers.filter(d => d !== '__other__').map(d => d.toLowerCase().replace(/ /g, '_')).concat(
+            customDealbreaker.trim() ? [customDealbreaker.trim().toLowerCase().replace(/ /g, '_')] : [],
+          ),
         } : {}),
       });
 
@@ -287,6 +608,25 @@ export default function ProfileSetupScreen() {
     } catch (e: any) {
       Alert.alert('Error', e?.response?.data?.detail || 'Failed to create profile');
     } finally { setLoading(false); }
+  };
+
+  // ── Navigation ──
+
+  const handleBack = () => {
+    if (step > 0) {
+      setStep(step - 1);
+    } else {
+      // Go back to path selection
+      setPath(null);
+    }
+  };
+
+  const handleNext = () => {
+    if (step === totalSteps - 1) {
+      handleSubmit();
+    } else {
+      setStep(step + 1);
+    }
   };
 
   // ── Path Selection ──
@@ -328,7 +668,7 @@ export default function ProfileSetupScreen() {
             {p ? (
               <View style={styles.photoFull}>
                 <Image source={{ uri: p.localUri }} style={styles.photoImg} />
-                <TouchableOpacity style={styles.removeBtn} onPress={() => setPhotos(photos.map((ph, j) => j === i ? null : ph))}><Text style={styles.removeTxt}>✕</Text></TouchableOpacity>
+                <TouchableOpacity style={styles.removeBtn} onPress={() => setPhotos(photos.map((ph, j) => j === i ? null : ph))}><Text style={styles.removeTxt}>X</Text></TouchableOpacity>
               </View>
             ) : (
               <View style={styles.emptySlot}><Text style={styles.plusIcon}>+</Text>{i < 3 && <Text style={styles.reqLabel}>Required</Text>}</View>
@@ -336,18 +676,59 @@ export default function ProfileSetupScreen() {
           </TouchableOpacity>
         ))}
       </View>
+
+      {/* Video Selfie Verification */}
       <View style={styles.selfieSection}>
-        <Text style={styles.sectionTitle}>Selfie Verification</Text>
-        <Text style={styles.stepSub}>Prove your photos are really you. Reviewed by our team.</Text>
-        {selfieVerified ? (
-          <View style={styles.selfieRow}>
-            {selfieUri && <Image source={{ uri: selfieUri }} style={styles.selfieThumb} />}
-            <View style={styles.pendingBadge}><Text style={styles.pendingText}>Pending review</Text></View>
+        <View style={styles.selfieHeader}>
+          <Text style={styles.sectionTitle}>Selfie Verification</Text>
+          {selfieStatus === 'verified' && <View style={styles.verifiedDot} />}
+        </View>
+
+        {selfieStatus === 'none' && (
+          <>
+            <Text style={styles.selfieDesc}>
+              Record a quick video so we can confirm you're real. Just look at the camera and turn your head slightly.
+            </Text>
+            <TouchableOpacity style={styles.selfieBtn} onPress={handleVideoSelfie} disabled={uploading}>
+              <Text style={styles.selfieBtnText}>Record Video</Text>
+            </TouchableOpacity>
+          </>
+        )}
+
+        {selfieStatus === 'verifying' && (
+          <View style={styles.verifyingContainer}>
+            {selfieUri && <Image source={{ uri: selfieUri }} style={styles.selfieThumbLarge} />}
+            <View style={styles.verifyingContent}>
+              <ActivityIndicator size="small" color="#7B1FA2" />
+              <Text style={styles.verifyingText}>{selfieMessage}</Text>
+            </View>
+            <View style={styles.verifySteps}>
+              <Text style={styles.verifyStep}>Checking liveness...</Text>
+              <Text style={styles.verifyStep}>Matching with your photos...</Text>
+              <Text style={styles.verifyStep}>Confirming identity...</Text>
+            </View>
           </View>
-        ) : (
-          <TouchableOpacity style={styles.selfieBtn} onPress={handleSelfie} disabled={uploading}>
-            <Text style={styles.selfieBtnText}>Take Selfie</Text>
-          </TouchableOpacity>
+        )}
+
+        {selfieStatus === 'verified' && (
+          <View style={styles.verifiedContainer}>
+            {selfieUri && <Image source={{ uri: selfieUri }} style={styles.selfieThumbLarge} />}
+            <View style={styles.verifiedContent}>
+              <Text style={styles.verifiedIcon}>✓</Text>
+              <Text style={styles.verifiedText}>Identity confirmed</Text>
+              <Text style={styles.verifiedSubtext}>Your photos match your video selfie</Text>
+            </View>
+          </View>
+        )}
+
+        {selfieStatus === 'failed' && (
+          <View style={styles.failedContainer}>
+            {selfieUri && <Image source={{ uri: selfieUri }} style={styles.selfieThumbLarge} />}
+            <Text style={styles.failedText}>{selfieMessage}</Text>
+            <TouchableOpacity style={styles.retryBtn} onPress={() => { setSelfieStatus('none'); setSelfieUri(null); }}>
+              <Text style={styles.retryBtnText}>Try Again</Text>
+            </TouchableOpacity>
+          </View>
         )}
       </View>
     </View>
@@ -356,10 +737,30 @@ export default function ProfileSetupScreen() {
   const renderBasics = () => (
     <View>
       <Text style={styles.stepTitle}>The Basics</Text>
-      <Text style={styles.label}>Program</Text>
-      <ChipSelect options={PROGRAMS} selected={program ? [program] : []} onToggle={setProgram} />
+
+      <Text style={styles.label}>Program / Major</Text>
+      <ChipSelect
+        options={PROGRAMS}
+        selected={program ? [program] : []}
+        onToggle={(p) => {
+          setProgram(p);
+          if (p !== 'Other') setCustomProgram('');
+        }}
+      />
+      {program === 'Other' && (
+        <TextInput
+          style={styles.otherInput}
+          placeholder="Type your program (e.g. Biomedical Engineering)"
+          value={customProgram}
+          onChangeText={setCustomProgram}
+          maxLength={60}
+          autoFocus
+        />
+      )}
+
       <Text style={styles.label}>Year of Study</Text>
       <ChipSelect options={['1', '2', '3', '4', '5', '6']} selected={[String(yearOfStudy)]} onToggle={(v) => setYearOfStudy(parseInt(v))} />
+
       <Text style={styles.label}>What are you looking for?</Text>
       {[
         { value: 'serious', label: 'Something serious', desc: 'Looking for a real relationship' },
@@ -378,10 +779,63 @@ export default function ProfileSetupScreen() {
   const renderInterests = () => (
     <View>
       <Text style={styles.stepTitle}>Your Interests</Text>
-      <Text style={styles.stepSub}>Pick 3-8 things you're into</Text>
-      <ChipSelect options={INTERESTS} selected={selectedInterests} multi max={8}
-        onToggle={(i) => toggle(selectedInterests, i, setSelectedInterests, 8)} />
-      <Text style={styles.countText}>{selectedInterests.length}/8 selected</Text>
+      <Text style={styles.stepSub}>Pick 3-10 things you love. We'll suggest more based on your picks!</Text>
+
+      {/* Search */}
+      <TextInput
+        style={styles.searchInput}
+        placeholder="Search interests..."
+        value={interestSearch}
+        onChangeText={setInterestSearch}
+      />
+
+      <Text style={styles.countText}>{selectedInterests.length}/10 selected</Text>
+
+      {/* Recommended section */}
+      {recommendedInterests.length > 0 && !interestSearch && (
+        <View style={styles.recSection}>
+          <Text style={styles.recTitle}>Recommended for you</Text>
+          <View style={styles.chipRow}>
+            {recommendedInterests.map(interest => {
+              const isSelected = selectedInterests.includes(interest);
+              const disabled = selectedInterests.length >= 10 && !isSelected;
+              return (
+                <TouchableOpacity
+                  key={interest}
+                  disabled={disabled}
+                  style={[styles.chip, styles.chipRec, isSelected && styles.chipSelected, disabled && styles.chipDisabled]}
+                  onPress={() => toggle(selectedInterests, interest, setSelectedInterests, 10)}
+                >
+                  <Text style={[styles.chipText, styles.chipRecText, isSelected && styles.chipTextSelected]}>{interest}</Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </View>
+      )}
+
+      {/* Categories */}
+      {filteredCategories.map(cat => (
+        <View key={cat.name} style={styles.catSection}>
+          <Text style={styles.catTitle}>{cat.emoji} {cat.name}</Text>
+          <View style={styles.chipRow}>
+            {cat.interests.map(interest => {
+              const isSelected = selectedInterests.includes(interest);
+              const disabled = selectedInterests.length >= 10 && !isSelected;
+              return (
+                <TouchableOpacity
+                  key={interest}
+                  disabled={disabled}
+                  style={[styles.chip, isSelected && styles.chipSelected, disabled && styles.chipDisabled]}
+                  onPress={() => toggle(selectedInterests, interest, setSelectedInterests, 10)}
+                >
+                  <Text style={[styles.chipText, isSelected && styles.chipTextSelected]}>{interest}</Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </View>
+      ))}
     </View>
   );
 
@@ -390,54 +844,59 @@ export default function ProfileSetupScreen() {
     return (
       <View>
         <Text style={styles.stepTitle}>Show Your Personality</Text>
-        <Text style={styles.stepSub}>Pick 2 prompts + write 1 of your own</Text>
+        <Text style={styles.stepSub}>Pick 2-3 prompts and choose an answer (or write your own)</Text>
 
-        {selectedPrompts.map((sp, i) => (
-          <View key={i} style={styles.promptCard}>
-            <View style={styles.promptHeader}>
-              <Text style={styles.promptQ}>{sp.prompt}</Text>
-              <TouchableOpacity onPress={() => removePrompt(i)}><Text style={styles.removePromptBtn}>✕</Text></TouchableOpacity>
+        {/* Selected prompts */}
+        {selectedPrompts.map((sp, i) => {
+          const isCustomMode = sp.answer === '__custom__';
+          return (
+            <View key={i} style={styles.promptCard}>
+              <View style={styles.promptHeader}>
+                <Text style={styles.promptQ}>{sp.prompt}</Text>
+                <TouchableOpacity onPress={() => {
+                  removePrompt(i);
+                  const updated = { ...customPromptTexts };
+                  delete updated[sp.prompt];
+                  setCustomPromptTexts(updated);
+                }}><Text style={styles.removePromptBtn}>X</Text></TouchableOpacity>
+              </View>
+              {isCustomMode ? (
+                <TextInput
+                  style={styles.promptCustomInput}
+                  placeholder="Type your answer..."
+                  value={customPromptTexts[sp.prompt] || ''}
+                  onChangeText={(t) => setCustomPromptTexts({ ...customPromptTexts, [sp.prompt]: t.slice(0, 120) })}
+                  maxLength={120}
+                  autoFocus
+                />
+              ) : (
+                <Text style={styles.promptA}>{sp.answer}</Text>
+              )}
             </View>
-            <Text style={styles.promptA}>{sp.answer}</Text>
-          </View>
-        ))}
+          );
+        })}
 
-        {selectedPrompts.length < 2 && availablePrompts.length > 0 && (
+        {/* Available prompts */}
+        {selectedPrompts.length < 3 && availablePrompts.length > 0 && (
           <View>
-            <Text style={styles.label}>Choose a prompt:</Text>
+            <Text style={styles.label}>{selectedPrompts.length === 0 ? 'Choose a prompt:' : 'Add another:'}</Text>
             {availablePrompts.slice(0, 4).map(prompt => (
               <View key={prompt} style={styles.promptOptionGroup}>
                 <Text style={styles.promptOptionTitle}>{prompt}</Text>
-                {PROMPT_OPTIONS[prompt] ? (
-                  <View style={styles.chipRow}>
-                    {PROMPT_OPTIONS[prompt].map(ans => (
-                      <TouchableOpacity key={ans} style={styles.chip} onPress={() => addPrompt(prompt, ans)}>
-                        <Text style={styles.chipText}>{ans}</Text>
-                      </TouchableOpacity>
-                    ))}
-                  </View>
-                ) : (
-                  <TouchableOpacity style={styles.chip} onPress={() => addPrompt(prompt, '(tap to customize)')}>
-                    <Text style={styles.chipText}>Select</Text>
+                <View style={styles.chipRow}>
+                  {(PROMPT_OPTIONS[prompt] || []).map(ans => (
+                    <TouchableOpacity key={ans} style={styles.chip} onPress={() => addPrompt(prompt, ans)}>
+                      <Text style={styles.chipText}>{ans}</Text>
+                    </TouchableOpacity>
+                  ))}
+                  <TouchableOpacity style={[styles.chip, styles.chipOther]} onPress={() => {
+                    addPrompt(prompt, '__custom__');
+                  }}>
+                    <Text style={styles.chipText}>Write my own...</Text>
                   </TouchableOpacity>
-                )}
+                </View>
               </View>
             ))}
-          </View>
-        )}
-
-        {selectedPrompts.length >= 2 && (
-          <View style={styles.customPromptSection}>
-            <Text style={styles.label}>Write your own (optional):</Text>
-            <Text style={styles.promptQ}>Something people don't expect about me...</Text>
-            <TextInput
-              style={styles.textInput}
-              placeholder="Type something fun (max 100 chars)"
-              value={customPromptText}
-              onChangeText={t => setCustomPromptText(t.slice(0, 100))}
-              maxLength={100}
-            />
-            <Text style={styles.charCount}>{customPromptText.length}/100</Text>
           </View>
         )}
       </View>
@@ -466,7 +925,7 @@ export default function ProfileSetupScreen() {
   const renderPreferences = () => (
     <View>
       <Text style={styles.stepTitle}>Preferences</Text>
-      <Text style={styles.stepSub}>This is private — only used for matching.</Text>
+      <Text style={styles.stepSub}>This is private -- only used for matching.</Text>
       <View style={styles.ageRow}>
         <View style={styles.ageInput}><Text style={styles.ageLabel}>Min Age: {ageMin}</Text>
           <TextInput style={styles.textInput} keyboardType="number-pad" value={String(ageMin)} onChangeText={t => { const v = parseInt(t); if (!isNaN(v)) setAgeMin(v); }} /></View>
@@ -480,14 +939,34 @@ export default function ProfileSetupScreen() {
   const renderPersonality = () => (
     <View>
       <Text style={styles.stepTitle}>Your Personality</Text>
+
       <Text style={styles.label}>Social energy</Text>
       <SliderSelect value={socialEnergy} onChange={setSocialEnergy} labels={['Introvert', 'Extrovert']} />
+
       <Text style={styles.label}>Humor style (pick up to 2)</Text>
-      <ChipSelect options={HUMOR_STYLES} selected={humorStyles} multi max={2} onToggle={(h) => toggle(humorStyles, h, setHumorStyles, 2)} />
+      <ChipSelect
+        options={HUMOR_STYLES}
+        selected={humorStyles}
+        multi max={2}
+        onToggle={(h) => toggle(humorStyles, h, setHumorStyles, 2)}
+        showOther otherValue={customHumor} onOtherChange={setCustomHumor}
+      />
+
       <Text style={styles.label}>How do you prefer to communicate?</Text>
-      <ChipSelect options={COMMUNICATION_PREFS} selected={commPref ? [commPref] : []} onToggle={setCommPref} />
+      <ChipSelect
+        options={COMMUNICATION_PREFS}
+        selected={commPref ? [commPref] : []}
+        onToggle={setCommPref}
+        showOther otherValue={customCommPref} onOtherChange={setCustomCommPref}
+      />
+
       <Text style={styles.label}>When there's conflict...</Text>
-      <ChipSelect options={CONFLICT_STYLES} selected={conflictStyle ? [conflictStyle] : []} onToggle={setConflictStyle} />
+      <ChipSelect
+        options={CONFLICT_STYLES}
+        selected={conflictStyle ? [conflictStyle] : []}
+        onToggle={setConflictStyle}
+        showOther otherValue={customConflictStyle} onOtherChange={setCustomConflictStyle}
+      />
     </View>
   );
 
@@ -501,7 +980,12 @@ export default function ProfileSetupScreen() {
       <Text style={styles.label}>Exercise</Text>
       <ChipSelect options={EXERCISE_OPTIONS} selected={exercise ? [exercise] : []} onToggle={setExercise} />
       <Text style={styles.label}>Diet</Text>
-      <ChipSelect options={DIET_OPTIONS} selected={diet ? [diet] : []} onToggle={setDiet} />
+      <ChipSelect
+        options={DIET_OPTIONS}
+        selected={diet ? [diet] : []}
+        onToggle={setDiet}
+        showOther otherValue={customDiet} onOtherChange={setCustomDiet}
+      />
       <Text style={styles.label}>Sleep schedule</Text>
       <ChipSelect options={SLEEP_OPTIONS} selected={sleepSchedule ? [sleepSchedule] : []} onToggle={setSleepSchedule} />
     </View>
@@ -511,7 +995,13 @@ export default function ProfileSetupScreen() {
     <View>
       <Text style={styles.stepTitle}>In a Group...</Text>
       <Text style={styles.label}>I'm usually the one who... (pick 2)</Text>
-      <ChipSelect options={GROUP_ROLES} selected={groupRoles} multi max={2} onToggle={(r) => toggle(groupRoles, r, setGroupRoles, 2)} />
+      <ChipSelect
+        options={GROUP_ROLES}
+        selected={groupRoles}
+        multi max={2}
+        onToggle={(r) => toggle(groupRoles, r, setGroupRoles, 2)}
+        showOther otherValue={customGroupRole} onOtherChange={setCustomGroupRole}
+      />
       <Text style={styles.label}>My ideal group size</Text>
       <ChipSelect options={GROUP_SIZES} selected={idealGroupSize ? [idealGroupSize] : []} onToggle={setIdealGroupSize} />
     </View>
@@ -521,8 +1011,14 @@ export default function ProfileSetupScreen() {
     <View>
       <Text style={styles.stepTitle}>Dealbreakers</Text>
       <Text style={styles.stepSub}>Select any that would be a hard no for you. These are private and used as hard filters in matching.</Text>
-      <ChipSelect options={DEALBREAKERS} selected={dealbreakers} multi onToggle={(d) => toggle(dealbreakers, d, setDealbreakers)} />
-      {dealbreakers.length === 0 && <Text style={styles.noneText}>None selected — that's fine too!</Text>}
+      <ChipSelect
+        options={DEALBREAKERS}
+        selected={dealbreakers}
+        multi
+        onToggle={(d) => toggle(dealbreakers, d, setDealbreakers)}
+        showOther otherValue={customDealbreaker} onOtherChange={setCustomDealbreaker}
+      />
+      {dealbreakers.length === 0 && <Text style={styles.noneText}>None selected -- that's fine too!</Text>}
     </View>
   );
 
@@ -552,45 +1048,32 @@ export default function ProfileSetupScreen() {
 
   const isLastStep = step === totalSteps - 1;
 
-  const handleNext = () => {
-    if (isLastStep) {
-      // Add custom prompt if filled
-      if (customPromptText.trim()) {
-        const withCustom = [...selectedPrompts, { prompt: "Something people don't expect about me...", answer: customPromptText.trim() }];
-        setSelectedPrompts(withCustom);
-      }
-      handleSubmit();
-    } else {
-      setStep(step + 1);
-    }
-  };
-
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <Text style={styles.header}>Set Up Your Profile</Text>
-      <View style={styles.progressRow}>
-        {steps.map((_, i) => (
-          <View key={i} style={[styles.progressDot, i <= step && styles.progressDotActive]} />
-        ))}
-      </View>
-      <Text style={styles.stepIndicator}>Step {step + 1} of {totalSteps}</Text>
+    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <ScrollView style={styles.container} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+        <Text style={styles.header}>Set Up Your Profile</Text>
+        <View style={styles.progressRow}>
+          {steps.map((_, i) => (
+            <View key={i} style={[styles.progressDot, i <= step && styles.progressDotActive]} />
+          ))}
+        </View>
+        <Text style={styles.stepIndicator}>Step {step + 1} of {totalSteps}</Text>
 
-      {renderStep()}
+        {renderStep()}
 
-      <View style={styles.navRow}>
-        {step > 0 && (
-          <TouchableOpacity style={styles.secondaryBtn} onPress={() => setStep(step - 1)}>
-            <Text style={styles.secondaryBtnText}>Back</Text>
+        <View style={styles.navRow}>
+          <TouchableOpacity style={styles.secondaryBtn} onPress={handleBack}>
+            <Text style={styles.secondaryBtnText}>{step === 0 ? 'Change Path' : 'Back'}</Text>
           </TouchableOpacity>
-        )}
-        <TouchableOpacity
-          style={[styles.primaryBtn, !canProceed() && styles.btnDisabled]}
-          onPress={handleNext} disabled={!canProceed() || loading}>
-          {loading ? <ActivityIndicator color="#fff" /> :
-            <Text style={styles.primaryBtnText}>{isLastStep ? 'Complete Setup' : 'Next'}</Text>}
-        </TouchableOpacity>
-      </View>
-    </ScrollView>
+          <TouchableOpacity
+            style={[styles.primaryBtn, !canProceed() && styles.btnDisabled]}
+            onPress={handleNext} disabled={!canProceed() || loading}>
+            {loading ? <ActivityIndicator color="#fff" /> :
+              <Text style={styles.primaryBtnText}>{isLastStep ? 'Complete Setup' : 'Next'}</Text>}
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -603,9 +1086,9 @@ const styles = StyleSheet.create({
   subtitle: { fontSize: 15, color: '#666', marginBottom: 24 },
   stepIndicator: { fontSize: 13, color: '#999', marginBottom: 16 },
   stepTitle: { fontSize: 22, fontWeight: '700', marginBottom: 6 },
-  stepSub: { fontSize: 14, color: '#666', marginBottom: 16 },
+  stepSub: { fontSize: 14, color: '#666', marginBottom: 16, lineHeight: 20 },
   label: { fontSize: 15, fontWeight: '600', marginTop: 16, marginBottom: 8, color: '#333' },
-  countText: { fontSize: 12, color: '#999', textAlign: 'right', marginTop: -8 },
+  countText: { fontSize: 13, color: '#E91E63', fontWeight: '600', textAlign: 'right', marginBottom: 8 },
   noneText: { fontSize: 13, color: '#999', fontStyle: 'italic', marginTop: 8 },
 
   // Progress
@@ -629,9 +1112,24 @@ const styles = StyleSheet.create({
   chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 8 },
   chip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, borderWidth: 1, borderColor: '#ddd', backgroundColor: '#f5f5f5' },
   chipSelected: { backgroundColor: '#E91E63', borderColor: '#E91E63' },
-  chipDisabled: { opacity: 0.4 },
+  chipDisabled: { opacity: 0.3 },
   chipText: { fontSize: 13, color: '#333' },
   chipTextSelected: { color: '#fff' },
+  chipOther: { borderStyle: 'dashed', borderColor: '#E91E63', backgroundColor: '#FFF5F7' },
+  chipRec: { borderColor: '#FFB74D', backgroundColor: '#FFF8E1' },
+  chipRecText: { color: '#E65100' },
+
+  // Other / Custom input
+  otherInput: { borderWidth: 1, borderColor: '#E91E63', borderRadius: 8, padding: 12, fontSize: 15, backgroundColor: '#FFF5F7', marginTop: 8, marginBottom: 8 },
+
+  // Search
+  searchInput: { borderWidth: 1, borderColor: '#ddd', borderRadius: 12, padding: 12, fontSize: 15, backgroundColor: '#f9f9f9', marginBottom: 12 },
+
+  // Interest categories
+  catSection: { marginBottom: 16 },
+  catTitle: { fontSize: 15, fontWeight: '700', color: '#555', marginBottom: 8 },
+  recSection: { backgroundColor: '#FFF8E1', borderRadius: 12, padding: 12, marginBottom: 16, borderWidth: 1, borderColor: '#FFE082' },
+  recTitle: { fontSize: 14, fontWeight: '700', color: '#E65100', marginBottom: 8 },
 
   // Slider
   sliderRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 },
@@ -663,24 +1161,41 @@ const styles = StyleSheet.create({
   uploadText: { fontSize: 13, color: '#E65100' },
 
   // Selfie
-  selfieSection: { backgroundColor: '#F3E5F5', borderRadius: 12, padding: 16, marginTop: 8 },
-  sectionTitle: { fontSize: 16, fontWeight: '600', color: '#7B1FA2', marginBottom: 4 },
-  selfieBtn: { backgroundColor: '#7B1FA2', paddingVertical: 14, borderRadius: 8, alignItems: 'center' },
+  selfieSection: { backgroundColor: '#F9F5FC', borderRadius: 16, padding: 16, marginTop: 12, borderWidth: 1, borderColor: '#E8DEF8' },
+  selfieHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 },
+  sectionTitle: { fontSize: 17, fontWeight: '700', color: '#4A148C' },
+  verifiedDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: '#4CAF50' },
+  selfieDesc: { fontSize: 14, color: '#666', lineHeight: 20, marginBottom: 14 },
+  selfieBtn: { backgroundColor: '#6A1B9A', paddingVertical: 14, borderRadius: 10, alignItems: 'center' },
   selfieBtnText: { color: '#fff', fontSize: 16, fontWeight: '600' },
-  selfieRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  selfieThumb: { width: 50, height: 50, borderRadius: 25 },
-  pendingBadge: { backgroundColor: '#FF9800', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16 },
-  pendingText: { color: '#fff', fontWeight: '600', fontSize: 13 },
+  selfieThumbLarge: { width: 72, height: 72, borderRadius: 36, borderWidth: 2, borderColor: '#E8DEF8' },
+  // Verifying state
+  verifyingContainer: { alignItems: 'center', paddingVertical: 12 },
+  verifyingContent: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 12 },
+  verifyingText: { fontSize: 15, color: '#6A1B9A', fontWeight: '600' },
+  verifySteps: { marginTop: 12, gap: 6 },
+  verifyStep: { fontSize: 13, color: '#9E9E9E' },
+  // Verified state
+  verifiedContainer: { alignItems: 'center', paddingVertical: 8 },
+  verifiedContent: { alignItems: 'center', marginTop: 10 },
+  verifiedIcon: { fontSize: 28, color: '#4CAF50', fontWeight: '700' },
+  verifiedText: { fontSize: 16, fontWeight: '700', color: '#2E7D32', marginTop: 4 },
+  verifiedSubtext: { fontSize: 13, color: '#666', marginTop: 2 },
+  // Failed state
+  failedContainer: { alignItems: 'center', paddingVertical: 8 },
+  failedText: { fontSize: 14, color: '#C62828', textAlign: 'center', marginTop: 10, marginBottom: 12, lineHeight: 20 },
+  retryBtn: { backgroundColor: '#6A1B9A', paddingHorizontal: 24, paddingVertical: 10, borderRadius: 8 },
+  retryBtnText: { color: '#fff', fontWeight: '600', fontSize: 14 },
 
   // Prompts
   promptCard: { backgroundColor: '#f9f9f9', borderRadius: 12, padding: 14, marginBottom: 10, borderWidth: 1, borderColor: '#eee' },
   promptHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  promptQ: { fontSize: 14, fontWeight: '600', color: '#E91E63', marginBottom: 4 },
-  promptA: { fontSize: 15, color: '#333' },
+  promptQ: { fontSize: 14, fontWeight: '600', color: '#E91E63', marginBottom: 4, flex: 1 },
+  promptA: { fontSize: 15, color: '#333', marginBottom: 8 },
   removePromptBtn: { fontSize: 18, color: '#999', padding: 4 },
   promptOptionGroup: { marginBottom: 16 },
   promptOptionTitle: { fontSize: 14, fontWeight: '600', color: '#555', marginBottom: 6 },
-  customPromptSection: { marginTop: 16, backgroundColor: '#f9f9f9', borderRadius: 12, padding: 14 },
+  promptCustomInput: { borderWidth: 1, borderColor: '#ddd', borderRadius: 8, padding: 10, fontSize: 14, backgroundColor: '#fff', marginTop: 4 },
   textInput: { borderWidth: 1, borderColor: '#ddd', borderRadius: 8, padding: 12, fontSize: 15, backgroundColor: '#fff', marginBottom: 4 },
   charCount: { fontSize: 11, color: '#999', textAlign: 'right' },
 

@@ -5,13 +5,25 @@ from sqlalchemy import or_, select, and_, tuple_
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from pydantic import BaseModel
+
 from app.database import get_db
 from app.middleware.auth_middleware import get_current_user
 from app.models.chat import ChatMessage, ChatParticipant, ChatRoom
+from app.models.group import DateGroup, GroupMember
 from app.models.user import User
 from app.schemas.chat import ChatMessageResponse, ChatRoomResponse, LastMessage, ParticipantInfo
+from app.services.chat_ai_service import (
+    GENIE_USER_ID,
+    check_rate_limit,
+    generate_assistant_response,
+)
 from app.websocket.handlers import authenticate_ws, handle_chat_message, handle_typing, verify_participant
 from app.websocket.manager import manager
+
+
+class AskGenieRequest(BaseModel):
+    question: str
 
 router = APIRouter(tags=["chat"])
 
@@ -155,3 +167,89 @@ async def get_messages(
         )
         for msg in messages
     ]
+
+
+@router.post("/api/chat/rooms/{room_id}/ask-genie", response_model=ChatMessageResponse)
+async def ask_genie(
+    room_id: uuid.UUID,
+    body: AskGenieRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Ask Genie a question via REST (used by the Genie button in chat UI)."""
+    is_participant = await verify_participant(current_user.id, room_id, db)
+    if not is_participant:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not a participant of this room")
+
+    if not check_rate_limit(str(room_id)):
+        raise HTTPException(status_code=429, detail="Genie is thinking... try again in a moment.")
+
+    # Get room and group
+    result = await db.execute(select(ChatRoom).where(ChatRoom.id == room_id))
+    room = result.scalar_one_or_none()
+    if not room or not room.group_id:
+        raise HTTPException(status_code=400, detail="This room has no associated group.")
+
+    result = await db.execute(select(DateGroup).where(DateGroup.id == room.group_id))
+    group = result.scalar_one_or_none()
+    if not group:
+        raise HTTPException(status_code=400, detail="Group not found.")
+
+    # Get member names
+    result = await db.execute(
+        select(User)
+        .join(GroupMember, GroupMember.user_id == User.id)
+        .where(GroupMember.group_id == group.id)
+    )
+    members = result.scalars().all()
+    member_names = [m.first_name for m in members]
+
+    # Get recent messages
+    result = await db.execute(
+        select(ChatMessage)
+        .where(ChatMessage.room_id == room_id)
+        .order_by(ChatMessage.created_at.desc())
+        .limit(10)
+    )
+    recent = result.scalars().all()
+    recent_msgs = [{"sender_name": "User", "content": m.content} for m in reversed(recent)]
+
+    # Generate response
+    response_text = await generate_assistant_response(
+        activity=group.activity,
+        member_names=member_names,
+        recent_messages=recent_msgs,
+        user_query=body.question,
+    )
+
+    # Save Genie message
+    genie_msg = ChatMessage(
+        room_id=room_id,
+        sender_id=GENIE_USER_ID,
+        content=response_text,
+        message_type="ai",
+    )
+    db.add(genie_msg)
+    await db.commit()
+    await db.refresh(genie_msg)
+
+    # Broadcast via WebSocket
+    await manager.broadcast(str(room_id), {
+        "type": "message",
+        "id": str(genie_msg.id),
+        "sender_id": str(GENIE_USER_ID),
+        "sender_name": "Genie",
+        "content": response_text,
+        "message_type": "ai",
+        "created_at": genie_msg.created_at.isoformat(),
+    })
+
+    return ChatMessageResponse(
+        id=genie_msg.id,
+        room_id=genie_msg.room_id,
+        sender_id=genie_msg.sender_id,
+        sender_name="Genie",
+        content=genie_msg.content,
+        message_type=genie_msg.message_type,
+        created_at=genie_msg.created_at,
+    )

@@ -7,6 +7,7 @@ class Settings(BaseSettings):
     SECRET_KEY: str = "dev-secret-key-change-in-production"
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 1440
+    OPENAI_API_KEY: str = ""
 
     model_config = SettingsConfigDict(env_file=".env")
 

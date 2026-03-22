@@ -7,6 +7,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.chat import ChatParticipant, ChatRoom
 from app.models.match import Match
 from app.models.report import RomanticInterest
+from app.models.user import User
+from app.services.notification_service import notify_match
 
 
 async def check_and_create_matches(
@@ -47,5 +49,24 @@ async def check_and_create_matches(
             )
             db.add(match)
             matches.append(match)
+
+            # Send push notifications to both users
+            result_a = await db.execute(select(User).where(User.id == a))
+            result_b = await db.execute(select(User).where(User.id == b))
+            user_a = result_a.scalar_one_or_none()
+            user_b = result_b.scalar_one_or_none()
+
+            if user_a and user_b:
+                await notify_match(
+                    user1_push_token=user_a.push_token,
+                    user1_name=user_a.first_name,
+                    user2_push_token=user_b.push_token,
+                    user2_name=user_b.first_name,
+                    match_data={
+                        "type": "match",
+                        "match_id": str(match.id),
+                        "chat_room_id": str(chat_room.id),
+                    },
+                )
 
     return matches

@@ -1,9 +1,10 @@
 from app.models.user import User, VibeAnswer
-from app.models.date_request import DateRequest, AvailabilitySlot, PreGroupFriend
+from app.models.date_request import DateRequest, AvailabilitySlot, PreGroupFriend, DateRequestTemplate
 from app.models.group import DateGroup, GroupMember
 from app.models.match import Match
 from app.models.chat import ChatRoom, ChatParticipant, ChatMessage
 from app.models.report import FeedbackRating, RomanticInterest, BlockedPair, Report
+from app.models.friendship import Friendship
 
 __all__ = [
     "User",
@@ -11,6 +12,7 @@ __all__ = [
     "DateRequest",
     "AvailabilitySlot",
     "PreGroupFriend",
+    "DateRequestTemplate",
     "DateGroup",
     "GroupMember",
     "Match",
@@ -21,4 +23,5 @@ __all__ = [
     "RomanticInterest",
     "BlockedPair",
     "Report",
+    "Friendship",
 ]

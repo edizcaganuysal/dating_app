@@ -12,15 +12,11 @@ class ActivityType(str, Enum):
     bowling = "bowling"
     karaoke = "karaoke"
     board_games = "board_games"
-    ice_skating = "ice_skating"
-    hiking = "hiking"
     cooking_class = "cooking_class"
     trivia_night = "trivia_night"
     mini_golf = "mini_golf"
     escape_room = "escape_room"
-    art_gallery = "art_gallery"
-    picnic = "picnic"
-    museum = "museum"
+    arcade = "arcade"
 
 
 class TimeWindow(str, Enum):

@@ -57,12 +57,16 @@ describe('profiles API', () => {
     expect(result.bio).toBe('Updated bio');
   });
 
-  it('selfieVerify calls POST /api/profiles/selfie-verify', async () => {
-    mockedClient.post.mockResolvedValueOnce({ data: { message: 'Verified' } });
+  it('selfieVerify calls POST /api/profiles/selfie-verify with video', async () => {
+    mockedClient.post.mockResolvedValueOnce({ data: { message: 'Verified', status: 'verified' } });
 
-    const result = await selfieVerify();
+    const result = await selfieVerify('file:///selfie.mp4', true);
 
-    expect(mockedClient.post).toHaveBeenCalledWith('/api/profiles/selfie-verify');
+    expect(mockedClient.post).toHaveBeenCalledWith(
+      '/api/profiles/selfie-verify',
+      expect.any(FormData),
+      expect.objectContaining({ headers: { 'Content-Type': 'multipart/form-data' } }),
+    );
     expect(result.message).toBe('Verified');
   });
 });

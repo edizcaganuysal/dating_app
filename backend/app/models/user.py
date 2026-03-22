@@ -1,3 +1,5 @@
+import random
+import string
 import uuid
 from datetime import datetime
 from typing import Optional
@@ -6,6 +8,10 @@ from sqlalchemy import ForeignKey, String, JSON, Text, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
+
+
+def _generate_friend_code() -> str:
+    return ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
 
 
 class User(Base):
@@ -17,6 +23,7 @@ class User(Base):
     first_name: Mapped[str] = mapped_column(String(100))
     last_name: Mapped[str] = mapped_column(String(100))
     phone: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)
+    friend_code: Mapped[str] = mapped_column(String(6), unique=True, default=_generate_friend_code)
     university_domain: Mapped[str] = mapped_column(String(100))
     is_email_verified: Mapped[bool] = mapped_column(default=False)
     email_otp: Mapped[Optional[str]] = mapped_column(String(6), nullable=True)
@@ -33,6 +40,9 @@ class User(Base):
     photo_urls: Mapped[list] = mapped_column(JSON, default=list)
     interests: Mapped[list] = mapped_column(JSON, default=list)
     prompts: Mapped[list] = mapped_column(JSON, default=list)  # [{prompt: str, answer: str}]
+
+    # Push notifications
+    push_token: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
 
     # Selfie verification
     selfie_status: Mapped[str] = mapped_column(String(20), default="none")  # none, pending, verified, rejected
