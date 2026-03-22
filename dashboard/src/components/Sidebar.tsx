@@ -9,6 +9,7 @@ const NAV_ITEMS = [
   { href: "/matching", label: "Matching", icon: "🔗" },
   { href: "/users", label: "Users", icon: "👥" },
   { href: "/reports", label: "Reports", icon: "🚩" },
+  { href: "/selfie-review", label: "Selfie Review", icon: "📸" },
   { href: "/analytics", label: "Analytics", icon: "📈" },
 ];
 
