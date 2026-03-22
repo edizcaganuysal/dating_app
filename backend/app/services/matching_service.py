@@ -39,10 +39,69 @@ async def check_no_blocked_pairs(user_ids: list[uuid.UUID], db: AsyncSession) ->
     return result.first() is None
 
 
+def check_dealbreakers(users: list[User]) -> bool:
+    """Return True if no dealbreaker conflicts exist between any pair of users."""
+    for u in users:
+        dbs = set(u.dealbreakers or [])
+        if not dbs:
+            continue
+        for other in users:
+            if u.id == other.id:
+                continue
+            if "smoking" in dbs and (other.smoking or "") == "regularly":
+                return False
+            if "heavy_drinking" in dbs and (other.drinking or "") == "regularly":
+                return False
+            if "too_quiet" in dbs and (other.social_energy or 3) <= 1:
+                return False
+            if "too_loud" in dbs and (other.social_energy or 3) >= 5:
+                return False
+    return True
+
+
+def _compute_intent_bonus(a: User, b: User) -> float:
+    """Score bonus for matching relationship intents."""
+    ia = a.relationship_intent or "open"
+    ib = b.relationship_intent or "open"
+    if ia == ib:
+        return 3.0 if ia in ("serious", "casual") else 2.0
+    if "open" in (ia, ib):
+        return 1.0
+    return 0.0
+
+
+def _compute_personality_score(a: User, b: User) -> float:
+    """Score personality compatibility (thorough users only)."""
+    score = 0.0
+    # Social energy similarity (both must have it)
+    if a.social_energy is not None and b.social_energy is not None:
+        score += 5.0 - abs(a.social_energy - b.social_energy)
+    # Humor style overlap
+    a_humor = set(a.humor_styles or [])
+    b_humor = set(b.humor_styles or [])
+    if a_humor and b_humor:
+        score += len(a_humor & b_humor) * 2.0
+    return score
+
+
+def _compute_lifestyle_score(a: User, b: User) -> float:
+    """Score lifestyle compatibility (thorough users only)."""
+    score = 0.0
+    for field in ("drinking", "smoking", "exercise", "sleep_schedule"):
+        val_a = getattr(a, field, None)
+        val_b = getattr(b, field, None)
+        if val_a and val_b and val_a == val_b:
+            score += 1.0
+    return score
+
+
 def compute_group_score(males: list[User], females: list[User]) -> float:
-    """Score a candidate group based on interest overlap, vibe alignment, and attractiveness variance."""
+    """Score a candidate group based on multiple compatibility dimensions."""
     interest_score = 0.0
     vibe_score = 0.0
+    personality_score = 0.0
+    lifestyle_score = 0.0
+    intent_score = 0.0
 
     for m in males:
         m_interests = set(m.interests or [])
@@ -56,11 +115,33 @@ def compute_group_score(males: list[User], females: list[User]) -> float:
                 if q in f_vibes and m_vibes[q] == f_vibes[q]:
                     vibe_score += 1
 
+            personality_score += _compute_personality_score(m, f)
+            lifestyle_score += _compute_lifestyle_score(m, f)
+            intent_score += _compute_intent_bonus(m, f)
+
     all_users = males + females
     scores = [u.attractiveness_score for u in all_users]
     attractiveness_variance = stdev(scores) if len(scores) > 1 else 0.0
 
-    return interest_score + vibe_score - (attractiveness_variance * 10)
+    # Program bonus: slight bonus if users share the same program
+    programs = [u.program for u in all_users if u.program]
+    program_bonus = 0.0
+    if programs:
+        from collections import Counter
+        prog_counts = Counter(programs)
+        most_common_count = prog_counts.most_common(1)[0][1]
+        if most_common_count >= 2:
+            program_bonus = 1.0
+
+    return (
+        interest_score * 1.0
+        + vibe_score * 1.5
+        + personality_score * 2.0
+        + lifestyle_score * 1.0
+        + intent_score
+        + program_bonus
+        - (attractiveness_variance * 10)
+    )
 
 
 def get_overlapping_slots(
@@ -242,6 +323,10 @@ async def run_batch_matching(db: AsyncSession) -> list[DateGroup]:
 
                     # Check age compatibility
                     if not check_age_compatibility(all_users):
+                        continue
+
+                    # Check dealbreakers
+                    if not check_dealbreakers(all_users):
                         continue
 
                     # Check pre-group constraints: all pre-grouped friends must be present

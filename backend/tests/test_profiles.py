@@ -111,15 +111,21 @@ async def test_update_profile(client: AsyncClient):
 
 async def test_selfie_verify(client: AsyncClient):
     token, _ = await create_verified_user(client, "sv")
+    # Selfie verify now requires a file upload and sets status to "pending"
+    import io
+    fake_image = io.BytesIO(b'\x89PNG\r\n\x1a\n' + b'\x00' * 100)
     resp = await client.post(
         "/api/profiles/selfie-verify",
         headers={"Authorization": f"Bearer {token}"},
+        files={"file": ("selfie.png", fake_image, "image/png")},
     )
     assert resp.status_code == 200
-    assert resp.json()["message"] == "Selfie verified"
+    assert resp.json()["status"] == "pending"
 
     me = await client.get("/api/profiles/me", headers={"Authorization": f"Bearer {token}"})
-    assert me.json()["is_selfie_verified"] is True
+    assert me.json()["selfie_status"] == "pending"
+    # Not verified until admin approves
+    assert me.json()["is_selfie_verified"] is False
 
 
 async def test_profile_unauthorized(client: AsyncClient):
