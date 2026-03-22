@@ -133,3 +133,34 @@ class AnalyticsResponse(BaseModel):
     avg_experience_rating: Optional[float] = None
     total_reports_pending: int
     no_show_count_total: int
+
+
+class VibeAnswerInput(BaseModel):
+    question: str
+    answer: str
+
+
+class AdminUserCreate(BaseModel):
+    email: str
+    password: str = Field(..., min_length=8)
+    first_name: str
+    last_name: str
+    phone: str = ""
+    gender: str  # "male" or "female"
+    age: int = Field(..., ge=18, le=99)
+    program: str = ""
+    year_of_study: int = Field(1, ge=1, le=6)
+    bio: str = Field("", max_length=500)
+    photo_urls: list[str] = Field(default_factory=list)
+    interests: list[str] = Field(default_factory=list)
+    vibe_answers: list[VibeAnswerInput] = Field(default_factory=list)
+    age_range_min: int = Field(18, ge=18, le=99)
+    age_range_max: int = Field(30, ge=18, le=99)
+
+
+class AdminDateRequestCreate(BaseModel):
+    user_id: uuid.UUID
+    group_size: int = Field(..., description="Must be 4 or 6")
+    activity: str
+    availability_slots: list[dict] = Field(..., min_length=1)  # [{date: str, time_window: str}]
+    pre_group_friend_ids: list[uuid.UUID] = Field(default_factory=list, max_length=2)

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   getPendingRequests,
   createManualGroup,
@@ -25,6 +26,7 @@ function getActivityStyle(activity: string) {
 }
 
 export default function MatchingPage() {
+  const router = useRouter();
   const [requests, setRequests] = useState<PendingDateRequest[]>([]);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [activity, setActivity] = useState("");
@@ -111,12 +113,20 @@ export default function MatchingPage() {
     <div>
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold">Manual Matching</h1>
-        <button
-          onClick={handleBatchMatch}
-          className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-sm font-medium transition-colors"
-        >
-          Run Batch Matching
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={() => router.push("/matching/create-request")}
+            className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-sm font-medium transition-colors"
+          >
+            + Create Date Request
+          </button>
+          <button
+            onClick={handleBatchMatch}
+            className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-sm font-medium transition-colors"
+          >
+            Run Batch Matching
+          </button>
+        </div>
       </div>
 
       {error && <p className="text-red-400 mb-4">{error}</p>}

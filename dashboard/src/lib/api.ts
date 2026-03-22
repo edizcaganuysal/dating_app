@@ -133,6 +133,66 @@ export async function seedDatabase() {
   return fetchJson<{ detail: string }>("/api/admin/seed", { method: "POST" });
 }
 
+export async function getPendingSelfies() {
+  return fetchJson<SelfieReview[]>("/api/admin/selfie-reviews");
+}
+
+export async function reviewSelfie(userId: string, action: "approve" | "reject") {
+  return fetchJson<{ user_id: string; selfie_status: string }>(
+    `/api/admin/selfie-reviews/${userId}?action=${action}`,
+    { method: "POST" }
+  );
+}
+
+export interface SelfieReview {
+  id: string;
+  first_name: string;
+  last_name: string;
+  email: string;
+  photo_urls: string[];
+  selfie_urls: string[];
+  selfie_status: string;
+}
+
+export async function createUser(data: {
+  email: string;
+  password: string;
+  first_name: string;
+  last_name: string;
+  phone?: string;
+  gender: string;
+  age: number;
+  program?: string;
+  year_of_study?: number;
+  bio?: string;
+  photo_urls?: string[];
+  interests?: string[];
+  vibe_answers?: { question: string; answer: string }[];
+  age_range_min?: number;
+  age_range_max?: number;
+}) {
+  return fetchJson<AdminUserDetail>("/api/admin/users/create", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+export async function createDateRequestForUser(data: {
+  user_id: string;
+  group_size: number;
+  activity: string;
+  availability_slots: { date: string; time_window: string }[];
+  pre_group_friend_ids?: string[];
+}) {
+  return fetchJson<{ id: string; user_id: string; status: string; activity: string }>(
+    "/api/admin/date-requests/create",
+    {
+      method: "POST",
+      body: JSON.stringify(data),
+    }
+  );
+}
+
 // Types
 
 export interface AdminUserSummary {

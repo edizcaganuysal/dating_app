@@ -15,10 +15,14 @@ from app.models.group import DateGroup, GroupMember
 from app.models.match import Match
 from app.models.report import FeedbackRating, Report
 from app.models.user import User
+from app.models.date_request import AvailabilitySlot, PreGroupFriend
+from app.models.user import VibeAnswer
 from app.schemas.admin import (
+    AdminDateRequestCreate,
     AdminGroupSummary,
     AdminMatchSummary,
     AdminReportSummary,
+    AdminUserCreate,
     AdminUserDetailResponse,
     AdminUserListResponse,
     AdminUserSummary,
@@ -29,6 +33,7 @@ from app.schemas.admin import (
     PendingRequestUser,
 )
 from app.schemas.matching import DateGroupResponse, GroupMemberResponse
+from app.services.auth_service import hash_password
 
 router = APIRouter()
 
@@ -463,6 +468,174 @@ async def get_analytics(
         total_reports_pending=pending_reports,
         no_show_count_total=no_show_total,
     )
+
+
+@router.post("/api/admin/users/create", response_model=AdminUserDetailResponse, status_code=201)
+async def admin_create_user(
+    body: AdminUserCreate,
+    current_user: User = Depends(get_admin_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Create a fully set-up user in one step (bypasses email/selfie verification)."""
+    # Check duplicate email
+    existing = await db.execute(select(User).where(User.email == body.email))
+    if existing.scalar_one_or_none():
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Email already registered")
+
+    # Validate gender
+    if body.gender not in ("male", "female"):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Gender must be 'male' or 'female'")
+
+    # Extract domain
+    domain = body.email.split("@")[1] if "@" in body.email else ""
+
+    user = User(
+        email=body.email,
+        password_hash=hash_password(body.password),
+        first_name=body.first_name,
+        last_name=body.last_name,
+        phone=body.phone,
+        university_domain=domain,
+        gender=body.gender,
+        age=body.age,
+        program=body.program,
+        year_of_study=body.year_of_study,
+        bio=body.bio,
+        photo_urls=body.photo_urls,
+        interests=body.interests,
+        age_range_min=body.age_range_min,
+        age_range_max=body.age_range_max,
+        is_email_verified=True,
+        is_selfie_verified=True,
+    )
+    db.add(user)
+    await db.flush()
+
+    # Create vibe answers
+    for va in body.vibe_answers:
+        db.add(VibeAnswer(user_id=user.id, question=va.question, answer=va.answer))
+
+    await db.commit()
+    return await get_user_detail(user.id, current_user, db)
+
+
+@router.post("/api/admin/date-requests/create", status_code=201)
+async def admin_create_date_request(
+    body: AdminDateRequestCreate,
+    current_user: User = Depends(get_admin_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Create a date request on behalf of a user."""
+    # Verify user exists
+    result = await db.execute(select(User).where(User.id == body.user_id))
+    user = result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
+    # Validate group size
+    if body.group_size not in (4, 6):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Group size must be 4 or 6")
+
+    # Check no existing pending request
+    existing = await db.execute(
+        select(DateRequest).where(DateRequest.user_id == body.user_id, DateRequest.status == "pending")
+    )
+    if existing.scalar_one_or_none():
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="User already has a pending date request")
+
+    # Validate pre-group friends
+    max_friends = (body.group_size // 2) - 1
+    if len(body.pre_group_friend_ids) > max_friends:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Max {max_friends} pre-group friends for group size {body.group_size}",
+        )
+    for friend_id in body.pre_group_friend_ids:
+        fr = await db.execute(select(User).where(User.id == friend_id))
+        friend = fr.scalar_one_or_none()
+        if not friend:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Friend {friend_id} not found")
+        if friend.gender != user.gender:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Pre-group friends must be same gender")
+
+    # Create date request
+    date_request = DateRequest(
+        user_id=body.user_id,
+        group_size=body.group_size,
+        activity=body.activity,
+        status="pending",
+    )
+    db.add(date_request)
+    await db.flush()
+
+    # Create availability slots
+    for slot in body.availability_slots:
+        from datetime import date as date_type
+        slot_date = slot.get("date")
+        if isinstance(slot_date, str):
+            slot_date = date_type.fromisoformat(slot_date)
+        db.add(AvailabilitySlot(
+            date_request_id=date_request.id,
+            date=slot_date,
+            time_window=slot.get("time_window", "evening"),
+        ))
+
+    # Create pre-group friends
+    for friend_id in body.pre_group_friend_ids:
+        db.add(PreGroupFriend(date_request_id=date_request.id, friend_user_id=friend_id))
+
+    await db.commit()
+    return {"id": str(date_request.id), "user_id": str(body.user_id), "status": "pending", "activity": body.activity}
+
+
+@router.get("/api/admin/selfie-reviews", status_code=200)
+async def list_pending_selfies(
+    current_user: User = Depends(get_admin_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """List users with pending selfie verification."""
+    result = await db.execute(
+        select(User).where(User.selfie_status == "pending").order_by(User.updated_at.desc())
+    )
+    users = list(result.scalars().all())
+    return [
+        {
+            "id": str(u.id),
+            "first_name": u.first_name,
+            "last_name": u.last_name,
+            "email": u.email,
+            "photo_urls": u.photo_urls or [],
+            "selfie_urls": u.selfie_urls or [],
+            "selfie_status": u.selfie_status,
+        }
+        for u in users
+    ]
+
+
+@router.post("/api/admin/selfie-reviews/{user_id}", status_code=200)
+async def review_selfie(
+    user_id: uuid.UUID,
+    action: str = "approve",  # "approve" or "reject"
+    current_user: User = Depends(get_admin_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Approve or reject a user's selfie verification."""
+    result = await db.execute(select(User).where(User.id == user_id))
+    user = result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    if action == "approve":
+        user.selfie_status = "verified"
+        user.is_selfie_verified = True
+    elif action == "reject":
+        user.selfie_status = "rejected"
+        user.is_selfie_verified = False
+    else:
+        raise HTTPException(status_code=400, detail="Action must be 'approve' or 'reject'")
+
+    await db.commit()
+    return {"user_id": str(user_id), "selfie_status": user.selfie_status}
 
 
 @router.post("/api/admin/seed", status_code=200)
