@@ -19,6 +19,7 @@
         }
       ],
       "react-native-reanimated"
-    ]
+    ],
+    "newArchEnabled": true
   }
 }

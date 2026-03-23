@@ -207,4 +207,6 @@ export const animations = {
   snappy: { damping: 15, stiffness: 300, mass: 0.5 },
   dramatic: { damping: 10, stiffness: 80, mass: 1.2 },
   duration: { fast: 150, normal: 300, slow: 500, reveal: 800 },
+  stagger: 50,
+  press: { scale: 0.96 },
 } as const;

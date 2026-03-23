@@ -1,11 +1,14 @@
 import React from 'react';
-import { Text, ActivityIndicator, StyleSheet, Pressable, View } from 'react-native';
-import Animated, { useSharedValue, useAnimatedStyle, withSpring } from 'react-native-reanimated';
+import { Text, ActivityIndicator, StyleSheet, View } from 'react-native';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withSpring,
+} from 'react-native-reanimated';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, typography, spacing, radii, shadows, animations } from '../theme';
+import { colors, spacing, radii, shadows, animations } from '../theme';
 import { haptic } from '../utils/haptics';
-
-const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 type Variant = 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger';
 type Size = 'sm' | 'md' | 'lg';
@@ -50,58 +53,58 @@ export default function AnimatedButton({
   const scale = useSharedValue(1);
   const v = VARIANT_STYLES[variant];
   const s = SIZE_STYLES[size];
+  const isDisabled = disabled || loading;
+
+  const gesture = Gesture.Tap()
+    .enabled(!isDisabled)
+    .onBegin(() => {
+      'worklet';
+      scale.value = withSpring(0.96, animations.snappy);
+    })
+    .onFinalize(() => {
+      'worklet';
+      scale.value = withSpring(1, animations.bouncy);
+    })
+    .onEnd(() => {
+      haptic.light();
+      onPress();
+    });
 
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [{ scale: scale.value }],
   }));
 
-  const handlePressIn = () => {
-    scale.value = withSpring(0.96, animations.snappy);
-  };
-
-  const handlePressOut = () => {
-    scale.value = withSpring(1, animations.bouncy);
-  };
-
-  const handlePress = () => {
-    if (disabled || loading) return;
-    haptic.light();
-    onPress();
-  };
-
-  const isDisabled = disabled || loading;
   const showShadow = variant === 'primary' && !isDisabled;
 
   return (
-    <AnimatedPressable
-      onPressIn={handlePressIn}
-      onPressOut={handlePressOut}
-      onPress={handlePress}
-      style={[
-        animatedStyle,
-        styles.base,
-        {
-          backgroundColor: isDisabled ? colors.grayLight : v.bg,
-          paddingVertical: s.paddingV,
-          paddingHorizontal: s.paddingH,
-        },
-        v.border && !isDisabled ? { borderWidth: 1.5, borderColor: v.border } : undefined,
-        fullWidth && styles.fullWidth,
-        showShadow ? shadows.md : undefined,
-      ]}
-    >
-      {loading ? (
-        <ActivityIndicator size="small" color={v.text} />
-      ) : (
-        <View style={styles.content}>
-          {icon && <Ionicons name={icon as any} size={s.fontSize + 2} color={isDisabled ? colors.gray : v.text} style={styles.iconLeft} />}
-          <Text style={[styles.label, { fontSize: s.fontSize, color: isDisabled ? colors.gray : v.text }]}>
-            {label}
-          </Text>
-          {iconRight && <Ionicons name={iconRight as any} size={s.fontSize + 2} color={isDisabled ? colors.gray : v.text} style={styles.iconRight} />}
-        </View>
-      )}
-    </AnimatedPressable>
+    <GestureDetector gesture={gesture}>
+      <Animated.View
+        style={[
+          styles.base,
+          animatedStyle,
+          {
+            backgroundColor: isDisabled ? colors.grayLight : v.bg,
+            paddingVertical: s.paddingV,
+            paddingHorizontal: s.paddingH,
+          },
+          v.border && !isDisabled ? { borderWidth: 1.5, borderColor: v.border } : undefined,
+          fullWidth && styles.fullWidth,
+          showShadow ? shadows.md : undefined,
+        ]}
+      >
+        {loading ? (
+          <ActivityIndicator size="small" color={v.text} />
+        ) : (
+          <View style={styles.content}>
+            {icon && <Ionicons name={icon as any} size={s.fontSize + 2} color={isDisabled ? colors.gray : v.text} style={styles.iconLeft} />}
+            <Text style={[styles.label, { fontSize: s.fontSize, color: isDisabled ? colors.gray : v.text }]}>
+              {label}
+            </Text>
+            {iconRight && <Ionicons name={iconRight as any} size={s.fontSize + 2} color={isDisabled ? colors.gray : v.text} style={styles.iconRight} />}
+          </View>
+        )}
+      </Animated.View>
+    </GestureDetector>
   );
 }
 
