@@ -30,7 +30,8 @@ class AvailabilitySlot(Base):
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
     date_request_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("date_requests.id"))
     date: Mapped[dt.date] = mapped_column(Date)
-    time_window: Mapped[str] = mapped_column(String(20))
+    time_window: Mapped[str] = mapped_column(String(20), nullable=True)  # Legacy, kept for backward compat
+    time_hours: Mapped[list] = mapped_column(JSON, default=list)  # [18, 19, 20, 21]
     created_at: Mapped[dt.datetime] = mapped_column(server_default=func.now())
     updated_at: Mapped[dt.datetime] = mapped_column(server_default=func.now(), onupdate=func.now())
 

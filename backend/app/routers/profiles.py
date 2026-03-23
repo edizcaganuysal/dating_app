@@ -11,6 +11,7 @@ from app.database import get_db
 from app.middleware.auth_middleware import get_current_user
 from app.models.user import User, VibeAnswer
 from app.schemas.profile import (
+    LocationUpdate,
     ProfileCreate,
     ProfileUpdate,
     PrivateProfileResponse,
@@ -73,6 +74,37 @@ async def create_profile(
         current_user.ideal_group_size = data.ideal_group_size
     if data.dealbreakers:
         current_user.dealbreakers = data.dealbreakers
+
+    # Location
+    if data.latitude is not None and data.longitude is not None:
+        from datetime import datetime
+        current_user.latitude = data.latitude
+        current_user.longitude = data.longitude
+        current_user.location_updated_at = datetime.utcnow()
+    if data.preferred_max_distance_km is not None:
+        current_user.preferred_max_distance_km = data.preferred_max_distance_km
+
+    # Self-description
+    if data.body_type:
+        current_user.body_type = data.body_type
+    if data.height_cm is not None:
+        current_user.height_cm = data.height_cm
+    if data.style_tags:
+        current_user.style_tags = data.style_tags
+
+    # Preferences about others
+    if data.pref_body_type:
+        current_user.pref_body_type = data.pref_body_type
+    if data.pref_height_range:
+        current_user.pref_height_range = data.pref_height_range
+    if data.pref_style:
+        current_user.pref_style = data.pref_style
+    if data.pref_social_energy_range:
+        current_user.pref_social_energy_range = data.pref_social_energy_range
+    if data.pref_humor_styles:
+        current_user.pref_humor_styles = data.pref_humor_styles
+    if data.pref_communication:
+        current_user.pref_communication = data.pref_communication
 
     # Vibe answers
     for va in data.vibe_answers:
@@ -296,3 +328,18 @@ async def selfie_verify(
         "selfie_url": selfie_url,
         "status": "verified",
     }
+
+
+@router.patch("/me/location")
+async def update_location(
+    data: LocationUpdate,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Update user's location. Called from background or map picker."""
+    from datetime import datetime
+    current_user.latitude = data.latitude
+    current_user.longitude = data.longitude
+    current_user.location_updated_at = datetime.utcnow()
+    await db.commit()
+    return {"message": "Location updated"}

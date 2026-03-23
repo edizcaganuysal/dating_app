@@ -14,6 +14,11 @@ class PromptAnswer(BaseModel):
     answer: str
 
 
+class LocationUpdate(BaseModel):
+    latitude: float = Field(ge=-90, le=90)
+    longitude: float = Field(ge=-180, le=180)
+
+
 class ProfileCreate(BaseModel):
     # Onboarding path
     onboarding_path: str = "quick"  # quick or thorough
@@ -34,6 +39,24 @@ class ProfileCreate(BaseModel):
 
     # Vibe answers
     vibe_answers: list[VibeAnswerCreate] = Field(min_length=5, max_length=5)
+
+    # Location (optional — collected in onboarding)
+    latitude: Optional[float] = Field(default=None, ge=-90, le=90)
+    longitude: Optional[float] = Field(default=None, ge=-180, le=180)
+    preferred_max_distance_km: Optional[int] = Field(default=25, ge=1, le=200)
+
+    # Self-description (optional)
+    body_type: Optional[str] = None
+    height_cm: Optional[int] = Field(default=None, ge=100, le=250)
+    style_tags: list[str] = Field(default_factory=list)
+
+    # Preferences about others (private, optional)
+    pref_body_type: list[str] = Field(default_factory=list)
+    pref_height_range: list[int] = Field(default_factory=list)  # [min_cm, max_cm]
+    pref_style: list[str] = Field(default_factory=list)
+    pref_social_energy_range: list[int] = Field(default_factory=list)  # [min, max] 1-5
+    pref_humor_styles: list[str] = Field(default_factory=list)
+    pref_communication: list[str] = Field(default_factory=list)
 
     # Preferences (private)
     age_range_min: int = Field(ge=18, le=99)
@@ -80,6 +103,24 @@ class ProfileUpdate(BaseModel):
     dealbreakers: Optional[list[str]] = None
     bio: Optional[str] = Field(default=None, max_length=500)
 
+    # Location
+    latitude: Optional[float] = Field(default=None, ge=-90, le=90)
+    longitude: Optional[float] = Field(default=None, ge=-180, le=180)
+    preferred_max_distance_km: Optional[int] = Field(default=None, ge=1, le=200)
+
+    # Self-description
+    body_type: Optional[str] = None
+    height_cm: Optional[int] = Field(default=None, ge=100, le=250)
+    style_tags: Optional[list[str]] = None
+
+    # Preferences about others
+    pref_body_type: Optional[list[str]] = None
+    pref_height_range: Optional[list[int]] = None
+    pref_style: Optional[list[str]] = None
+    pref_social_energy_range: Optional[list[int]] = None
+    pref_humor_styles: Optional[list[str]] = None
+    pref_communication: Optional[list[str]] = None
+
 
 class PublicProfileResponse(BaseModel):
     id: uuid.UUID
@@ -110,6 +151,11 @@ class PublicProfileResponse(BaseModel):
     diet: Optional[str] = None
     sleep_schedule: Optional[str] = None
 
+    # Self-description (shown publicly)
+    body_type: Optional[str] = None
+    height_cm: Optional[int] = None
+    style_tags: list = []
+
     model_config = ConfigDict(from_attributes=True)
 
 
@@ -119,3 +165,12 @@ class PrivateProfileResponse(PublicProfileResponse):
     conflict_style: Optional[str] = None
     ideal_group_size: Optional[str] = None
     dealbreakers: list = []
+    preferred_max_distance_km: Optional[int] = None
+
+    # Preferences about others (PRIVATE — never in PublicProfileResponse)
+    pref_body_type: list = []
+    pref_height_range: list = []
+    pref_style: list = []
+    pref_social_energy_range: list = []
+    pref_humor_styles: list = []
+    pref_communication: list = []

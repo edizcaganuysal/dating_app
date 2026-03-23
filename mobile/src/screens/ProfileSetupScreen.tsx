@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, ScrollView, Alert,
   ActivityIndicator, Image, ActionSheetIOS, Platform, Dimensions, TextInput,
@@ -6,6 +6,7 @@ import {
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import * as ImagePicker from 'expo-image-picker';
+import * as Location from 'expo-location';
 import { createProfile, uploadPhoto, selfieVerify } from '../api/profiles';
 import { VibeAnswer } from '../types';
 
@@ -383,12 +384,28 @@ export default function ProfileSetupScreen() {
   const [dealbreakers, setDealbreakers] = useState<string[]>([]);
   const [customDealbreaker, setCustomDealbreaker] = useState('');
 
+  // Location state
+  const [locationLat, setLocationLat] = useState<number | null>(null);
+  const [locationLng, setLocationLng] = useState<number | null>(null);
+  const [locationLoading, setLocationLoading] = useState(false);
+  const [maxDistanceKm, setMaxDistanceKm] = useState(25);
+
+  // Self-description state (thorough)
+  const [bodyType, setBodyType] = useState('');
+  const [heightCm, setHeightCm] = useState('');
+  const [styleTags, setStyleTags] = useState<string[]>([]);
+
+  // Preference state (thorough)
+  const [prefBodyType, setPrefBodyType] = useState<string[]>([]);
+  const [prefSocialEnergyMin, setPrefSocialEnergyMin] = useState(1);
+  const [prefSocialEnergyMax, setPrefSocialEnergyMax] = useState(5);
+
   const photoCount = photos.filter(p => p !== null).length;
 
   // ── Steps definition ──
 
-  const quickSteps = ['photos', 'basics', 'interests', 'prompts', 'vibes', 'preferences'];
-  const thoroughSteps = ['photos', 'basics', 'personality', 'lifestyle', 'social', 'interests', 'dealbreakers', 'prompts', 'vibes_prefs'];
+  const quickSteps = ['photos', 'location', 'basics', 'interests', 'prompts', 'vibes', 'preferences'];
+  const thoroughSteps = ['photos', 'location', 'basics', 'personality', 'lifestyle', 'social', 'about_you', 'your_prefs', 'interests', 'dealbreakers', 'prompts', 'vibes_prefs'];
   const steps = path === 'thorough' ? thoroughSteps : quickSteps;
   const totalSteps = steps.length;
   const currentStepName = steps[step] || '';
@@ -524,6 +541,9 @@ export default function ProfileSetupScreen() {
   const canProceed = (): boolean => {
     switch (currentStepName) {
       case 'photos': return photoCount >= 3;
+      case 'location': return true; // Location is optional, user can skip
+      case 'about_you': return true; // Self-description is optional
+      case 'your_prefs': return true; // Preferences about others are optional
       case 'basics': {
         const hasProgram = program === 'Other' ? customProgram.trim() !== '' : program !== '';
         return hasProgram && intent !== '';
@@ -575,7 +595,17 @@ export default function ProfileSetupScreen() {
         vibe_answers: vibes,
         age_range_min: ageMin,
         age_range_max: ageMax,
+        // Location (both paths)
+        ...(locationLat && locationLng ? { latitude: locationLat, longitude: locationLng } : {}),
+        preferred_max_distance_km: maxDistanceKm,
         ...(path === 'thorough' ? {
+          // Self-description
+          ...(bodyType ? { body_type: bodyType.toLowerCase() } : {}),
+          ...(heightCm ? { height_cm: parseInt(heightCm) } : {}),
+          ...(styleTags.length > 0 ? { style_tags: styleTags.map(s => s.toLowerCase()) } : {}),
+          // Preferences about others
+          ...(prefBodyType.length > 0 ? { pref_body_type: prefBodyType.map(b => b.toLowerCase()) } : {}),
+          pref_social_energy_range: [prefSocialEnergyMin, prefSocialEnergyMax],
           social_energy: socialEnergy,
           humor_styles: humorStyles.filter(h => h !== '__other__').map(h => h.toLowerCase()).concat(
             customHumor.trim() ? [customHumor.trim().toLowerCase()] : [],
@@ -1022,6 +1052,126 @@ export default function ProfileSetupScreen() {
     </View>
   );
 
+  const renderLocation = () => {
+    const handleGetLocation = async () => {
+      setLocationLoading(true);
+      try {
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        if (status !== 'granted') {
+          Alert.alert('Permission Required', 'Location access is needed to find groups near you.');
+          return;
+        }
+        const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+        setLocationLat(loc.coords.latitude);
+        setLocationLng(loc.coords.longitude);
+      } catch {
+        Alert.alert('Error', 'Could not get your location. You can set it later.');
+      } finally {
+        setLocationLoading(false);
+      }
+    };
+
+    return (
+      <View>
+        <Text style={styles.stepTitle}>Set Your Location</Text>
+        <Text style={styles.stepSub}>
+          We use your location to find groups near you. Your exact location is never shared with other users.
+        </Text>
+
+        {locationLat && locationLng ? (
+          <View style={styles.locationConfirmed}>
+            <Text style={styles.locationIcon}>📍</Text>
+            <Text style={styles.locationText}>Location set!</Text>
+            <TouchableOpacity onPress={handleGetLocation}>
+              <Text style={styles.editText}>Update</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <TouchableOpacity style={styles.selfieBtn} onPress={handleGetLocation} disabled={locationLoading}>
+            {locationLoading ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <Text style={styles.selfieBtnText}>Use My Current Location</Text>
+            )}
+          </TouchableOpacity>
+        )}
+
+        <Text style={[styles.label, { marginTop: 20 }]}>Maximum distance for matches</Text>
+        <View style={styles.distanceRow}>
+          {[10, 25, 50, 100].map(km => (
+            <TouchableOpacity key={km}
+              style={[styles.chip, maxDistanceKm === km && styles.chipSelected]}
+              onPress={() => setMaxDistanceKm(km)}>
+              <Text style={[styles.chipText, maxDistanceKm === km && styles.chipTextSelected]}>{km} km</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        <Text style={styles.noneText}>You can skip this step and set your location later.</Text>
+      </View>
+    );
+  };
+
+  const BODY_TYPES = ['Slim', 'Athletic', 'Average', 'Curvy', 'Muscular'];
+  const STYLE_OPTIONS = ['Casual', 'Preppy', 'Streetwear', 'Artsy', 'Sporty', 'Minimal', 'Vintage', 'Elegant'];
+
+  const renderAboutYou = () => (
+    <View>
+      <Text style={styles.stepTitle}>About You</Text>
+      <Text style={styles.stepSub}>Optional — helps our AI find better matches for you.</Text>
+
+      <Text style={styles.label}>Body type</Text>
+      <ChipSelect options={BODY_TYPES} selected={bodyType ? [bodyType] : []} onToggle={setBodyType} />
+
+      <Text style={styles.label}>Height (cm)</Text>
+      <TextInput
+        style={styles.textInput}
+        placeholder="e.g. 175"
+        keyboardType="number-pad"
+        value={heightCm}
+        onChangeText={setHeightCm}
+        maxLength={3}
+      />
+
+      <Text style={styles.label}>Your style (pick up to 3)</Text>
+      <ChipSelect options={STYLE_OPTIONS} selected={styleTags} multi max={3}
+        onToggle={(s) => toggle(styleTags, s, setStyleTags, 3)} />
+    </View>
+  );
+
+  const renderYourPrefs = () => (
+    <View>
+      <Text style={styles.stepTitle}>Your Preferences</Text>
+      <Text style={styles.stepSub}>
+        What are you looking for in others? 100% private — only used by our AI for matching.
+      </Text>
+
+      <Text style={styles.label}>Preferred body type (select all that apply)</Text>
+      <ChipSelect options={[...BODY_TYPES, 'No preference']} selected={prefBodyType} multi
+        onToggle={(b) => {
+          if (b === 'No preference') { setPrefBodyType([]); return; }
+          toggle(prefBodyType.filter(x => x !== 'No preference'), b, setPrefBodyType);
+        }} />
+
+      <Text style={styles.label}>Preferred social energy</Text>
+      <View style={styles.distanceRow}>
+        <Text style={{ color: '#999', fontSize: 12 }}>Introvert</Text>
+        <View style={styles.sliderRow}>
+          {[1, 2, 3, 4, 5].map(n => (
+            <TouchableOpacity key={n} onPress={() => {
+              if (n <= prefSocialEnergyMax) setPrefSocialEnergyMin(n);
+            }} style={[styles.sliderDot, n >= prefSocialEnergyMin && n <= prefSocialEnergyMax && styles.sliderDotActive]}>
+              <Text style={[styles.sliderDotText, n >= prefSocialEnergyMin && n <= prefSocialEnergyMax && styles.sliderDotTextActive]}>{n}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+        <Text style={{ color: '#999', fontSize: 12 }}>Extrovert</Text>
+      </View>
+
+      <Text style={styles.noneText}>All preferences are optional. Skip any you don't have.</Text>
+    </View>
+  );
+
   const renderVibesPrefs = () => (
     <View>
       {renderVibes()}
@@ -1032,6 +1182,7 @@ export default function ProfileSetupScreen() {
   const renderStep = () => {
     switch (currentStepName) {
       case 'photos': return renderPhotos();
+      case 'location': return renderLocation();
       case 'basics': return renderBasics();
       case 'interests': return renderInterests();
       case 'prompts': return renderPrompts();
@@ -1040,6 +1191,8 @@ export default function ProfileSetupScreen() {
       case 'personality': return renderPersonality();
       case 'lifestyle': return renderLifestyle();
       case 'social': return renderSocial();
+      case 'about_you': return renderAboutYou();
+      case 'your_prefs': return renderYourPrefs();
       case 'dealbreakers': return renderDealbreakers();
       case 'vibes_prefs': return renderVibesPrefs();
       default: return null;
@@ -1220,4 +1373,11 @@ const styles = StyleSheet.create({
   secondaryBtn: { flex: 1, borderWidth: 1, borderColor: '#E91E63', paddingVertical: 14, borderRadius: 8, alignItems: 'center' },
   secondaryBtnText: { color: '#E91E63', fontSize: 16, fontWeight: '600' },
   btnDisabled: { opacity: 0.4 },
+
+  // Location
+  locationConfirmed: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: '#E8F5E9', padding: 16, borderRadius: 12, marginBottom: 12 },
+  locationIcon: { fontSize: 24 },
+  locationText: { fontSize: 16, fontWeight: '600', color: '#2E7D32', flex: 1 },
+  editText: { fontSize: 14, color: '#E91E63', fontWeight: '600' },
+  distanceRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, alignItems: 'center' },
 });

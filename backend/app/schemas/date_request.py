@@ -19,6 +19,7 @@ class ActivityType(str, Enum):
     arcade = "arcade"
 
 
+# Legacy enum kept for backward compat; new flow uses time_hours
 class TimeWindow(str, Enum):
     morning = "morning"
     afternoon = "afternoon"
@@ -26,15 +27,34 @@ class TimeWindow(str, Enum):
     night = "night"
 
 
+# Map preset windows to hour ranges
+TIME_WINDOW_HOURS = {
+    "morning": [8, 9, 10, 11],
+    "afternoon": [12, 13, 14, 15, 16, 17],
+    "evening": [18, 19, 20, 21],
+    "night": [22, 23, 0, 1],
+}
+
+
 class AvailabilitySlotCreate(BaseModel):
     date: dt.date
-    time_window: TimeWindow
+    time_window: Optional[TimeWindow] = None  # Legacy, still accepted
+    time_hours: list[int] = Field(default_factory=list)  # [18, 19, 20, 21]
+
+    def get_hours(self) -> list[int]:
+        """Return time_hours, falling back to time_window expansion."""
+        if self.time_hours:
+            return self.time_hours
+        if self.time_window:
+            return TIME_WINDOW_HOURS.get(self.time_window.value, [18, 19, 20, 21])
+        return [18, 19, 20, 21]  # default to evening
 
 
 class AvailabilitySlotResponse(BaseModel):
     id: uuid.UUID
     date: dt.date
-    time_window: str
+    time_window: Optional[str] = None
+    time_hours: list[int] = []
 
     model_config = ConfigDict(from_attributes=True)
 

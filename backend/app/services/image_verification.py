@@ -297,3 +297,87 @@ async def verify_video_selfie(video_path: str, photo_paths: list[str]) -> dict:
             "reason": f"Verification unavailable: {e}",
             "auto_approve": False,
         }
+
+
+async def score_attractiveness(image_path: str) -> dict:
+    """
+    Score a profile photo on attractiveness dimensions using OpenAI Vision.
+    Accounts for photo quality (lighting, angle) separately.
+
+    Returns:
+        {
+            "score": float (1-10, overall attractiveness),
+            "photo_quality": float (1-10, how good the photo itself is),
+            "grooming": float (1-10),
+            "style": float (1-10),
+            "confidence": float (0-1)
+        }
+    """
+    if not settings.OPENAI_API_KEY:
+        return {"score": 5.0, "photo_quality": 5.0, "grooming": 5.0, "style": 5.0, "confidence": 0.0}
+
+    try:
+        ai = _get_client()
+        b64 = _image_to_base64(image_path)
+
+        response = await ai.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {
+                    "role": "system",
+                    "content": (
+                        "You are a photo quality and attractiveness scoring system for a dating app's matching algorithm. "
+                        "Your scores are used ONLY internally for matching people of similar attractiveness — they are NEVER shown to users. "
+                        "Score on a 1-10 scale. Be fair and consistent. Account for photo quality issues "
+                        "(bad lighting, unflattering angle, low resolution) by scoring photo_quality separately. "
+                        "A person can have high attractiveness but low photo_quality if the photo is poorly taken. "
+                        "Respond ONLY with valid JSON: "
+                        '{"score": float, "photo_quality": float, "grooming": float, "style": float, "confidence": float 0-1}'
+                    ),
+                },
+                {
+                    "role": "user",
+                    "content": [
+                        {"type": "text", "text": "Rate this dating profile photo:"},
+                        {
+                            "type": "image_url",
+                            "image_url": {"url": f"data:image/jpeg;base64,{b64}", "detail": "low"},
+                        },
+                    ],
+                },
+            ],
+            max_tokens=100,
+        )
+
+        content = response.choices[0].message.content or "{}"
+        content = content.strip()
+        if content.startswith("```"):
+            content = content.split("\n", 1)[-1].rsplit("```", 1)[0].strip()
+        result = json.loads(content)
+
+        # Adjust: if photo quality is low, bump up the attractiveness score slightly
+        # (bad photo ≠ bad looking)
+        photo_q = result.get("photo_quality", 5.0)
+        raw_score = result.get("score", 5.0)
+        if photo_q < 4.0:
+            result["score"] = min(10.0, raw_score + (4.0 - photo_q) * 0.3)
+
+        return result
+
+    except Exception as e:
+        logger.error(f"Attractiveness scoring failed: {e}")
+        return {"score": 5.0, "photo_quality": 5.0, "grooming": 5.0, "style": 5.0, "confidence": 0.0}
+
+
+async def score_user_photos(photo_paths: list[str]) -> float:
+    """Score multiple photos and return the average attractiveness score."""
+    if not photo_paths:
+        return 5.0
+
+    scores = []
+    for path in photo_paths[:4]:  # Score up to 4 photos
+        if os.path.exists(path):
+            result = await score_attractiveness(path)
+            scores.append(result.get("score", 5.0))
+
+    return sum(scores) / len(scores) if scores else 5.0

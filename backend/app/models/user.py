@@ -74,6 +74,25 @@ class User(Base):
     # Dealbreakers (thorough path)
     dealbreakers: Mapped[list] = mapped_column(JSON, default=list)  # [smoking, heavy_drinking, ...]
 
+    # Location (private — matching only, never exposed)
+    latitude: Mapped[Optional[float]] = mapped_column(nullable=True)
+    longitude: Mapped[Optional[float]] = mapped_column(nullable=True)
+    location_updated_at: Mapped[Optional[datetime]] = mapped_column(nullable=True)
+    preferred_max_distance_km: Mapped[Optional[int]] = mapped_column(nullable=True, default=25)
+
+    # Self-description (shown publicly)
+    body_type: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)  # slim, athletic, average, curvy, muscular
+    height_cm: Mapped[Optional[int]] = mapped_column(nullable=True)  # 140-210
+    style_tags: Mapped[list] = mapped_column(JSON, default=list)  # casual, preppy, streetwear, artsy, sporty
+
+    # Preferences about others (private — never shown)
+    pref_body_type: Mapped[list] = mapped_column(JSON, default=list)
+    pref_height_range: Mapped[list] = mapped_column(JSON, default=list)  # [min_cm, max_cm]
+    pref_style: Mapped[list] = mapped_column(JSON, default=list)
+    pref_social_energy_range: Mapped[list] = mapped_column(JSON, default=list)  # [min, max] 1-5
+    pref_humor_styles: Mapped[list] = mapped_column(JSON, default=list)
+    pref_communication: Mapped[list] = mapped_column(JSON, default=list)
+
     # Preferences (private)
     age_range_min: Mapped[int] = mapped_column(default=18)
     age_range_max: Mapped[int] = mapped_column(default=30)

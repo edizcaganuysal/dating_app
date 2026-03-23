@@ -3,6 +3,63 @@
 Group dating app for university students. Get matched into a group of 4-6,
 go on a group date, connect with whoever you vibe with.
 
+## Matching Algorithm
+
+LoveGenie uses a 3-stage AI-powered matching pipeline designed to scale to 1M+ users.
+
+### Stage 1: Batch Formation (Every 15 minutes)
+
+Pending date requests are grouped into batches of ~100 users through deterministic clustering:
+
+1. **Strict filters** — Activity and time are absolute. Users who picked "dinner" on Friday at 7PM are never mixed with "bowling on Saturday at 2PM".
+2. **Location clustering** — Users within ~50km of each other are grouped together. Users without location data go into "anywhere" batches.
+3. **Attractiveness tiers** — Within each location cluster, users are split into three tiers (lower 1-3.9, mid 4-6.9, higher 7-10) based on AI-scored photo attractiveness. This ensures groups have similar attractiveness levels. Soft boundaries allow tier-edge users to move if it helps fill batches.
+4. **Personality similarity** — Within each tier, users are sub-clustered by a 4D personality vector: `[social_energy, relationship_intent, interest_overlap, lifestyle_score]`. Euclidean distance determines similarity.
+
+Each resulting cluster of 80-120 users becomes one `MatchingBatch`.
+
+### Stage 2: AI Group Matching (Triggered per batch)
+
+When a batch is ready (full, or 2h/6h deadline), it's sent to OpenAI GPT-4o-mini in a single API call:
+
+- **Input**: ~100 anonymized user profiles (gender, age, interests, personality, lifestyle, preferences about others, dealbreakers, pre-group friends, attractiveness tier)
+- **Output**: Optimal group assignments (4 or 6 people, equal gender split) with compatibility scores and reasoning
+- **Cost**: ~$0.003 per batch ($30 for 1M users)
+- **Fallback**: If OpenAI is unavailable, a deterministic scoring algorithm runs locally
+
+**Trigger conditions:**
+- Batch full (>=80 users): match immediately
+- 2-hour old batch (>=8 users): match if AI quality score >= 7/10, otherwise wait
+- 6-hour hard deadline: force match regardless of quality
+
+**Post-AI validation**: Every proposed group is re-checked against hard constraints (age ranges, dealbreakers, blocked pairs, gender balance). AI is not trusted blindly.
+
+### Stage 3: Admin Approval
+
+AI-proposed groups are saved as `ProposedGroup` records for admin review:
+- Admin dashboard shows group cards with member photos, AI compatibility score, and reasoning
+- Admin can approve, reject, or edit groups
+- Approved groups become real `DateGroup` records with auto-created chat rooms and push notifications
+- Rejected users return to the pending pool for the next cycle
+
+### Hard Constraints (Cannot Be Violated)
+
+| Constraint | Rule |
+|---|---|
+| Gender balance | Exactly 2M+2F (size 4) or 3M+3F (size 6) |
+| Age range | Every member must fall within every other member's preferred age range |
+| Dealbreakers | Smoking/heavy drinking/too quiet/too loud dealbreakers are absolute |
+| Blocked pairs | Users who explicitly blocked each other are never grouped |
+| Pre-group friends | Friends who requested to be together must be in the same group |
+
+### Attractiveness Scoring (Hybrid)
+
+Photos are scored by OpenAI Vision on upload and during selfie verification:
+- Scored on multiple dimensions: overall attractiveness, photo quality, grooming, style
+- Bad lighting/angles are accounted for (photo_quality scored separately)
+- Admin can override scores manually
+- Re-scored when photos are changed
+
 ## How It Works
 
 1. **Sign up** with your university email (.edu or recognized Canadian university domains)

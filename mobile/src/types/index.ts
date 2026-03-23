@@ -30,10 +30,18 @@ export interface PrivateProfile extends PublicProfile {
 
 export interface AvailabilitySlot {
   date: string;
-  time_window: TimeWindow;
+  time_window?: TimeWindow;  // Legacy, still supported
+  time_hours?: number[];     // [18, 19, 20, 21] — new format
 }
 
 export type TimeWindow = "morning" | "afternoon" | "evening" | "night";
+
+export const TIME_WINDOW_HOURS: Record<TimeWindow, number[]> = {
+  morning: [8, 9, 10, 11],
+  afternoon: [12, 13, 14, 15, 16, 17],
+  evening: [18, 19, 20, 21],
+  night: [22, 23, 0, 1],
+};
 
 export type ActivityType =
   | "dinner"
@@ -66,6 +74,21 @@ export interface ProfileCreateData {
   age_range_min: number;
   age_range_max: number;
   bio?: string;
+  // Location
+  latitude?: number;
+  longitude?: number;
+  preferred_max_distance_km?: number;
+  // Self-description
+  body_type?: string;
+  height_cm?: number;
+  style_tags?: string[];
+  // Preferences about others
+  pref_body_type?: string[];
+  pref_height_range?: number[];
+  pref_style?: string[];
+  pref_social_energy_range?: number[];
+  pref_humor_styles?: string[];
+  pref_communication?: string[];
   // Thorough-only
   social_energy?: number;
   humor_styles?: string[];

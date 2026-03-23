@@ -86,7 +86,8 @@ async def create_date_request(
         db.add(AvailabilitySlot(
             date_request_id=dr.id,
             date=slot.date,
-            time_window=slot.time_window.value,
+            time_window=slot.time_window.value if slot.time_window else None,
+            time_hours=slot.get_hours(),
         ))
 
     # Create pre-group friends
@@ -185,7 +186,8 @@ async def update_date_request(
             db.add(AvailabilitySlot(
                 date_request_id=dr.id,
                 date=slot.date,
-                time_window=slot.time_window.value,
+                time_window=slot.time_window.value if slot.time_window else None,
+            time_hours=slot.get_hours(),
             ))
 
     await db.commit()

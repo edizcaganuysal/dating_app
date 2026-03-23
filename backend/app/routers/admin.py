@@ -13,6 +13,14 @@ from app.models.chat import ChatParticipant, ChatRoom
 from app.models.date_request import DateRequest
 from app.models.group import DateGroup, GroupMember
 from app.models.match import Match
+from app.models.matching_batch import MatchingBatch, ProposedGroup, ProposedGroupMember
+from app.schemas.matching_batch import (
+    BatchApprovalRequest,
+    MatchingBatchDetailResponse,
+    MatchingBatchResponse,
+    ProposedGroupMemberResponse,
+    ProposedGroupResponse,
+)
 from app.models.report import FeedbackRating, Report
 from app.models.user import User
 from app.models.date_request import AvailabilitySlot, PreGroupFriend
@@ -647,3 +655,244 @@ async def seed_database_endpoint(
 
     await seed_database(session=db)
     return {"detail": "Database seeded successfully"}
+
+
+# ── AI Batch Matching Endpoints ──
+
+
+@router.get("/api/admin/matching/batches", response_model=list[MatchingBatchResponse])
+async def list_matching_batches(
+    status_filter: str = Query(None, alias="status"),
+    current_user: User = Depends(get_admin_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """List all matching batches, optionally filtered by status."""
+    query = select(MatchingBatch).options(selectinload(MatchingBatch.proposed_groups))
+    if status_filter:
+        query = query.where(MatchingBatch.status == status_filter)
+    query = query.order_by(MatchingBatch.created_at.desc())
+    result = await db.execute(query)
+    batches = result.scalars().all()
+    return [
+        MatchingBatchResponse(
+            id=b.id,
+            activity=b.activity,
+            time_slot_date=b.time_slot_date,
+            time_slot_hours=b.time_slot_hours or [],
+            status=b.status,
+            user_count=b.user_count,
+            trigger_type=b.trigger_type,
+            center_lat=b.center_lat,
+            center_lng=b.center_lng,
+            proposed_groups_count=len(b.proposed_groups),
+            created_at=b.created_at,
+        )
+        for b in batches
+    ]
+
+
+@router.get("/api/admin/matching/batches/{batch_id}", response_model=MatchingBatchDetailResponse)
+async def get_batch_detail(
+    batch_id: uuid.UUID,
+    current_user: User = Depends(get_admin_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Get full batch detail with all proposed groups and members."""
+    result = await db.execute(
+        select(MatchingBatch)
+        .where(MatchingBatch.id == batch_id)
+        .options(
+            selectinload(MatchingBatch.proposed_groups)
+            .selectinload(ProposedGroup.members)
+            .selectinload(ProposedGroupMember.user)
+        )
+    )
+    batch = result.scalar_one_or_none()
+    if not batch:
+        raise HTTPException(status_code=404, detail="Batch not found")
+
+    groups = []
+    for pg in batch.proposed_groups:
+        members = []
+        for m in pg.members:
+            u = m.user
+            members.append(ProposedGroupMemberResponse(
+                user_id=u.id,
+                first_name=u.first_name,
+                age=u.age,
+                gender=u.gender,
+                program=u.program,
+                photo_urls=u.photo_urls or [],
+                interests=u.interests or [],
+                attractiveness_score=u.attractiveness_score or 5.0,
+            ))
+        groups.append(ProposedGroupResponse(
+            id=pg.id,
+            activity=pg.activity,
+            scheduled_date=pg.scheduled_date,
+            scheduled_time=pg.scheduled_time,
+            status=pg.status,
+            ai_compatibility_score=pg.ai_compatibility_score,
+            ai_reasoning=pg.ai_reasoning,
+            members=members,
+            created_at=pg.created_at,
+        ))
+
+    return MatchingBatchDetailResponse(
+        id=batch.id,
+        activity=batch.activity,
+        time_slot_date=batch.time_slot_date,
+        time_slot_hours=batch.time_slot_hours or [],
+        status=batch.status,
+        user_count=batch.user_count,
+        trigger_type=batch.trigger_type,
+        center_lat=batch.center_lat,
+        center_lng=batch.center_lng,
+        proposed_groups_count=len(groups),
+        created_at=batch.created_at,
+        proposed_groups=groups,
+        ai_model_used=batch.ai_model_used,
+        ai_tokens_used=batch.ai_tokens_used,
+    )
+
+
+@router.post("/api/admin/matching/batches/{batch_id}/approve")
+async def approve_batch_groups(
+    batch_id: uuid.UUID,
+    body: BatchApprovalRequest,
+    current_user: User = Depends(get_admin_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Approve or reject specific proposed groups within a batch."""
+    result = await db.execute(
+        select(MatchingBatch).where(MatchingBatch.id == batch_id)
+        .options(selectinload(MatchingBatch.proposed_groups).selectinload(ProposedGroup.members))
+    )
+    batch = result.scalar_one_or_none()
+    if not batch:
+        raise HTTPException(status_code=404, detail="Batch not found")
+
+    approved_count = 0
+    rejected_count = 0
+
+    for pg in batch.proposed_groups:
+        if pg.id in body.approved_group_ids:
+            pg.status = "approved"
+            # Create real DateGroup from proposed group
+            date_group = DateGroup(
+                activity=pg.activity,
+                scheduled_date=pg.scheduled_date,
+                scheduled_time=pg.scheduled_time,
+                status="upcoming",
+            )
+            db.add(date_group)
+            await db.flush()
+
+            for m in pg.members:
+                db.add(GroupMember(
+                    group_id=date_group.id,
+                    user_id=m.user_id,
+                    date_request_id=m.date_request_id,
+                ))
+                # Update date request status
+                req_result = await db.execute(
+                    select(DateRequest).where(DateRequest.id == m.date_request_id)
+                )
+                req = req_result.scalar_one_or_none()
+                if req:
+                    req.status = "matched"
+
+            # Create group chat room
+            chat_room = ChatRoom(room_type="group", group_id=date_group.id)
+            db.add(chat_room)
+            await db.flush()
+
+            member_names = []
+            for m in pg.members:
+                db.add(ChatParticipant(room_id=chat_room.id, user_id=m.user_id))
+                user_result = await db.execute(select(User).where(User.id == m.user_id))
+                user = user_result.scalar_one_or_none()
+                if user:
+                    member_names.append(user.first_name)
+
+            # Send Genie welcome message
+            from app.services.chat_ai_service import send_welcome_message
+            await send_welcome_message(
+                room_id=chat_room.id,
+                activity=pg.activity,
+                member_names=member_names,
+                scheduled_date=str(pg.scheduled_date),
+                scheduled_time=pg.scheduled_time,
+                db=db,
+            )
+
+            pg.status = "executed"
+            approved_count += 1
+
+        elif pg.id in body.rejected_group_ids:
+            pg.status = "rejected"
+            # Return users to pending pool
+            for m in pg.members:
+                req_result = await db.execute(
+                    select(DateRequest).where(DateRequest.id == m.date_request_id)
+                )
+                req = req_result.scalar_one_or_none()
+                if req and req.status != "pending":
+                    req.status = "pending"
+            rejected_count += 1
+
+    # Update batch status
+    all_resolved = all(pg.status in ("executed", "rejected") for pg in batch.proposed_groups)
+    if all_resolved:
+        batch.status = "executed" if approved_count > 0 else "rejected"
+
+    await db.commit()
+    return {
+        "approved": approved_count,
+        "rejected": rejected_count,
+        "batch_status": batch.status,
+    }
+
+
+@router.post("/api/admin/matching/batches/{batch_id}/approve-all")
+async def approve_all_in_batch(
+    batch_id: uuid.UUID,
+    current_user: User = Depends(get_admin_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Quick action: approve all proposed groups in a batch."""
+    result = await db.execute(
+        select(MatchingBatch).where(MatchingBatch.id == batch_id)
+        .options(selectinload(MatchingBatch.proposed_groups))
+    )
+    batch = result.scalar_one_or_none()
+    if not batch:
+        raise HTTPException(status_code=404, detail="Batch not found")
+
+    all_ids = [pg.id for pg in batch.proposed_groups if pg.status == "proposed"]
+    return await approve_batch_groups(
+        batch_id, BatchApprovalRequest(approved_group_ids=all_ids), current_user, db,
+    )
+
+
+@router.post("/api/admin/matching/trigger")
+async def trigger_matching_pipeline(
+    current_user: User = Depends(get_admin_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Manually trigger the full matching pipeline (batch formation + AI matching)."""
+    from app.services.batch_formation import form_batches
+    from app.services.ai_matching import run_matching_for_batch
+
+    batches = await form_batches(db)
+
+    matched_count = 0
+    for batch in batches:
+        if batch.user_count >= 8:
+            proposed = await run_matching_for_batch(batch, db, force=False)
+            matched_count += len(proposed)
+
+    return {
+        "batches_created": len(batches),
+        "groups_proposed": matched_count,
+    }
