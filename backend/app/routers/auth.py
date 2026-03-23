@@ -4,7 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
 from app.middleware.auth_middleware import get_current_user
-from app.models.user import User
+from app.models.user import User, VibeAnswer
 from app.schemas.auth import (
     LoginRequest,
     RegisterRequest,
@@ -19,6 +19,57 @@ from app.services.auth_service import (
     is_valid_university_email,
     verify_password,
 )
+
+# ── Test User Definitions ──
+
+TEST_USERS = {
+    "tester@mail.utoronto.ca": {
+        "first_name": "Alex", "last_name": "Chen", "gender": "male", "age": 21,
+        "program": "Computer Science", "year_of_study": 3,
+        "interests": ["gaming", "coffee", "hiking", "movies", "cooking"],
+        "relationship_intent": "open", "social_energy": 4,
+        "humor_styles": ["witty", "sarcastic"], "communication_pref": "texter",
+        "drinking": "socially", "smoking": "never", "exercise": "often",
+        "body_type": "athletic", "height_cm": 178,
+    },
+    "tester2@mail.utoronto.ca": {
+        "first_name": "Jordan", "last_name": "Park", "gender": "female", "age": 20,
+        "program": "Psychology", "year_of_study": 2,
+        "interests": ["coffee", "movies", "yoga", "cooking", "photography"],
+        "relationship_intent": "open", "social_energy": 4,
+        "humor_styles": ["witty", "goofy"], "communication_pref": "texter",
+        "drinking": "socially", "smoking": "never", "exercise": "sometimes",
+        "body_type": "slim", "height_cm": 165,
+    },
+    "tester3@mail.utoronto.ca": {
+        "first_name": "Sam", "last_name": "Wilson", "gender": "male", "age": 22,
+        "program": "Engineering", "year_of_study": 4,
+        "interests": ["gaming", "hiking", "music", "fitness", "travel"],
+        "relationship_intent": "open", "social_energy": 3,
+        "humor_styles": ["dry", "sarcastic"], "communication_pref": "in_person",
+        "drinking": "socially", "smoking": "never", "exercise": "often",
+        "body_type": "athletic", "height_cm": 182,
+    },
+    "tester4@mail.utoronto.ca": {
+        "first_name": "Riley", "last_name": "Kim", "gender": "female", "age": 21,
+        "program": "Business", "year_of_study": 3,
+        "interests": ["coffee", "travel", "movies", "dancing", "cooking"],
+        "relationship_intent": "open", "social_energy": 4,
+        "humor_styles": ["goofy", "wholesome"], "communication_pref": "texter",
+        "drinking": "socially", "smoking": "never", "exercise": "sometimes",
+        "body_type": "average", "height_cm": 168,
+    },
+}
+
+TEST_VIBE_ANSWERS = [
+    {"question": "Friday night:", "answer": "House party with friends"},
+    {"question": "On a first date:", "answer": "Be spontaneous"},
+    {"question": "Texting style:", "answer": "Reply instantly"},
+    {"question": "When I disagree:", "answer": "Debate it out"},
+    {"question": "Weekends are for:", "answer": "Going out and socializing"},
+]
+
+TEST_PASSWORD = "Test1234"
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
@@ -108,7 +159,46 @@ async def verify_email(req: VerifyEmailRequest, db: AsyncSession = Depends(get_d
 
 @router.post("/login", response_model=TokenResponse)
 async def login(req: LoginRequest, db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(User).where(User.email == req.email.lower().strip()))
+    email = req.email.lower().strip()
+
+    # Auto-create test accounts on first login attempt
+    if email in TEST_USERS and req.password == TEST_PASSWORD:
+        result = await db.execute(select(User).where(User.email == email))
+        if not result.scalar_one_or_none():
+            profile = TEST_USERS[email]
+            domain = email.split("@")[-1]
+            new_user = User(
+                email=email,
+                password_hash=hash_password(TEST_PASSWORD),
+                first_name=profile["first_name"],
+                last_name=profile["last_name"],
+                gender=profile["gender"],
+                age=profile["age"],
+                university_domain=domain,
+                is_email_verified=True,
+            )
+            db.add(new_user)
+            await db.commit()
+            # Also ensure all 4 test users exist
+            for test_email, test_profile in TEST_USERS.items():
+                if test_email == email:
+                    continue
+                r = await db.execute(select(User).where(User.email == test_email))
+                if not r.scalar_one_or_none():
+                    d = test_email.split("@")[-1]
+                    db.add(User(
+                        email=test_email,
+                        password_hash=hash_password(TEST_PASSWORD),
+                        first_name=test_profile["first_name"],
+                        last_name=test_profile["last_name"],
+                        gender=test_profile["gender"],
+                        age=test_profile["age"],
+                        university_domain=d,
+                        is_email_verified=True,
+                    ))
+            await db.commit()
+
+    result = await db.execute(select(User).where(User.email == email))
     user = result.scalar_one_or_none()
     if not user or not verify_password(req.password, user.password_hash):
         raise HTTPException(
@@ -128,6 +218,7 @@ async def login(req: LoginRequest, db: AsyncSession = Depends(get_db)):
 
     # Test user: reset profile on every login so onboarding repeats
     if user.email == "test1@mail.utoronto.ca":
+        from sqlalchemy import delete
         user.program = None
         user.bio = None
         user.interests = []
@@ -150,14 +241,55 @@ async def login(req: LoginRequest, db: AsyncSession = Depends(get_db)):
         user.selfie_status = "none"
         user.is_selfie_verified = False
         user.selfie_urls = []
-        # Delete old vibe answers
-        from sqlalchemy import delete
-        from app.models.user import VibeAnswer
         await db.execute(delete(VibeAnswer).where(VibeAnswer.user_id == user.id))
         await db.commit()
 
+    # Test users (tester@, tester2@, tester3@, tester4@): ensure profile is complete
+    if user.email in TEST_USERS and not user.bio:
+        await _setup_test_user(user, TEST_USERS[user.email], db)
+
     token = create_access_token({"sub": str(user.id)})
     return TokenResponse(access_token=token)
+
+
+async def _setup_test_user(user: User, profile: dict, db: AsyncSession):
+    """Pre-fill a test user's profile so they skip onboarding."""
+    from sqlalchemy import delete
+
+    user.program = profile["program"]
+    user.year_of_study = profile["year_of_study"]
+    user.bio = f"Test user — {profile['first_name']}"
+    user.onboarding_path = "thorough"
+    user.relationship_intent = profile["relationship_intent"]
+    user.interests = profile["interests"]
+    user.photo_urls = [
+        "https://picsum.photos/seed/" + user.email.split("@")[0] + str(i) + "/400/500"
+        for i in range(3)
+    ]
+    user.prompts = [
+        {"prompt": "My ideal first date would be...", "answer": "Something spontaneous and fun"},
+        {"prompt": "I geek out about...", "answer": "Music, tech, and good coffee"},
+    ]
+    user.social_energy = profile.get("social_energy", 3)
+    user.humor_styles = profile.get("humor_styles", [])
+    user.communication_pref = profile.get("communication_pref")
+    user.drinking = profile.get("drinking")
+    user.smoking = profile.get("smoking")
+    user.exercise = profile.get("exercise")
+    user.body_type = profile.get("body_type")
+    user.height_cm = profile.get("height_cm")
+    user.selfie_status = "verified"
+    user.is_selfie_verified = True
+    user.age_range_min = 18
+    user.age_range_max = 28
+    user.attractiveness_score = 6.5
+
+    # Set vibe answers
+    await db.execute(delete(VibeAnswer).where(VibeAnswer.user_id == user.id))
+    for va in TEST_VIBE_ANSWERS:
+        db.add(VibeAnswer(user_id=user.id, question=va["question"], answer=va["answer"]))
+
+    await db.commit()
 
 
 @router.get("/me", response_model=UserResponse)

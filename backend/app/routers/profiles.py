@@ -1,6 +1,6 @@
 import os
-import uuid as uuid_mod
 import uuid
+from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 from sqlalchemy import select
@@ -18,6 +18,8 @@ from app.schemas.profile import (
     PublicProfileResponse,
 )
 from app.services.image_verification import (
+    score_attractiveness,
+    score_user_photos,
     verify_photo_is_human,
     verify_photos_same_person,
     verify_video_selfie,
@@ -77,10 +79,9 @@ async def create_profile(
 
     # Location
     if data.latitude is not None and data.longitude is not None:
-        from datetime import datetime
         current_user.latitude = data.latitude
         current_user.longitude = data.longitude
-        current_user.location_updated_at = datetime.utcnow()
+        current_user.location_updated_at = datetime.now(timezone.utc)
     if data.preferred_max_distance_km is not None:
         current_user.preferred_max_distance_km = data.preferred_max_distance_km
 
@@ -126,6 +127,12 @@ async def create_profile(
                     detail="Your photos don't appear to show the same person. Please upload photos of yourself.",
                 )
 
+        # Score attractiveness across all photos
+        if photo_paths:
+            avg_score = await score_user_photos(photo_paths)
+            current_user.attractiveness_score = round(avg_score, 1)
+            print(f"[ATTRACTIVENESS] {current_user.email} final score: {current_user.attractiveness_score}")
+
     await db.commit()
     await db.refresh(current_user)
     return current_user
@@ -146,8 +153,23 @@ async def update_profile(
     # Convert prompts to dicts if present
     if "prompts" in update_data and update_data["prompts"]:
         update_data["prompts"] = [p if isinstance(p, dict) else p.model_dump() for p in update_data["prompts"]]
+
+    photos_changed = "photo_urls" in update_data
+
     for field, value in update_data.items():
         setattr(current_user, field, value)
+
+    # Re-score attractiveness when photos change
+    if photos_changed and settings.OPENAI_API_KEY and current_user.photo_urls:
+        photo_paths = []
+        for url in current_user.photo_urls[:6]:
+            path = os.path.join(UPLOADS_DIR, os.path.basename(url))
+            if os.path.exists(path):
+                photo_paths.append(path)
+        if photo_paths:
+            avg_score = await score_user_photos(photo_paths)
+            current_user.attractiveness_score = round(avg_score, 1)
+            print(f"[ATTRACTIVENESS] {current_user.email} re-scored: {current_user.attractiveness_score}")
 
     await db.commit()
     await db.refresh(current_user)
@@ -181,7 +203,7 @@ async def upload_photo(
         raise HTTPException(status_code=400, detail="Image must be under 10MB.")
 
     ext = file.filename.split(".")[-1] if file.filename and "." in file.filename else "jpg"
-    filename = f"{uuid_mod.uuid4().hex}.{ext}"
+    filename = f"{uuid.uuid4().hex}.{ext}"
     filepath = os.path.join(UPLOADS_DIR, filename)
 
     with open(filepath, "wb") as f:
@@ -209,6 +231,12 @@ async def upload_photo(
                 status_code=400,
                 detail="This photo doesn't appear to contain a person. Please upload a clear photo of yourself.",
             )
+
+    # Score attractiveness (runs in background, doesn't block upload)
+    attractiveness_result = None
+    if settings.OPENAI_API_KEY:
+        attractiveness_result = await score_attractiveness(filepath)
+        print(f"[ATTRACTIVENESS] {current_user.email} photo score: {attractiveness_result}")
 
     return {"url": url, "filename": filename}
 
@@ -240,7 +268,7 @@ async def selfie_verify(
         )
 
     ext = file.filename.split(".")[-1] if file.filename and "." in file.filename else ("mp4" if is_video else "jpg")
-    filename = f"selfie_{current_user.id}_{uuid_mod.uuid4().hex[:8]}.{ext}"
+    filename = f"selfie_{current_user.id}_{uuid.uuid4().hex[:8]}.{ext}"
     filepath = os.path.join(UPLOADS_DIR, filename)
 
     with open(filepath, "wb") as f:
@@ -337,9 +365,8 @@ async def update_location(
     db: AsyncSession = Depends(get_db),
 ):
     """Update user's location. Called from background or map picker."""
-    from datetime import datetime
     current_user.latitude = data.latitude
     current_user.longitude = data.longitude
-    current_user.location_updated_at = datetime.utcnow()
+    current_user.location_updated_at = datetime.now(timezone.utc)
     await db.commit()
     return {"message": "Location updated"}

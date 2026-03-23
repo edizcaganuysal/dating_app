@@ -148,12 +148,23 @@ export default function MyDatesScreen() {
                     {req.availability_slots.length} time slot{req.availability_slots.length !== 1 ? 's' : ''}
                   </Text>
                 </View>
-                <TouchableOpacity
-                  style={styles.cancelButton}
-                  onPress={() => handleCancel(req.id)}
-                >
-                  <Text style={styles.cancelText}>Cancel</Text>
-                </TouchableOpacity>
+                <View style={styles.actionRow}>
+                  <TouchableOpacity
+                    style={styles.editButton}
+                    onPress={() => navigation.navigate('Home', {
+                      screen: 'DateRequest',
+                      params: { editRequestId: req.id },
+                    })}
+                  >
+                    <Text style={styles.editText}>Edit</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.cancelButton}
+                    onPress={() => handleCancel(req.id)}
+                  >
+                    <Text style={styles.cancelText}>Cancel</Text>
+                  </TouchableOpacity>
+                </View>
               </View>
             </View>
           ))}
@@ -254,6 +265,12 @@ const styles = StyleSheet.create({
   activityLabel: { fontSize: 16, fontWeight: '600', color: '#333' },
   detailText: { fontSize: 13, color: '#666', marginTop: 2 },
   metaText: { fontSize: 12, color: '#999', marginTop: 2 },
+  actionRow: { flexDirection: 'column', gap: 6, alignItems: 'flex-end' },
+  editButton: {
+    borderWidth: 1, borderColor: '#E91E63', paddingHorizontal: 14, paddingVertical: 6,
+    borderRadius: 16,
+  },
+  editText: { color: '#E91E63', fontSize: 13, fontWeight: '600' },
   cancelButton: {
     borderWidth: 1, borderColor: '#FF3B30', paddingHorizontal: 14, paddingVertical: 6,
     borderRadius: 16,

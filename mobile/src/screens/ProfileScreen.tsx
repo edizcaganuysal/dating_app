@@ -50,6 +50,8 @@ const COMM_PREFS = ['texter', 'caller', 'in-person', 'voice_notes'];
 const CONFLICT_STYLES = ['talk_immediately', 'need_space', 'avoid', 'write_it_out'];
 const DRINKING_OPTIONS = ['never', 'socially', 'regularly'];
 const SMOKING_OPTIONS = ['never', 'socially', 'regularly'];
+const BODY_TYPES = ['slim', 'athletic', 'average', 'curvy', 'muscular'];
+const STYLE_OPTIONS = ['casual', 'preppy', 'streetwear', 'artsy', 'sporty', 'minimal', 'vintage', 'elegant'];
 const EXERCISE_OPTIONS = ['never', 'sometimes', 'often', 'daily'];
 const DIET_OPTIONS = ['no_restrictions', 'vegetarian', 'vegan', 'halal', 'kosher', 'gluten-free', 'pescatarian'];
 const SLEEP_OPTIONS = ['early_bird', 'night_owl', 'depends'];
@@ -72,6 +74,15 @@ interface ExtendedProfile extends PrivateProfile {
   group_role?: string[];
   ideal_group_size?: string;
   dealbreakers?: string[];
+  body_type?: string;
+  height_cm?: number;
+  style_tags?: string[];
+  pref_body_type?: string[];
+  pref_height_range?: number[];
+  pref_style?: string[];
+  pref_social_energy_range?: number[];
+  pref_humor_styles?: string[];
+  pref_communication?: string[];
 }
 
 // ── Editable Chip Selector Modal ──
@@ -181,6 +192,8 @@ export default function ProfileScreen() {
   const [exerciseModalVisible, setExerciseModalVisible] = useState(false);
   const [dietModalVisible, setDietModalVisible] = useState(false);
   const [sleepModalVisible, setSleepModalVisible] = useState(false);
+  const [bodyTypeModalVisible, setBodyTypeModalVisible] = useState(false);
+  const [styleModalVisible, setStyleModalVisible] = useState(false);
   const [ageModalVisible, setAgeModalVisible] = useState(false);
   const [ageMin, setAgeMin] = useState('18');
   const [ageMax, setAgeMax] = useState('25');
@@ -602,6 +615,34 @@ export default function ProfileScreen() {
       <ChipModal visible={exerciseModalVisible} title="Exercise" options={EXERCISE_OPTIONS} selected={profile.exercise ? [profile.exercise] : []} onSave={(s) => saveField('exercise', s[0] || null)} onClose={() => setExerciseModalVisible(false)} />
       <ChipModal visible={dietModalVisible} title="Diet" options={DIET_OPTIONS} selected={profile.diet ? [profile.diet] : []} onSave={(s) => saveField('diet', s[0] || null)} onClose={() => setDietModalVisible(false)} />
       <ChipModal visible={sleepModalVisible} title="Sleep Schedule" options={SLEEP_OPTIONS} selected={profile.sleep_schedule ? [profile.sleep_schedule] : []} onSave={(s) => saveField('sleep_schedule', s[0] || null)} onClose={() => setSleepModalVisible(false)} />
+
+      {/* About You (appearance) */}
+      <View style={styles.card}>
+        <Text style={styles.cardTitle}>About You</Text>
+
+        <TouchableOpacity style={styles.editRow} onPress={() => setBodyTypeModalVisible(true)}>
+          <Text style={styles.detailLabel}>Body Type</Text>
+          <View style={styles.editRowRight}>
+            <Text style={styles.detailValue}>{formatLabel(profile.body_type || '') || 'Not set'}</Text>
+            <Ionicons name="chevron-forward" size={16} color="#999" />
+          </View>
+        </TouchableOpacity>
+
+        <View style={styles.detailRow}>
+          <Text style={styles.detailLabel}>Height</Text>
+          <Text style={styles.detailValue}>{profile.height_cm ? `${profile.height_cm} cm` : 'Not set'}</Text>
+        </View>
+
+        <TouchableOpacity style={styles.editRow} onPress={() => setStyleModalVisible(true)}>
+          <Text style={styles.detailLabel}>Style</Text>
+          <View style={styles.editRowRight}>
+            <Text style={styles.detailValue}>{(profile.style_tags || []).map(formatLabel).join(', ') || 'Not set'}</Text>
+            <Ionicons name="chevron-forward" size={16} color="#999" />
+          </View>
+        </TouchableOpacity>
+      </View>
+      <ChipModal visible={bodyTypeModalVisible} title="Body Type" options={BODY_TYPES} selected={profile.body_type ? [profile.body_type] : []} onSave={(s) => saveField('body_type', s[0] || null)} onClose={() => setBodyTypeModalVisible(false)} />
+      <ChipModal visible={styleModalVisible} title="Your Style" options={STYLE_OPTIONS} selected={profile.style_tags || []} multi max={3} onSave={(s) => saveField('style_tags', s)} onClose={() => setStyleModalVisible(false)} />
 
       {/* Preferences */}
       <View style={styles.card}>

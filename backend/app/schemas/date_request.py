@@ -68,7 +68,9 @@ class DateRequestCreate(BaseModel):
 
 class DateRequestUpdate(BaseModel):
     activity: Optional[ActivityType] = None
+    group_size: Optional[Literal[4, 6]] = None
     availability_slots: Optional[list[AvailabilitySlotCreate]] = Field(default=None, min_length=1)
+    pre_group_friend_ids: Optional[list[uuid.UUID]] = None
 
 
 class DateRequestResponse(BaseModel):

@@ -11,17 +11,19 @@ import {
   Dimensions,
   Switch,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import {
   createDateRequest,
+  getDateRequest,
   getMyDateRequests,
   getTemplates,
   saveTemplate,
+  updateDateRequest,
   DateTemplate,
 } from '../api/dates';
 import { getFriends, Friend } from '../api/friends';
-import { ActivityType, TimeWindow, AvailabilitySlot } from '../types';
+import { ActivityType, TimeWindow, AvailabilitySlot, TIME_WINDOW_HOURS } from '../types';
 
 const { width } = Dimensions.get('window');
 const CARD_SIZE = (width - 56) / 3;
@@ -100,6 +102,9 @@ function getCalendarGrid(days: Date[]): (Date | null)[][] {
 
 export default function DateRequestScreen() {
   const navigation = useNavigation<any>();
+  const route = useRoute<any>();
+  const editRequestId: string | undefined = route.params?.editRequestId;
+  const isEditMode = !!editRequestId;
 
   // Step management
   const [step, setStep] = useState(0);
@@ -127,25 +132,47 @@ export default function DateRequestScreen() {
   const next14Days = getNext14Days();
   const calendarGrid = getCalendarGrid(next14Days);
 
-  // Pre-fill from last request
+  // Pre-fill: from existing request (edit mode) or last request (create mode)
   useEffect(() => {
     (async () => {
       try {
-        const [reqData, friendsData, templatesData] = await Promise.all([
-          getMyDateRequests().catch(() => []),
+        const [friendsData, templatesData] = await Promise.all([
           getFriends().catch(() => []),
           getTemplates().catch(() => []),
         ]);
-
         setFriends(friendsData);
         setTemplates(templatesData);
 
-        if (reqData.length > 0) {
-          const last = reqData[reqData.length - 1];
-          setSelectedActivities([last.activity]);
-          setGroupSize(last.group_size === 6 ? 6 : 4);
-          if (last.pre_group_friend_ids?.length > 0) {
-            setSelectedFriendIds(last.pre_group_friend_ids);
+        if (isEditMode && editRequestId) {
+          // Edit mode: load the specific request
+          const req = await getDateRequest(editRequestId);
+          setSelectedActivities([req.activity]);
+          setGroupSize(req.group_size === 6 ? 6 : 4);
+          if (req.pre_group_friend_ids?.length > 0) {
+            setSelectedFriendIds(req.pre_group_friend_ids);
+          }
+          // Restore availability slots
+          if (req.availability_slots?.length > 0) {
+            const dates = new Set<string>();
+            const windows: Record<string, Set<TimeWindow>> = {};
+            for (const slot of req.availability_slots) {
+              dates.add(slot.date);
+              if (!windows[slot.date]) windows[slot.date] = new Set();
+              if (slot.time_window) windows[slot.date].add(slot.time_window as TimeWindow);
+            }
+            setSelectedDates(dates);
+            setDateTimeWindows(windows);
+          }
+        } else {
+          // Create mode: pre-fill from last request for convenience
+          const reqData = await getMyDateRequests().catch(() => []);
+          if (reqData.length > 0) {
+            const last = reqData[reqData.length - 1];
+            setSelectedActivities([last.activity]);
+            setGroupSize(last.group_size === 6 ? 6 : 4);
+            if (last.pre_group_friend_ids?.length > 0) {
+              setSelectedFriendIds(last.pre_group_friend_ids);
+            }
           }
         }
       } catch {
@@ -154,14 +181,19 @@ export default function DateRequestScreen() {
         setPrefilling(false);
       }
     })();
-  }, []);
+  }, [editRequestId]);
 
   const toggleActivity = (activity: ActivityType) => {
-    setSelectedActivities(prev =>
-      prev.includes(activity)
-        ? prev.filter(a => a !== activity)
-        : [...prev, activity]
-    );
+    if (isEditMode) {
+      // Single-select in edit mode
+      setSelectedActivities([activity]);
+    } else {
+      setSelectedActivities(prev =>
+        prev.includes(activity)
+          ? prev.filter(a => a !== activity)
+          : [...prev, activity]
+      );
+    }
   };
 
   const selectAllActivities = () => {
@@ -255,10 +287,10 @@ export default function DateRequestScreen() {
       const windows = dateTimeWindows[dateKey];
       if (windows && windows.size > 0) {
         for (const tw of Array.from(windows)) {
-          slots.push({ date: dateKey, time_window: tw });
+          slots.push({ date: dateKey, time_window: tw, time_hours: TIME_WINDOW_HOURS[tw] });
         }
       } else {
-        slots.push({ date: dateKey, time_window: 'evening' });
+        slots.push({ date: dateKey, time_window: 'evening', time_hours: TIME_WINDOW_HOURS.evening });
       }
     }
     return slots;
@@ -287,23 +319,37 @@ export default function DateRequestScreen() {
         }).catch(() => {});
       }
 
-      // Create one request per activity
-      for (const activity of selectedActivities) {
-        await createDateRequest({
+      if (isEditMode && editRequestId) {
+        // Update existing request
+        await updateDateRequest(editRequestId, {
+          activity: selectedActivities[0],
           group_size: groupSize,
-          activity,
           availability_slots: slots,
           pre_group_friend_ids: selectedFriendIds.length > 0 ? selectedFriendIds : undefined,
         });
+        Alert.alert(
+          'Updated',
+          'Your date request has been updated!',
+          [{ text: 'OK', onPress: () => navigation.goBack() }]
+        );
+      } else {
+        // Create one request per activity
+        for (const activity of selectedActivities) {
+          await createDateRequest({
+            group_size: groupSize,
+            activity,
+            availability_slots: slots,
+            pre_group_friend_ids: selectedFriendIds.length > 0 ? selectedFriendIds : undefined,
+          });
+        }
+        Alert.alert(
+          'Success',
+          `Created ${selectedActivities.length} date request${selectedActivities.length > 1 ? 's' : ''}!`,
+          [{ text: 'OK', onPress: () => navigation.goBack() }]
+        );
       }
-
-      Alert.alert(
-        'Success',
-        `Created ${selectedActivities.length} date request${selectedActivities.length > 1 ? 's' : ''}!`,
-        [{ text: 'OK', onPress: () => navigation.goBack() }]
-      );
     } catch (e: any) {
-      Alert.alert('Error', e?.response?.data?.detail || 'Failed to create date request');
+      Alert.alert('Error', e?.response?.data?.detail || 'Failed to save date request');
     } finally {
       setLoading(false);
     }
@@ -336,12 +382,15 @@ export default function DateRequestScreen() {
         {/* Step 0: Activities */}
         {step === 0 && (
           <>
-            <Text style={styles.stepTitle}>What do you want to do?</Text>
-            <TouchableOpacity style={styles.selectAllButton} onPress={selectAllActivities}>
-              <Text style={styles.selectAllText}>
-                {selectedActivities.length === ACTIVITIES.length ? 'Deselect All' : 'Select All'}
-              </Text>
-            </TouchableOpacity>
+            <Text style={styles.stepTitle}>{isEditMode ? 'Change activity' : 'What do you want to do?'}</Text>
+            {!isEditMode && (
+              <TouchableOpacity style={styles.selectAllButton} onPress={selectAllActivities}>
+                <Text style={styles.selectAllText}>
+                  {selectedActivities.length === ACTIVITIES.length ? 'Deselect All' : 'Select All'}
+                </Text>
+              </TouchableOpacity>
+            )}
+            {isEditMode && <Text style={{ fontSize: 14, color: '#666', marginBottom: 12 }}>Pick one activity for this request</Text>}
             <View style={styles.activityGrid}>
               {ACTIVITIES.map(a => {
                 const isSelected = selectedActivities.includes(a.value);
@@ -551,7 +600,7 @@ export default function DateRequestScreen() {
               </View>
             )}
 
-            <Text style={styles.stepTitle}>Confirm Your Request</Text>
+            <Text style={styles.stepTitle}>{isEditMode ? 'Update Your Request' : 'Confirm Your Request'}</Text>
 
             {/* Summary Card */}
             <View style={styles.summaryCard}>
@@ -629,7 +678,7 @@ export default function DateRequestScreen() {
                 <ActivityIndicator color="#fff" />
               ) : (
                 <Text style={styles.submitButtonText}>
-                  Create Date Request{selectedActivities.length > 1 ? 's' : ''}
+                  {isEditMode ? 'Update Date Request' : `Create Date Request${selectedActivities.length > 1 ? 's' : ''}`}
                 </Text>
               )}
             </TouchableOpacity>

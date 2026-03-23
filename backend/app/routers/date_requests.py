@@ -96,12 +96,76 @@ async def create_date_request(
 
     await db.commit()
 
+    # Auto-create companion requests for test user
+    if current_user.email == "tester@mail.utoronto.ca":
+        await _create_companion_test_requests(current_user, data, db)
+
     # Reload with relationships
     result = await db.execute(
         select(DateRequest).where(DateRequest.id == dr.id).options(*_load_options())
     )
     dr = result.scalar_one()
     return _to_response(dr)
+
+
+async def _create_companion_test_requests(main_user: User, data, db: AsyncSession):
+    """When the main test user creates a request, auto-create matching requests
+    for the 3 companion test users and trigger instant matching."""
+    from app.routers.auth import TEST_USERS, _setup_test_user
+
+    companion_emails = [e for e in TEST_USERS if e != "tester@mail.utoronto.ca"]
+    companion_users = []
+
+    for email in companion_emails:
+        result = await db.execute(select(User).where(User.email == email))
+        user = result.scalar_one_or_none()
+        if not user:
+            continue
+        # Ensure profile is set up
+        if not user.bio:
+            await _setup_test_user(user, TEST_USERS[email], db)
+
+        # Cancel any existing pending requests for this activity
+        existing = await db.execute(
+            select(DateRequest).where(
+                DateRequest.user_id == user.id,
+                DateRequest.status == "pending",
+                DateRequest.activity == data.activity.value,
+            )
+        )
+        for old_req in existing.scalars().all():
+            old_req.status = "cancelled"
+
+        # Create matching request
+        dr = DateRequest(
+            user_id=user.id,
+            group_size=data.group_size,
+            activity=data.activity.value,
+            status="pending",
+        )
+        db.add(dr)
+        await db.flush()
+
+        for slot in data.availability_slots:
+            db.add(AvailabilitySlot(
+                date_request_id=dr.id,
+                date=slot.date,
+                time_window=slot.time_window.value if slot.time_window else None,
+                time_hours=slot.get_hours(),
+            ))
+
+        companion_users.append(user)
+
+    await db.commit()
+
+    # Now trigger instant matching using the old deterministic algorithm
+    try:
+        from app.services.matching_service import run_batch_matching
+        groups = await run_batch_matching(db)
+        if groups:
+            print(f"[TEST] Auto-matched {len(groups)} groups for test users")
+    except Exception as e:
+        print(f"[TEST] Auto-matching failed (non-critical): {e}")
 
 
 @router.get("", response_model=list[DateRequestResponse])
@@ -178,6 +242,9 @@ async def update_date_request(
     if data.activity is not None:
         dr.activity = data.activity.value
 
+    if data.group_size is not None:
+        dr.group_size = data.group_size
+
     if data.availability_slots is not None:
         # Delete old slots and create new ones
         for slot in dr.availability_slots:
@@ -187,8 +254,30 @@ async def update_date_request(
                 date_request_id=dr.id,
                 date=slot.date,
                 time_window=slot.time_window.value if slot.time_window else None,
-            time_hours=slot.get_hours(),
+                time_hours=slot.get_hours(),
             ))
+
+    if data.pre_group_friend_ids is not None:
+        # Validate friends
+        max_friends = ((data.group_size or dr.group_size) // 2) - 1
+        if len(data.pre_group_friend_ids) > max_friends:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Max {max_friends} pre-group friend(s) for group of {data.group_size or dr.group_size}",
+            )
+        for friend_id in data.pre_group_friend_ids:
+            result = await db.execute(select(User).where(User.id == friend_id))
+            friend = result.scalar_one_or_none()
+            if not friend:
+                raise HTTPException(status_code=400, detail=f"Friend {friend_id} not found")
+            if friend.gender != current_user.gender:
+                raise HTTPException(status_code=400, detail="Pre-group friends must be the same gender")
+
+        # Delete old friends and create new ones
+        for f in dr.pre_group_friends:
+            await db.delete(f)
+        for friend_id in data.pre_group_friend_ids:
+            db.add(PreGroupFriend(date_request_id=dr.id, friend_user_id=friend_id))
 
     await db.commit()
 

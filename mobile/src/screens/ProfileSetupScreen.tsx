@@ -601,7 +601,7 @@ export default function ProfileSetupScreen() {
         ...(path === 'thorough' ? {
           // Self-description
           ...(bodyType ? { body_type: bodyType.toLowerCase() } : {}),
-          ...(heightCm ? { height_cm: parseInt(heightCm) } : {}),
+          ...(heightCm && !isNaN(parseInt(heightCm)) ? { height_cm: parseInt(heightCm) } : {}),
           ...(styleTags.length > 0 ? { style_tags: styleTags.map(s => s.toLowerCase()) } : {}),
           // Preferences about others
           ...(prefBodyType.length > 0 ? { pref_body_type: prefBodyType.map(b => b.toLowerCase()) } : {}),
@@ -671,7 +671,7 @@ export default function ProfileSetupScreen() {
           <Text style={styles.pathTitle}>Quick Setup</Text>
           <Text style={styles.pathTime}>~2 minutes</Text>
           <Text style={styles.pathDesc}>Get started fast with the essentials. You can add more details later.</Text>
-          <View style={styles.pathBadge}><Text style={styles.pathBadgeText}>6 steps</Text></View>
+          <View style={styles.pathBadge}><Text style={styles.pathBadgeText}>7 steps</Text></View>
         </TouchableOpacity>
 
         <TouchableOpacity style={[styles.pathCard, styles.pathCardRecommended]} onPress={() => { setPath('thorough'); setStep(0); }}>
@@ -679,7 +679,7 @@ export default function ProfileSetupScreen() {
           <Text style={styles.pathTitle}>Best Matches</Text>
           <Text style={styles.pathTime}>~4 minutes</Text>
           <Text style={styles.pathDesc}>More questions = better group chemistry. Tell us your personality, lifestyle, and what you're looking for.</Text>
-          <View style={[styles.pathBadge, styles.pathBadgePurple]}><Text style={styles.pathBadgeText}>9 steps</Text></View>
+          <View style={[styles.pathBadge, styles.pathBadgePurple]}><Text style={styles.pathBadgeText}>12 steps</Text></View>
         </TouchableOpacity>
       </ScrollView>
     );

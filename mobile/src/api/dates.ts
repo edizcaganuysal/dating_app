@@ -1,5 +1,12 @@
 import apiClient from './client';
-import { DateRequest, DateRequestCreateData, DateGroup, Match } from '../types';
+import { ActivityType, AvailabilitySlot, DateRequest, DateRequestCreateData, DateGroup, Match } from '../types';
+
+export interface DateRequestUpdateData {
+  activity?: ActivityType;
+  group_size?: 4 | 6;
+  availability_slots?: AvailabilitySlot[];
+  pre_group_friend_ids?: string[];
+}
 
 export interface DateTemplate {
   id: string;
@@ -17,6 +24,16 @@ export const createDateRequest = async (data: DateRequestCreateData): Promise<Da
 
 export const getMyDateRequests = async (): Promise<DateRequest[]> => {
   const response = await apiClient.get('/api/date-requests');
+  return response.data;
+};
+
+export const updateDateRequest = async (id: string, data: DateRequestUpdateData): Promise<DateRequest> => {
+  const response = await apiClient.patch(`/api/date-requests/${id}`, data);
+  return response.data;
+};
+
+export const getDateRequest = async (id: string): Promise<DateRequest> => {
+  const response = await apiClient.get(`/api/date-requests/${id}`);
   return response.data;
 };
 
