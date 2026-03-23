@@ -4,16 +4,20 @@ import {
   Text,
   StyleSheet,
   FlatList,
-  TouchableOpacity,
-  ActivityIndicator,
+  Pressable,
   RefreshControl,
 } from 'react-native';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { getChatRooms } from '../api/chat';
 import { ChatRoom } from '../types';
+import { colors, typography, spacing, radii } from '../theme';
+import { UserAvatar, RelativeTimestamp, LoadingState, EmptyState } from '../components';
+import { useAuth } from '../context/AuthContext';
+import { markRoomRead } from '../hooks/useUnreadCount';
 
 export default function ChatRoomsScreen() {
   const navigation = useNavigation<any>();
+  const { user } = useAuth();
   const [rooms, setRooms] = useState<ChatRoom[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -23,7 +27,7 @@ export default function ChatRoomsScreen() {
       const data = await getChatRooms();
       setRooms(data);
     } catch {
-      // Silently handle
+      // Silent
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -43,91 +47,124 @@ export default function ChatRoomsScreen() {
 
   const getRoomTitle = (room: ChatRoom): string => {
     if (room.room_type === '1v1') {
-      return room.participants.map((p) => p.first_name).join(', ');
+      const other = room.participants.find(p => p.user_id !== user?.id);
+      return other?.first_name || room.participants.map(p => p.first_name).join(', ');
     }
     return `Group Chat (${room.participants.length})`;
   };
 
-  const getRoomSubtitle = (room: ChatRoom): string => {
-    if (room.room_type === 'group') {
-      return room.participants.map((p) => p.first_name).join(', ');
-    }
-    return 'Direct message';
+  const getOtherName = (room: ChatRoom): string => {
+    const other = room.participants.find(p => p.user_id !== user?.id);
+    return other?.first_name || '?';
   };
 
-  if (loading) {
-    return (
-      <View style={styles.center}>
-        <ActivityIndicator size="large" color="#E91E63" />
-      </View>
-    );
-  }
+  const handleOpenRoom = (room: ChatRoom) => {
+    markRoomRead(room.id);
+    navigation.navigate('ChatDetail', { roomId: room.id });
+  };
+
+  if (loading) return <LoadingState />;
 
   return (
     <FlatList
       data={rooms}
       keyExtractor={(item) => item.id}
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+      refreshControl={
+        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
+      }
+      style={styles.container}
       ListEmptyComponent={
-        <View style={styles.empty}>
-          <Text style={styles.emptyTitle}>No chats yet</Text>
-          <Text style={styles.emptyText}>
-            Get matched with a group to start chatting!
-          </Text>
-        </View>
+        <EmptyState
+          icon="chatbubbles-outline"
+          title="No chats yet"
+          description="Get matched with a group to start chatting!"
+        />
       }
       renderItem={({ item }) => (
-        <TouchableOpacity
-          style={styles.roomItem}
-          onPress={() => navigation.navigate('ChatDetail', { roomId: item.id })}
+        <Pressable
+          style={({ pressed }) => [styles.roomItem, pressed && styles.roomPressed]}
+          onPress={() => handleOpenRoom(item)}
           testID={`room-${item.id}`}
         >
-          <View style={styles.roomAvatar}>
-            <Text style={styles.avatarText}>
-              {item.room_type === '1v1' ? '\u2764' : '\u{1F465}'}
-            </Text>
-          </View>
+          {/* Avatar */}
+          {item.room_type === '1v1' ? (
+            <UserAvatar
+              firstName={getOtherName(item)}
+              size="md"
+            />
+          ) : (
+            <View style={styles.groupAvatarStack}>
+              {item.participants.slice(0, 3).map((p, i) => (
+                <View key={p.user_id} style={[styles.miniAvatar, { left: i * 12, zIndex: 3 - i }]}>
+                  <UserAvatar firstName={p.first_name} size="xs" borderColor={colors.surfaceElevated} borderWidth={1.5} />
+                </View>
+              ))}
+            </View>
+          )}
+
+          {/* Info */}
           <View style={styles.roomInfo}>
-            <Text style={styles.roomTitle}>{getRoomTitle(item)}</Text>
-            <Text style={styles.roomSubtitle} numberOfLines={1}>
-              {getRoomSubtitle(item)}
+            <Text style={styles.roomTitle} numberOfLines={1}>
+              {getRoomTitle(item)}
             </Text>
+            {item.room_type === 'group' && (
+              <Text style={styles.roomSubtitle} numberOfLines={1}>
+                {item.participants.map(p => p.first_name).join(', ')}
+              </Text>
+            )}
             {item.last_message && (
               <Text style={styles.lastMessage} numberOfLines={1}>
                 {item.last_message.content}
               </Text>
             )}
           </View>
+
+          {/* Timestamp */}
           {item.last_message && (
-            <Text style={styles.time}>
-              {new Date(item.last_message.created_at).toLocaleDateString()}
-            </Text>
+            <RelativeTimestamp dateString={item.last_message.created_at} variant="short" />
           )}
-        </TouchableOpacity>
+        </Pressable>
       )}
-      style={styles.container}
     />
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  empty: { padding: 40, alignItems: 'center' },
-  emptyTitle: { fontSize: 18, fontWeight: '600', marginBottom: 8 },
-  emptyText: { fontSize: 14, color: '#666', textAlign: 'center' },
+  container: { flex: 1, backgroundColor: colors.surface },
   roomItem: {
-    flexDirection: 'row', padding: 16, borderBottomWidth: 1,
-    borderBottomColor: '#eee', alignItems: 'center',
+    flexDirection: 'row',
+    padding: spacing.lg,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.borderLight,
+    alignItems: 'center',
+    backgroundColor: colors.surfaceElevated,
+    gap: spacing.md,
   },
-  roomAvatar: {
-    width: 48, height: 48, borderRadius: 24, backgroundColor: '#FFF0F5',
-    justifyContent: 'center', alignItems: 'center', marginRight: 12,
+  roomPressed: {
+    backgroundColor: colors.surfacePressed,
   },
-  avatarText: { fontSize: 20 },
+  groupAvatarStack: {
+    width: 48,
+    height: 48,
+    position: 'relative',
+  },
+  miniAvatar: {
+    position: 'absolute',
+    top: 12,
+  },
   roomInfo: { flex: 1 },
-  roomTitle: { fontSize: 16, fontWeight: '600' },
-  roomSubtitle: { fontSize: 12, color: '#888', marginTop: 2 },
-  lastMessage: { fontSize: 13, color: '#666', marginTop: 2 },
-  time: { fontSize: 11, color: '#999' },
+  roomTitle: {
+    ...typography.labelLarge,
+    color: colors.dark,
+  },
+  roomSubtitle: {
+    ...typography.caption,
+    color: colors.gray,
+    marginTop: spacing.xxs,
+  },
+  lastMessage: {
+    ...typography.bodySmall,
+    color: colors.darkSecondary,
+    marginTop: spacing.xxs,
+  },
 });

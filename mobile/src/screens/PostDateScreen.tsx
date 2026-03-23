@@ -4,19 +4,22 @@ import {
   Text,
   StyleSheet,
   ScrollView,
+  Pressable,
   TouchableOpacity,
   Alert,
-  ActivityIndicator,
   TextInput,
   Modal,
-  Image,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useAuth } from '../context/AuthContext';
 import { getGroupDetail } from '../api/chat';
 import { submitFeedback } from '../api/feedback';
 import { getMyMatches } from '../api/dates';
 import { GroupDetail, GroupMember, RomanticInterestInput } from '../types';
+import { colors } from '../theme';
+import { UserAvatar, LoadingState } from '../components';
+import { haptic } from '../utils/haptics';
 
 const REPORT_CATEGORIES = [
   { key: 'uncomfortable', label: 'Made me uncomfortable' },
@@ -132,11 +135,7 @@ export default function PostDateScreen() {
   };
 
   if (loading || !group) {
-    return (
-      <View style={styles.center}>
-        <ActivityIndicator size="large" color="#E91E63" />
-      </View>
-    );
+    return <LoadingState />;
   }
 
   return (
@@ -150,11 +149,19 @@ export default function PostDateScreen() {
       <Text style={styles.sectionTitle}>Experience Rating</Text>
       <View style={styles.starsRow} testID="star-rating">
         {[1, 2, 3, 4, 5].map((star) => (
-          <TouchableOpacity key={star} onPress={() => setRating(star)} testID={`star-${star}`}>
-            <Text style={[styles.star, rating >= star && styles.starActive]}>
-              {rating >= star ? '\u2605' : '\u2606'}
-            </Text>
-          </TouchableOpacity>
+          <Pressable
+            key={star}
+            onPress={() => { haptic.selection(); setRating(star); }}
+            hitSlop={8}
+            style={styles.starTouchTarget}
+            testID={`star-${star}`}
+          >
+            <Ionicons
+              name={rating >= star ? 'star' : 'star-outline'}
+              size={36}
+              color={rating >= star ? '#FFD700' : colors.grayLight}
+            />
+          </Pressable>
         ))}
       </View>
 
@@ -163,15 +170,12 @@ export default function PostDateScreen() {
       {otherMembers.map((member) => (
         <View key={member.user_id} style={styles.memberRow} testID={`interest-${member.user_id}`}>
           <View style={styles.memberInfo}>
-            {member.profile.photo_urls.length > 0 ? (
-              <Image source={{ uri: member.profile.photo_urls[0] }} style={styles.memberPhoto} />
-            ) : (
-              <View style={[styles.memberPhoto, styles.photoPlaceholder]}>
-                <Text style={styles.photoInitial}>
-                  {member.profile.first_name.charAt(0)}
-                </Text>
-              </View>
-            )}
+            <UserAvatar
+              photoUrl={member.profile.photo_urls.length > 0 ? member.profile.photo_urls[0] : null}
+              firstName={member.profile.first_name}
+              size="md"
+              style={{ marginRight: 12 }}
+            />
             <Text style={styles.memberName}>{member.profile.first_name}</Text>
           </View>
           <View style={styles.memberActions}>
@@ -281,65 +285,58 @@ export default function PostDateScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff', padding: 20 },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  title: { fontSize: 24, fontWeight: 'bold', color: '#E91E63' },
-  subtitle: { fontSize: 14, color: '#666', marginTop: 4, marginBottom: 20, textTransform: 'capitalize' },
+  container: { flex: 1, backgroundColor: colors.surfaceElevated, padding: 20 },
+  title: { fontSize: 24, fontWeight: 'bold', color: colors.primary },
+  subtitle: { fontSize: 14, color: colors.darkSecondary, marginTop: 4, marginBottom: 20, textTransform: 'capitalize' },
   sectionTitle: { fontSize: 18, fontWeight: '600', marginTop: 20, marginBottom: 12 },
-  starsRow: { flexDirection: 'row', gap: 8 },
-  star: { fontSize: 36, color: '#ccc' },
-  starActive: { color: '#FFD700' },
+  starsRow: { flexDirection: 'row', gap: 4 },
+  starTouchTarget: { width: 48, height: 48, justifyContent: 'center', alignItems: 'center' },
   memberRow: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#eee',
+    paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: colors.border,
   },
   memberInfo: { flexDirection: 'row', alignItems: 'center' },
-  memberPhoto: { width: 40, height: 40, borderRadius: 20, marginRight: 12 },
-  photoPlaceholder: {
-    backgroundColor: '#E91E63', justifyContent: 'center', alignItems: 'center',
-  },
-  photoInitial: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
   memberName: { fontSize: 16, fontWeight: '500' },
   memberActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   heartButton: {
-    width: 40, height: 40, borderRadius: 20, borderWidth: 2, borderColor: '#E91E63',
+    width: 40, height: 40, borderRadius: 20, borderWidth: 2, borderColor: colors.primary,
     justifyContent: 'center', alignItems: 'center',
   },
-  heartActive: { backgroundColor: '#FFF0F5' },
-  heartIcon: { fontSize: 20, color: '#ccc' },
-  heartIconActive: { color: '#E91E63' },
+  heartActive: { backgroundColor: colors.surfaceSelected },
+  heartIcon: { fontSize: 20, color: colors.grayLight },
+  heartIconActive: { color: colors.primary },
   blockButton: {
     paddingHorizontal: 10, paddingVertical: 6, borderRadius: 4,
-    borderWidth: 1, borderColor: '#ddd',
+    borderWidth: 1, borderColor: colors.border,
   },
   blockActive: { backgroundColor: '#ffebee', borderColor: '#f44336' },
-  blockText: { fontSize: 12, color: '#666' },
+  blockText: { fontSize: 12, color: colors.darkSecondary },
   reportButton: {
     marginTop: 24, padding: 12, alignItems: 'center',
-    borderWidth: 1, borderColor: '#ddd', borderRadius: 8,
+    borderWidth: 1, borderColor: colors.border, borderRadius: 8,
   },
-  reportButtonText: { color: '#666', fontSize: 14 },
+  reportButtonText: { color: colors.darkSecondary, fontSize: 14 },
   submitButton: {
-    marginTop: 20, marginBottom: 40, backgroundColor: '#E91E63',
+    marginTop: 20, marginBottom: 40, backgroundColor: colors.primary,
     paddingVertical: 16, borderRadius: 25, alignItems: 'center',
   },
-  submitButtonDisabled: { backgroundColor: '#ccc' },
+  submitButtonDisabled: { backgroundColor: colors.grayLight },
   submitButtonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
   modalOverlay: {
     flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end',
   },
   modalContent: {
-    backgroundColor: '#fff', borderTopLeftRadius: 20, borderTopRightRadius: 20,
+    backgroundColor: colors.surfaceElevated, borderTopLeftRadius: 20, borderTopRightRadius: 20,
     padding: 20, maxHeight: '80%',
   },
   modalTitle: { fontSize: 20, fontWeight: 'bold', marginBottom: 16 },
-  modalLabel: { fontSize: 14, fontWeight: '600', color: '#666', marginTop: 12, marginBottom: 8 },
+  modalLabel: { fontSize: 14, fontWeight: '600', color: colors.darkSecondary, marginTop: 12, marginBottom: 8 },
   modalOption: {
-    padding: 10, borderWidth: 1, borderColor: '#eee', borderRadius: 8, marginBottom: 6,
+    padding: 10, borderWidth: 1, borderColor: colors.border, borderRadius: 8, marginBottom: 6,
   },
-  modalOptionActive: { borderColor: '#E91E63', backgroundColor: '#FFF0F5' },
+  modalOptionActive: { borderColor: colors.primary, backgroundColor: colors.surfaceSelected },
   modalInput: {
-    borderWidth: 1, borderColor: '#ddd', borderRadius: 8, padding: 10,
+    borderWidth: 1, borderColor: colors.border, borderRadius: 8, padding: 10,
     minHeight: 60, textAlignVertical: 'top',
   },
   modalActions: {
@@ -347,7 +344,7 @@ const styles = StyleSheet.create({
   },
   modalCancel: { padding: 10 },
   modalSubmit: {
-    padding: 10, backgroundColor: '#E91E63', borderRadius: 8, paddingHorizontal: 20,
+    padding: 10, backgroundColor: colors.primary, borderRadius: 8, paddingHorizontal: 20,
   },
   modalSubmitText: { color: '#fff', fontWeight: '600' },
 });

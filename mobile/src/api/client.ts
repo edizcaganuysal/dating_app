@@ -3,7 +3,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 
 // Use your Mac's local IP so the phone can reach the backend.
 // If this IP changes, update it here or set EXPO_PUBLIC_API_URL env var.
-const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || "http://100.70.71.80:8000";
+const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || "http://100.70.69.69:8000";
 
 const apiClient = axios.create({
   baseURL: API_BASE_URL,

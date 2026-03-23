@@ -16,6 +16,9 @@ import { useAuth } from '../context/AuthContext';
 import useChat from '../hooks/useChat';
 import { askGenie } from '../api/chat';
 import { ChatMessage, GENIE_USER_ID } from '../types';
+import { colors, spacing, typography, radii } from '../theme';
+import { UserAvatar, RelativeTimestamp } from '../components';
+import { markRoomRead } from '../hooks/useUnreadCount';
 
 const GENIE_PRESETS = [
   { label: 'Suggest a venue', question: 'Can you suggest some good venues for our date?' },
@@ -33,6 +36,9 @@ export default function ChatScreen() {
     roomId,
     token || '',
   );
+
+  // Mark room as read when opened
+  React.useEffect(() => { markRoomRead(roomId); }, [roomId]);
 
   const [text, setText] = useState('');
   const [loadingHistory, setLoadingHistory] = useState(false);
@@ -96,15 +102,19 @@ export default function ChatScreen() {
     }
 
     return (
-      <View
-        style={[styles.messageBubble, isOwn ? styles.ownMessage : styles.otherMessage]}
-        testID={`message-${item.id}`}
-      >
-        {!isOwn && <Text style={styles.senderName}>{item.sender_name}</Text>}
-        <Text style={[styles.messageText, isOwn && styles.ownMessageText]}>{item.content}</Text>
-        <Text style={[styles.timestamp, isOwn && styles.ownTimestamp]}>
-          {new Date(item.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-        </Text>
+      <View style={[styles.messageRow, isOwn && styles.messageRowOwn]} testID={`message-${item.id}`}>
+        {!isOwn && (
+          <UserAvatar firstName={item.sender_name || '?'} size="xs" style={{ marginRight: spacing.sm, marginTop: 2 }} />
+        )}
+        <View style={[styles.messageBubble, isOwn ? styles.ownMessage : styles.otherMessage]}>
+          {!isOwn && <Text style={styles.senderName}>{item.sender_name}</Text>}
+          <Text style={[styles.messageText, isOwn && styles.ownMessageText]}>{item.content}</Text>
+          <RelativeTimestamp
+            dateString={item.created_at}
+            variant="short"
+            style={isOwn ? styles.ownTimestamp : styles.timestamp}
+          />
+        </View>
       </View>
     );
   };
@@ -205,19 +215,21 @@ export default function ChatScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
-  connectionBanner: { backgroundColor: '#FF9800', padding: 4, alignItems: 'center' },
+  container: { flex: 1, backgroundColor: colors.surfaceElevated },
+  connectionBanner: { backgroundColor: colors.warning, padding: 4, alignItems: 'center' },
   connectionText: { color: '#fff', fontSize: 12 },
   messageList: { flex: 1, paddingHorizontal: 12 },
 
   // Regular messages
-  messageBubble: { maxWidth: '75%', padding: 10, borderRadius: 16, marginVertical: 4 },
-  ownMessage: { backgroundColor: '#E91E63', alignSelf: 'flex-end', borderBottomRightRadius: 4 },
-  otherMessage: { backgroundColor: '#f0f0f0', alignSelf: 'flex-start', borderBottomLeftRadius: 4 },
-  senderName: { fontSize: 11, fontWeight: '600', color: '#E91E63', marginBottom: 2 },
-  messageText: { fontSize: 15, color: '#333' },
+  messageRow: { flexDirection: 'row', alignItems: 'flex-start', marginVertical: 2, justifyContent: 'flex-start' },
+  messageRowOwn: { justifyContent: 'flex-end' },
+  messageBubble: { maxWidth: '70%', padding: 10, borderRadius: 16, marginVertical: 2 },
+  ownMessage: { backgroundColor: colors.primary, alignSelf: 'flex-end', borderBottomRightRadius: 4 },
+  otherMessage: { backgroundColor: colors.otherMessage, alignSelf: 'flex-start', borderBottomLeftRadius: 4 },
+  senderName: { fontSize: 11, fontWeight: '600', color: colors.primary, marginBottom: 2 },
+  messageText: { fontSize: 15, color: colors.dark },
   ownMessageText: { color: '#fff' },
-  timestamp: { fontSize: 10, color: '#999', marginTop: 4, alignSelf: 'flex-end' },
+  timestamp: { fontSize: 10, color: colors.gray, marginTop: 4, alignSelf: 'flex-end' },
   ownTimestamp: { color: 'rgba(255,255,255,0.7)' },
 
   // Genie messages
@@ -229,19 +241,19 @@ const styles = StyleSheet.create({
   genieHeader: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 },
   genieEmoji: { fontSize: 16 },
   genieName: { fontSize: 12, fontWeight: '700', color: '#7B1FA2' },
-  genieText: { fontSize: 14, color: '#333', lineHeight: 20 },
+  genieText: { fontSize: 14, color: colors.dark, lineHeight: 20 },
   genieTimestamp: { fontSize: 10, color: '#9E9E9E', marginTop: 6, alignSelf: 'flex-end' },
 
   // Typing
   typingContainer: { paddingHorizontal: 16, paddingVertical: 4 },
-  typingText: { fontSize: 12, color: '#999', fontStyle: 'italic' },
+  typingText: { fontSize: 12, color: colors.gray, fontStyle: 'italic' },
   genieTypingRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   genieTypingEmoji: { fontSize: 14 },
   genieTypingText: { fontSize: 12, color: '#7B1FA2', fontStyle: 'italic' },
 
   // Input bar
   inputContainer: {
-    flexDirection: 'row', padding: 8, borderTopWidth: 1, borderTopColor: '#eee',
+    flexDirection: 'row', padding: 8, borderTopWidth: 1, borderTopColor: colors.border,
     alignItems: 'flex-end',
   },
   genieButton: {
@@ -250,33 +262,33 @@ const styles = StyleSheet.create({
   },
   genieButtonText: { fontSize: 20 },
   input: {
-    flex: 1, borderWidth: 1, borderColor: '#ddd', borderRadius: 20,
+    flex: 1, borderWidth: 1, borderColor: colors.border, borderRadius: 20,
     paddingHorizontal: 14, paddingVertical: 8, maxHeight: 100, fontSize: 15,
   },
   sendButton: {
-    backgroundColor: '#E91E63', paddingHorizontal: 16, paddingVertical: 10,
+    backgroundColor: colors.primary, paddingHorizontal: 16, paddingVertical: 10,
     borderRadius: 20, marginLeft: 8,
   },
-  sendButtonDisabled: { backgroundColor: '#ccc' },
+  sendButtonDisabled: { backgroundColor: colors.grayLight },
   sendButtonText: { color: '#fff', fontWeight: '600' },
 
   // Genie bottom sheet
   genieOverlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.4)' },
   genieSheet: {
-    backgroundColor: '#fff', borderTopLeftRadius: 20, borderTopRightRadius: 20,
+    backgroundColor: colors.surfaceElevated, borderTopLeftRadius: 20, borderTopRightRadius: 20,
     padding: 20, paddingBottom: 36,
   },
   genieSheetHandle: {
-    width: 40, height: 4, borderRadius: 2, backgroundColor: '#ddd',
+    width: 40, height: 4, borderRadius: 2, backgroundColor: colors.border,
     alignSelf: 'center', marginBottom: 16,
   },
-  genieSheetTitle: { fontSize: 20, fontWeight: '700', color: '#333', marginBottom: 4 },
-  genieSheetSub: { fontSize: 14, color: '#666', marginBottom: 16 },
+  genieSheetTitle: { fontSize: 20, fontWeight: '700', color: colors.dark, marginBottom: 4 },
+  genieSheetSub: { fontSize: 14, color: colors.darkSecondary, marginBottom: 16 },
   geniePreset: {
     backgroundColor: '#F3E5F5', paddingVertical: 14, paddingHorizontal: 16,
     borderRadius: 12, marginBottom: 8,
   },
   geniePresetText: { fontSize: 15, color: '#4A148C', fontWeight: '600' },
   genieCancel: { paddingVertical: 14, alignItems: 'center', marginTop: 4 },
-  genieCancelText: { fontSize: 15, color: '#999' },
+  genieCancelText: { fontSize: 15, color: colors.gray },
 });

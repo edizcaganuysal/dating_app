@@ -24,6 +24,7 @@ import {
 } from '../api/dates';
 import { getFriends, Friend } from '../api/friends';
 import { ActivityType, TimeWindow, AvailabilitySlot, TIME_WINDOW_HOURS } from '../types';
+import { colors } from '../theme';
 
 const { width } = Dimensions.get('window');
 const CARD_SIZE = (width - 56) / 3;
@@ -361,7 +362,7 @@ export default function DateRequestScreen() {
   if (prefilling) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#E91E63" />
+        <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
   }
@@ -390,7 +391,7 @@ export default function DateRequestScreen() {
                 </Text>
               </TouchableOpacity>
             )}
-            {isEditMode && <Text style={{ fontSize: 14, color: '#666', marginBottom: 12 }}>Pick one activity for this request</Text>}
+            {isEditMode && <Text style={{ fontSize: 14, color: colors.darkSecondary, marginBottom: 12 }}>Pick one activity for this request</Text>}
             <View style={styles.activityGrid}>
               {ACTIVITIES.map(a => {
                 const isSelected = selectedActivities.includes(a.value);
@@ -447,7 +448,7 @@ export default function DateRequestScreen() {
 
             {friends.length === 0 ? (
               <View style={styles.noFriendsBox}>
-                <Ionicons name="people-outline" size={32} color="#ccc" />
+                <Ionicons name="people-outline" size={32} color={colors.grayLight} />
                 <Text style={styles.noFriendsText}>
                   Add friends in Profile {'>'} Friends
                 </Text>
@@ -464,14 +465,14 @@ export default function DateRequestScreen() {
                     <Ionicons
                       name={isChecked ? 'checkbox' : 'square-outline'}
                       size={24}
-                      color={isChecked ? '#E91E63' : '#ccc'}
+                      color={isChecked ? colors.primary : colors.grayLight}
                     />
                     <Text style={styles.friendCheckName}>
                       {friend.first_name} {friend.last_name}
                     </Text>
                     <View style={[
                       styles.genderBadge,
-                      { backgroundColor: friend.gender === 'male' ? '#2196F3' : '#E91E63' },
+                      { backgroundColor: friend.gender === 'male' ? colors.info : colors.primary },
                     ]}>
                       <Text style={styles.genderText}>
                         {friend.gender === 'male' ? 'M' : 'F'}
@@ -655,7 +656,7 @@ export default function DateRequestScreen() {
               <Switch
                 value={saveAsTemplate}
                 onValueChange={setSaveAsTemplate}
-                trackColor={{ true: '#E91E63' }}
+                trackColor={{ true: colors.primary }}
                 thumbColor="#fff"
               />
             </View>
@@ -690,7 +691,7 @@ export default function DateRequestScreen() {
       <View style={styles.navRow}>
         {step > 0 ? (
           <TouchableOpacity style={styles.navButton} onPress={() => setStep(step - 1)}>
-            <Ionicons name="arrow-back" size={20} color="#E91E63" />
+            <Ionicons name="arrow-back" size={20} color={colors.primary} />
             <Text style={styles.navButtonText}>Back</Text>
           </TouchableOpacity>
         ) : (
@@ -719,9 +720,9 @@ export default function DateRequestScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
+  container: { flex: 1, backgroundColor: colors.surfaceElevated },
   loadingContainer: {
-    flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#fff',
+    flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.surfaceElevated,
   },
   scrollArea: { flex: 1 },
   scrollContent: { padding: 16, paddingBottom: 20 },
@@ -733,52 +734,52 @@ const styles = StyleSheet.create({
   },
   stepDotWrapper: { flexDirection: 'row', alignItems: 'center', flex: 1 },
   stepDot: {
-    width: 12, height: 12, borderRadius: 6, backgroundColor: '#ddd',
+    width: 12, height: 12, borderRadius: 6, backgroundColor: colors.border,
   },
-  stepDotActive: { backgroundColor: '#E91E63' },
-  stepLine: { flex: 1, height: 2, backgroundColor: '#ddd', marginHorizontal: 4 },
-  stepLineActive: { backgroundColor: '#E91E63' },
+  stepDotActive: { backgroundColor: colors.primary },
+  stepLine: { flex: 1, height: 2, backgroundColor: colors.border, marginHorizontal: 4 },
+  stepLineActive: { backgroundColor: colors.primary },
 
-  stepTitle: { fontSize: 20, fontWeight: 'bold', color: '#333', marginBottom: 16 },
+  stepTitle: { fontSize: 20, fontWeight: 'bold', color: colors.dark, marginBottom: 16 },
 
   // Activities
   selectAllButton: { alignSelf: 'flex-end', marginBottom: 12 },
-  selectAllText: { color: '#E91E63', fontWeight: '600', fontSize: 14 },
+  selectAllText: { color: colors.primary, fontWeight: '600', fontSize: 14 },
   activityGrid: {
     flexDirection: 'row', flexWrap: 'wrap', gap: 8, justifyContent: 'flex-start',
   },
   activityCard: {
-    width: CARD_SIZE, height: CARD_SIZE * 0.85, backgroundColor: '#f9f9f9',
+    width: CARD_SIZE, height: CARD_SIZE * 0.85, backgroundColor: colors.surfaceElevated,
     borderRadius: 12, justifyContent: 'center', alignItems: 'center',
     borderWidth: 2, borderColor: 'transparent',
   },
-  activityCardSelected: { borderColor: '#E91E63', backgroundColor: '#FCE4EC' },
+  activityCardSelected: { borderColor: colors.primary, backgroundColor: colors.surfaceSelected },
   activityEmoji: { fontSize: 28, marginBottom: 6 },
-  activityLabel: { fontSize: 12, color: '#333', textAlign: 'center', fontWeight: '500' },
-  activityLabelSelected: { color: '#E91E63', fontWeight: '700' },
+  activityLabel: { fontSize: 12, color: colors.dark, textAlign: 'center', fontWeight: '500' },
+  activityLabelSelected: { color: colors.primary, fontWeight: '700' },
 
   // Group size
   toggleRow: { flexDirection: 'row', gap: 12, marginBottom: 8 },
   toggle: {
     flex: 1, paddingVertical: 14, borderRadius: 12,
-    borderWidth: 1, borderColor: '#ddd', alignItems: 'center', backgroundColor: '#f9f9f9',
+    borderWidth: 1, borderColor: colors.border, alignItems: 'center', backgroundColor: colors.surfaceElevated,
   },
-  toggleSelected: { backgroundColor: '#E91E63', borderColor: '#E91E63' },
-  toggleText: { fontSize: 15, color: '#333', fontWeight: '600' },
+  toggleSelected: { backgroundColor: colors.primary, borderColor: colors.primary },
+  toggleText: { fontSize: 15, color: colors.dark, fontWeight: '600' },
   toggleTextSelected: { color: '#fff' },
 
-  constraintNote: { fontSize: 13, color: '#888', marginBottom: 12 },
+  constraintNote: { fontSize: 13, color: colors.gray, marginBottom: 12 },
 
   noFriendsBox: {
-    alignItems: 'center', paddingVertical: 24, backgroundColor: '#f9f9f9', borderRadius: 12,
+    alignItems: 'center', paddingVertical: 24, backgroundColor: colors.surfaceElevated, borderRadius: 12,
   },
-  noFriendsText: { fontSize: 14, color: '#999', marginTop: 8 },
+  noFriendsText: { fontSize: 14, color: colors.gray, marginTop: 8 },
 
   friendCheckRow: {
     flexDirection: 'row', alignItems: 'center', gap: 12,
-    paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#eee',
+    paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: colors.border,
   },
-  friendCheckName: { flex: 1, fontSize: 15, fontWeight: '500', color: '#333' },
+  friendCheckName: { flex: 1, fontSize: 15, fontWeight: '500', color: colors.dark },
   genderBadge: {
     width: 22, height: 22, borderRadius: 11, justifyContent: 'center', alignItems: 'center',
   },
@@ -789,73 +790,73 @@ const styles = StyleSheet.create({
     flexDirection: 'row', marginBottom: 8,
   },
   dayName: {
-    flex: 1, textAlign: 'center', fontSize: 12, fontWeight: '600', color: '#888',
+    flex: 1, textAlign: 'center', fontSize: 12, fontWeight: '600', color: colors.gray,
   },
   calendarRow: { flexDirection: 'row', marginBottom: 6 },
   calendarCell: {
     flex: 1, aspectRatio: 1, justifyContent: 'center', alignItems: 'center',
     borderRadius: 8, marginHorizontal: 2,
   },
-  calendarCellSelected: { backgroundColor: '#E91E63' },
-  calendarCellToday: { borderWidth: 1, borderColor: '#E91E63' },
-  calendarDateNum: { fontSize: 16, fontWeight: '600', color: '#333' },
+  calendarCellSelected: { backgroundColor: colors.primary },
+  calendarCellToday: { borderWidth: 1, borderColor: colors.primary },
+  calendarDateNum: { fontSize: 16, fontWeight: '600', color: colors.dark },
   calendarDateNumSelected: { color: '#fff' },
-  calendarMonth: { fontSize: 10, color: '#999' },
+  calendarMonth: { fontSize: 10, color: colors.gray },
   calendarMonthSelected: { color: '#fff' },
 
   // Time sections
   timeSection: {
-    backgroundColor: '#f9f9f9', borderRadius: 12, padding: 12, marginTop: 12,
+    backgroundColor: colors.surfaceElevated, borderRadius: 12, padding: 12, marginTop: 12,
   },
   timeSectionHeader: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8,
   },
-  timeSectionDate: { fontSize: 14, fontWeight: '600', color: '#333' },
-  allDayText: { fontSize: 13, color: '#888', fontWeight: '600' },
-  allDayTextActive: { color: '#E91E63' },
+  timeSectionDate: { fontSize: 14, fontWeight: '600', color: colors.dark },
+  allDayText: { fontSize: 13, color: colors.gray, fontWeight: '600' },
+  allDayTextActive: { color: colors.primary },
   timeChipRow: { flexDirection: 'row', gap: 8 },
   timeChip: {
     flex: 1, paddingVertical: 8, borderRadius: 16,
-    borderWidth: 1, borderColor: '#ddd', alignItems: 'center', backgroundColor: '#fff',
+    borderWidth: 1, borderColor: colors.border, alignItems: 'center', backgroundColor: colors.surfaceElevated,
   },
-  timeChipActive: { backgroundColor: '#E91E63', borderColor: '#E91E63' },
-  timeChipText: { fontSize: 12, color: '#333', fontWeight: '500' },
+  timeChipActive: { backgroundColor: colors.primary, borderColor: colors.primary },
+  timeChipText: { fontSize: 12, color: colors.dark, fontWeight: '500' },
   timeChipTextActive: { color: '#fff' },
 
   // Templates
   templateSection: { marginBottom: 16 },
-  templateLabel: { fontSize: 14, fontWeight: '600', color: '#666', marginBottom: 8 },
+  templateLabel: { fontSize: 14, fontWeight: '600', color: colors.darkSecondary, marginBottom: 8 },
   templateRow: { flexDirection: 'row', gap: 8 },
   templateChip: {
     paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20,
-    backgroundColor: '#f9f9f9', borderWidth: 1, borderColor: '#ddd',
+    backgroundColor: colors.surfaceElevated, borderWidth: 1, borderColor: colors.border,
   },
-  templateChipText: { fontSize: 13, color: '#333', fontWeight: '500' },
+  templateChipText: { fontSize: 13, color: colors.dark, fontWeight: '500' },
 
   // Summary
   summaryCard: {
-    backgroundColor: '#f9f9f9', borderRadius: 12, padding: 16, marginBottom: 16,
+    backgroundColor: colors.surfaceElevated, borderRadius: 12, padding: 16, marginBottom: 16,
   },
-  summaryLabel: { fontSize: 13, fontWeight: '600', color: '#888', marginTop: 12, marginBottom: 4 },
-  summaryValue: { fontSize: 15, color: '#333' },
+  summaryLabel: { fontSize: 13, fontWeight: '600', color: colors.gray, marginTop: 12, marginBottom: 4 },
+  summaryValue: { fontSize: 15, color: colors.dark },
   summaryChipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
   summaryChip: {
-    backgroundColor: '#FCE4EC', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 16,
+    backgroundColor: colors.surfaceSelected, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 16,
   },
-  summaryChipText: { fontSize: 13, color: '#E91E63', fontWeight: '500' },
+  summaryChipText: { fontSize: 13, color: colors.primary, fontWeight: '500' },
 
   templateSaveRow: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
     marginBottom: 8,
   },
-  templateSaveLabel: { fontSize: 15, color: '#333', fontWeight: '500' },
+  templateSaveLabel: { fontSize: 15, color: colors.dark, fontWeight: '500' },
   templateNameInput: {
-    borderWidth: 1, borderColor: '#ddd', borderRadius: 8,
-    padding: 12, fontSize: 15, marginBottom: 16, backgroundColor: '#f9f9f9',
+    borderWidth: 1, borderColor: colors.border, borderRadius: 8,
+    padding: 12, fontSize: 15, marginBottom: 16, backgroundColor: colors.surfaceElevated,
   },
 
   submitButton: {
-    backgroundColor: '#E91E63', paddingVertical: 16, borderRadius: 12,
+    backgroundColor: colors.primary, paddingVertical: 16, borderRadius: 12,
     alignItems: 'center', marginTop: 8,
   },
   submitButtonText: { color: '#fff', fontSize: 17, fontWeight: '700' },
@@ -864,15 +865,15 @@ const styles = StyleSheet.create({
   // Navigation
   navRow: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    paddingHorizontal: 16, paddingVertical: 12, borderTopWidth: 1, borderTopColor: '#eee',
+    paddingHorizontal: 16, paddingVertical: 12, borderTopWidth: 1, borderTopColor: colors.border,
   },
   navButton: {
     flexDirection: 'row', alignItems: 'center', gap: 4, paddingVertical: 8, paddingHorizontal: 4,
   },
-  navButtonText: { color: '#E91E63', fontSize: 15, fontWeight: '600' },
+  navButtonText: { color: colors.primary, fontSize: 15, fontWeight: '600' },
   navButtonPrimary: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
-    backgroundColor: '#E91E63', paddingVertical: 10, paddingHorizontal: 20, borderRadius: 20,
+    backgroundColor: colors.primary, paddingVertical: 10, paddingHorizontal: 20, borderRadius: 20,
   },
   navButtonPrimaryText: { color: '#fff', fontSize: 15, fontWeight: '600' },
 });

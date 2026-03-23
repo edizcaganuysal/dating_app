@@ -6,13 +6,16 @@ import {
   TouchableOpacity,
   StyleSheet,
   Alert,
-  ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
 } from "react-native";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useAuth } from "../context/AuthContext";
 import { AuthStackParamList } from "../navigation/AppNavigator";
+import { colors, typography, spacing, radii } from '../theme';
+import { AnimatedButton } from '../components';
+import { haptic } from '../utils/haptics';
+
 
 type Props = NativeStackScreenProps<AuthStackParamList, "Login">;
 
@@ -41,6 +44,7 @@ export default function LoginScreen({ navigation, route }: Props) {
           message = `Unexpected error: ${error.message || String(error)}`;
         }
       }
+      haptic.error();
       Alert.alert("Login Failed", message);
     } finally {
       setLoading(false);
@@ -79,18 +83,14 @@ export default function LoginScreen({ navigation, route }: Props) {
           testID="password-input"
         />
 
-        <TouchableOpacity
-          style={styles.button}
+        <AnimatedButton
+          label="Log In"
           onPress={handleLogin}
-          disabled={loading}
-          testID="login-button"
-        >
-          {loading ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <Text style={styles.buttonText}>Log In</Text>
-          )}
-        </TouchableOpacity>
+          variant="primary"
+          size="lg"
+          fullWidth
+          loading={loading}
+        />
 
         <TouchableOpacity
           onPress={() => navigation.navigate("Register")}
@@ -108,60 +108,48 @@ export default function LoginScreen({ navigation, route }: Props) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#fff",
+    backgroundColor: colors.surface,
   },
   inner: {
     flex: 1,
     justifyContent: "center",
-    paddingHorizontal: 32,
+    paddingHorizontal: spacing.xxxl,
   },
   title: {
-    fontSize: 36,
-    fontWeight: "bold",
+    ...typography.displayLarge,
     textAlign: "center",
-    color: "#E91E63",
-    marginBottom: 8,
+    color: colors.primary,
+    marginBottom: spacing.sm,
   },
   subtitle: {
-    fontSize: 16,
+    ...typography.bodyLarge,
     textAlign: "center",
-    color: "#666",
-    marginBottom: 40,
+    color: colors.darkSecondary,
+    marginBottom: spacing.xxxxl,
   },
   successMessage: {
-    color: "#4CAF50",
+    ...typography.bodySmall,
+    color: colors.success,
     textAlign: "center",
-    marginBottom: 16,
-    fontSize: 14,
+    marginBottom: spacing.lg,
   },
   input: {
     borderWidth: 1,
-    borderColor: "#ddd",
-    borderRadius: 8,
-    padding: 14,
+    borderColor: colors.border,
+    borderRadius: radii.sm,
+    padding: spacing.md + 2,
     fontSize: 16,
-    marginBottom: 16,
-    backgroundColor: "#f9f9f9",
-  },
-  button: {
-    backgroundColor: "#E91E63",
-    padding: 16,
-    borderRadius: 8,
-    alignItems: "center",
-    marginBottom: 20,
-  },
-  buttonText: {
-    color: "#fff",
-    fontSize: 18,
-    fontWeight: "600",
+    marginBottom: spacing.lg,
+    backgroundColor: colors.surfaceElevated,
   },
   linkText: {
     textAlign: "center",
-    color: "#666",
+    color: colors.darkSecondary,
     fontSize: 14,
+    marginTop: spacing.xl,
   },
   link: {
-    color: "#E91E63",
+    color: colors.primary,
     fontWeight: "600",
   },
 });

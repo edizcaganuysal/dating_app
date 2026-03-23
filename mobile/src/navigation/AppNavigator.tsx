@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from "react";
-import { Text, View, StyleSheet, ActivityIndicator } from "react-native";
+import React, { useEffect, useState, useCallback } from "react";
+import { View, StyleSheet, BackHandler } from "react-native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { Ionicons } from "@expo/vector-icons";
@@ -21,6 +21,9 @@ import FriendsScreen from "../screens/FriendsScreen";
 import { getMyProfile } from "../api/profiles";
 import { Match } from "../types";
 import useNotifications from "../hooks/useNotifications";
+import useUnreadCount from "../hooks/useUnreadCount";
+import { LoadingState } from "../components";
+import { colors } from "../theme";
 
 export type AuthStackParamList = {
   Login: { message?: string } | undefined;
@@ -66,6 +69,13 @@ const ProfileStack = createNativeStackNavigator<ProfileStackParamList>();
 const MainTab = createBottomTabNavigator<MainTabParamList>();
 const RootStack = createNativeStackNavigator<RootStackParamList>();
 
+const headerOptions = {
+  headerStyle: { backgroundColor: colors.surfaceElevated },
+  headerTintColor: colors.dark,
+  headerTitleStyle: { color: colors.dark, fontWeight: '600' as const },
+  headerShadowVisible: false,
+};
+
 function AuthNavigator() {
   return (
     <AuthStack.Navigator screenOptions={{ headerShown: false }}>
@@ -78,12 +88,7 @@ function AuthNavigator() {
 
 function HomeStackNavigator() {
   return (
-    <HomeStack.Navigator
-      screenOptions={{
-        headerStyle: { backgroundColor: "#E91E63" },
-        headerTintColor: "#fff",
-      }}
-    >
+    <HomeStack.Navigator screenOptions={headerOptions}>
       <HomeStack.Screen
         name="HomeMain"
         component={HomeScreen}
@@ -120,12 +125,7 @@ function HomeStackNavigator() {
 
 function ChatStackNavigator() {
   return (
-    <ChatStack.Navigator
-      screenOptions={{
-        headerStyle: { backgroundColor: "#E91E63" },
-        headerTintColor: "#fff",
-      }}
-    >
+    <ChatStack.Navigator screenOptions={headerOptions}>
       <ChatStack.Screen
         name="ChatRooms"
         component={ChatRoomsScreen}
@@ -142,12 +142,7 @@ function ChatStackNavigator() {
 
 function ProfileStackNavigator() {
   return (
-    <ProfileStack.Navigator
-      screenOptions={{
-        headerStyle: { backgroundColor: "#E91E63" },
-        headerTintColor: "#fff",
-      }}
-    >
+    <ProfileStack.Navigator screenOptions={headerOptions}>
       <ProfileStack.Screen
         name="ProfileMain"
         component={ProfileScreen}
@@ -163,21 +158,40 @@ function ProfileStackNavigator() {
 }
 
 function MainNavigator() {
-  // Set up push notification listeners for navigation on tap
   useNotifications();
+  const unreadCount = useUnreadCount();
+
+  // Android back handler: prevent exiting app from tab screens
+  useEffect(() => {
+    const handler = BackHandler.addEventListener('hardwareBackPress', () => {
+      // Return false to let default behavior (navigate back in stack)
+      // Only prevent exit if we're at the root of a tab
+      return false;
+    });
+    return () => handler.remove();
+  }, []);
 
   return (
     <MainTab.Navigator
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: "#E91E63",
-        tabBarInactiveTintColor: "#888",
+        tabBarActiveTintColor: colors.primary,
+        tabBarInactiveTintColor: colors.gray,
+        tabBarStyle: {
+          backgroundColor: colors.surfaceElevated,
+          borderTopColor: colors.borderLight,
+        },
+        tabBarLabelStyle: {
+          fontSize: 11,
+          fontWeight: '600',
+        },
       }}
     >
       <MainTab.Screen
         name="Home"
         component={HomeStackNavigator}
         options={{
+          tabBarLabel: 'Home',
           tabBarIcon: ({ focused, color, size }) => (
             <Ionicons
               name={focused ? "home" : "home-outline"}
@@ -192,9 +206,9 @@ function MainNavigator() {
         component={MyDatesScreen}
         options={{
           title: "My Dates",
+          tabBarLabel: 'My Dates',
           headerShown: true,
-          headerStyle: { backgroundColor: "#E91E63" },
-          headerTintColor: "#fff",
+          ...headerOptions,
           tabBarIcon: ({ focused, color, size }) => (
             <Ionicons
               name={focused ? "calendar" : "calendar-outline"}
@@ -208,6 +222,9 @@ function MainNavigator() {
         name="Chat"
         component={ChatStackNavigator}
         options={{
+          tabBarLabel: 'Chat',
+          tabBarBadge: unreadCount > 0 ? unreadCount : undefined,
+          tabBarBadgeStyle: { backgroundColor: colors.primary, fontSize: 10 },
           tabBarIcon: ({ focused, color, size }) => (
             <Ionicons
               name={focused ? "chatbubble" : "chatbubble-outline"}
@@ -221,6 +238,7 @@ function MainNavigator() {
         name="Profile"
         component={ProfileStackNavigator}
         options={{
+          tabBarLabel: 'Profile',
           tabBarIcon: ({ focused, color, size }) => (
             <Ionicons
               name={focused ? "person" : "person-outline"}
@@ -262,11 +280,7 @@ export default function AppNavigator() {
   }, [user]);
 
   if (isLoading || (user && checkingProfile)) {
-    return (
-      <View style={styles.loading}>
-        <ActivityIndicator size="large" color="#E91E63" />
-      </View>
-    );
+    return <LoadingState message="Loading..." />;
   }
 
   if (!user) {
@@ -284,12 +298,3 @@ export default function AppNavigator() {
 
   return <MainNavigator />;
 }
-
-const styles = StyleSheet.create({
-  loading: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "#fff",
-  },
-});

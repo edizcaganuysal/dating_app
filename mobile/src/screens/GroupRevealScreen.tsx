@@ -5,12 +5,14 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  ActivityIndicator,
-  Image,
+  Share,
+  Linking,
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { getGroupDetail, getIcebreakers, getVenueSuggestions } from '../api/chat';
 import { GroupDetail, Venue } from '../types';
+import { colors } from '../theme';
+import { UserAvatar, LoadingState } from '../components';
 
 function getStatusLabel(group: GroupDetail): string {
   const today = new Date().toISOString().split('T')[0];
@@ -20,9 +22,9 @@ function getStatusLabel(group: GroupDetail): string {
 }
 
 function getStatusColor(label: string): string {
-  if (label === 'Completed') return '#888';
-  if (label === 'Today!') return '#4CAF50';
-  return '#2196F3';
+  if (label === 'Completed') return colors.gray;
+  if (label === 'Today!') return colors.success;
+  return colors.info;
 }
 
 export default function GroupRevealScreen() {
@@ -55,12 +57,24 @@ export default function GroupRevealScreen() {
     load();
   }, [groupId]);
 
+  const handleShare = async () => {
+    if (!group) return;
+    const memberNames = group.members.map((m) => m.profile.first_name).join(', ');
+    const text = `I'm going to ${group.activity.replace(/_/g, ' ')} on ${group.scheduled_date} at ${group.scheduled_time}.${venues.length > 0 ? ` Venue: ${venues[0].name}` : ''} Group: ${memberNames}`;
+    try {
+      await Share.share({ message: text });
+    } catch {
+      // User cancelled
+    }
+  };
+
+  const handleOpenMaps = (address: string) => {
+    const encoded = encodeURIComponent(address);
+    Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${encoded}`);
+  };
+
   if (loading || !group) {
-    return (
-      <View style={styles.center}>
-        <ActivityIndicator size="large" color="#E91E63" />
-      </View>
-    );
+    return <LoadingState />;
   }
 
   const statusLabel = getStatusLabel(group);
@@ -82,15 +96,11 @@ export default function GroupRevealScreen() {
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.membersScroll}>
         {group.members.map((member) => (
           <View key={member.user_id} style={styles.memberCard} testID={`member-${member.user_id}`}>
-            {member.profile.photo_urls.length > 0 ? (
-              <Image source={{ uri: member.profile.photo_urls[0] }} style={styles.memberPhoto} />
-            ) : (
-              <View style={[styles.memberPhoto, styles.photoPlaceholder]}>
-                <Text style={styles.photoInitial}>
-                  {member.profile.first_name.charAt(0)}
-                </Text>
-              </View>
-            )}
+            <UserAvatar
+              photoUrl={member.profile.photo_urls.length > 0 ? member.profile.photo_urls[0] : null}
+              firstName={member.profile.first_name}
+              size="lg"
+            />
             <Text style={styles.memberName}>{member.profile.first_name}</Text>
             <Text style={styles.memberDetail}>Age {member.profile.age}</Text>
             {member.profile.program && (
@@ -106,7 +116,14 @@ export default function GroupRevealScreen() {
           {venues.map((venue, i) => (
             <View key={i} style={styles.venueCard}>
               <Text style={styles.venueName}>{venue.name}</Text>
-              <Text style={styles.venueAddress}>{venue.address}</Text>
+              <View style={styles.venueAddressRow}>
+                <Text style={styles.venueAddress}>{venue.address}</Text>
+                {venue.address && (
+                  <TouchableOpacity onPress={() => handleOpenMaps(venue.address)}>
+                    <Text style={styles.mapsLink}>Open in Maps</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
               <Text style={styles.venuePrice}>{venue.price_range}</Text>
             </View>
           ))}
@@ -148,19 +165,26 @@ export default function GroupRevealScreen() {
             <Text style={styles.primaryButtonText}>Leave Feedback</Text>
           </TouchableOpacity>
         )}
+
+        <TouchableOpacity
+          testID="share-plans-button"
+          style={styles.shareButton}
+          onPress={handleShare}
+        >
+          <Text style={styles.shareButtonText}>Share My Plans</Text>
+        </TouchableOpacity>
       </View>
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  header: { padding: 20, alignItems: 'center', borderBottomWidth: 1, borderBottomColor: '#eee' },
+  container: { flex: 1, backgroundColor: colors.surface },
+  header: { padding: 20, alignItems: 'center', borderBottomWidth: 1, borderBottomColor: colors.border },
   activity: {
-    fontSize: 24, fontWeight: 'bold', color: '#E91E63', textTransform: 'capitalize',
+    fontSize: 24, fontWeight: 'bold', color: colors.primary, textTransform: 'capitalize',
   },
-  dateTime: { fontSize: 16, color: '#666', marginTop: 4 },
+  dateTime: { fontSize: 16, color: colors.darkSecondary, marginTop: 4 },
   statusBadge: {
     marginTop: 8, paddingHorizontal: 12, paddingVertical: 4, borderRadius: 12,
   },
@@ -171,30 +195,31 @@ const styles = StyleSheet.create({
   membersScroll: { paddingHorizontal: 12 },
   memberCard: {
     width: 120, alignItems: 'center', padding: 12, marginHorizontal: 8,
-    backgroundColor: '#f9f9f9', borderRadius: 12, borderWidth: 1, borderColor: '#eee',
+    backgroundColor: colors.surfaceElevated, borderRadius: 12, borderWidth: 1, borderColor: colors.border,
   },
-  memberPhoto: { width: 64, height: 64, borderRadius: 32, marginBottom: 8 },
-  photoPlaceholder: {
-    backgroundColor: '#E91E63', justifyContent: 'center', alignItems: 'center',
-  },
-  photoInitial: { color: '#fff', fontSize: 24, fontWeight: 'bold' },
-  memberName: { fontSize: 14, fontWeight: '600', textAlign: 'center' },
-  memberDetail: { fontSize: 12, color: '#888', textAlign: 'center', marginTop: 2 },
+  memberName: { fontSize: 14, fontWeight: '600', textAlign: 'center', marginTop: 8 },
+  memberDetail: { fontSize: 12, color: colors.gray, textAlign: 'center', marginTop: 2 },
   venueCard: {
     marginHorizontal: 20, marginBottom: 8, padding: 12,
-    backgroundColor: '#f9f9f9', borderRadius: 8, borderWidth: 1, borderColor: '#eee',
+    backgroundColor: colors.surfaceElevated, borderRadius: 8, borderWidth: 1, borderColor: colors.border,
   },
   venueName: { fontSize: 14, fontWeight: '600' },
-  venueAddress: { fontSize: 12, color: '#666', marginTop: 2 },
-  venuePrice: { fontSize: 12, color: '#E91E63', marginTop: 2 },
+  venueAddressRow: { flexDirection: 'row', alignItems: 'center', marginTop: 2, gap: 8 },
+  venueAddress: { fontSize: 12, color: colors.darkSecondary },
+  mapsLink: { fontSize: 12, color: colors.info, fontWeight: '600' },
+  venuePrice: { fontSize: 12, color: colors.primary, marginTop: 2 },
   icebreakerCard: {
     marginHorizontal: 20, marginBottom: 8, padding: 12,
-    backgroundColor: '#FFF0F5', borderRadius: 8,
+    backgroundColor: colors.surfaceSelected, borderRadius: 8,
   },
-  icebreakerText: { fontSize: 14, color: '#333', fontStyle: 'italic' },
+  icebreakerText: { fontSize: 14, color: colors.dark, fontStyle: 'italic' },
   actions: { padding: 20, gap: 12 },
   primaryButton: {
-    backgroundColor: '#E91E63', paddingVertical: 14, borderRadius: 25, alignItems: 'center',
+    backgroundColor: colors.primary, paddingVertical: 14, borderRadius: 25, alignItems: 'center',
   },
   primaryButtonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
+  shareButton: {
+    backgroundColor: colors.info, paddingVertical: 14, borderRadius: 25, alignItems: 'center',
+  },
+  shareButtonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
 });

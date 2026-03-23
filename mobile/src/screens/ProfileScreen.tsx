@@ -21,6 +21,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { getMyProfile, updateProfile, uploadPhoto } from '../api/profiles';
 import { useAuth } from '../context/AuthContext';
 import { PrivateProfile } from '../types';
+import { colors } from '../theme';
 
 const { width } = Dimensions.get('window');
 const PHOTO_SIZE = (width - 56) / 3;
@@ -198,7 +199,7 @@ export default function ProfileScreen() {
   const [ageMin, setAgeMin] = useState('18');
   const [ageMax, setAgeMax] = useState('25');
 
-  const apiBase = (process.env.EXPO_PUBLIC_API_URL || 'http://100.70.71.80:8000');
+  const apiBase = (process.env.EXPO_PUBLIC_API_URL || 'http://100.70.69.69:8000');
 
   const resolvePhotoUrl = (url: string) => {
     if (url.startsWith('http')) return url;
@@ -360,7 +361,7 @@ export default function ProfileScreen() {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#E91E63" />
+        <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
   }
@@ -383,11 +384,11 @@ export default function ProfileScreen() {
     <ScrollView
       style={styles.container}
       contentContainerStyle={styles.content}
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#E91E63" />}
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
     >
       {saving && (
         <View style={styles.savingBar}>
-          <ActivityIndicator size="small" color="#E91E63" />
+          <ActivityIndicator size="small" color={colors.primary} />
           <Text style={styles.savingText}>Saving...</Text>
         </View>
       )}
@@ -399,7 +400,7 @@ export default function ProfileScreen() {
             <Image source={{ uri: resolvePhotoUrl(photoUrls[0]) }} style={styles.avatar} />
           ) : (
             <View style={[styles.avatar, styles.avatarPlaceholder]}>
-              <Ionicons name="person" size={40} color="#ccc" />
+              <Ionicons name="person" size={40} color={colors.grayLight} />
             </View>
           )}
           <View style={styles.headerInfo}>
@@ -408,7 +409,7 @@ export default function ProfileScreen() {
             <View style={styles.badgeRow}>
               {profile.is_selfie_verified && (
                 <View style={styles.badge}>
-                  <Ionicons name="checkmark-circle" size={16} color="#4CAF50" />
+                  <Ionicons name="checkmark-circle" size={16} color={colors.success} />
                   <Text style={styles.badgeText}>Verified</Text>
                 </View>
               )}
@@ -430,7 +431,7 @@ export default function ProfileScreen() {
                 <Image source={{ uri: resolvePhotoUrl(url) }} style={styles.photo} />
               ) : (
                 <View style={styles.emptyPhotoSlot}>
-                  <Ionicons name="add" size={28} color="#ccc" />
+                  <Ionicons name="add" size={28} color={colors.grayLight} />
                 </View>
               )}
             </TouchableOpacity>
@@ -480,7 +481,7 @@ export default function ProfileScreen() {
               onPress={() => { setEditPromptIndex(i); setEditPromptAnswer(p.answer); }}>
               <Text style={styles.promptQuestion}>{p.prompt}</Text>
               <Text style={styles.promptAnswer}>{p.answer}</Text>
-              <Ionicons name="pencil" size={14} color="#999" style={styles.pencilIcon} />
+              <Ionicons name="pencil" size={14} color={colors.gray} style={styles.pencilIcon} />
             </TouchableOpacity>
           ))}
         </View>
@@ -542,7 +543,7 @@ export default function ProfileScreen() {
           <Text style={styles.detailLabel}>Humor</Text>
           <View style={styles.editRowRight}>
             <Text style={styles.detailValue}>{(profile.humor_styles || []).map(formatLabel).join(', ') || 'Not set'}</Text>
-            <Ionicons name="chevron-forward" size={16} color="#999" />
+            <Ionicons name="chevron-forward" size={16} color={colors.gray} />
           </View>
         </TouchableOpacity>
 
@@ -550,7 +551,7 @@ export default function ProfileScreen() {
           <Text style={styles.detailLabel}>Communication</Text>
           <View style={styles.editRowRight}>
             <Text style={styles.detailValue}>{formatLabel(profile.communication_pref || '') || 'Not set'}</Text>
-            <Ionicons name="chevron-forward" size={16} color="#999" />
+            <Ionicons name="chevron-forward" size={16} color={colors.gray} />
           </View>
         </TouchableOpacity>
 
@@ -558,7 +559,7 @@ export default function ProfileScreen() {
           <Text style={styles.detailLabel}>Conflict style</Text>
           <View style={styles.editRowRight}>
             <Text style={styles.detailValue}>{formatLabel(profile.conflict_style || '') || 'Not set'}</Text>
-            <Ionicons name="chevron-forward" size={16} color="#999" />
+            <Ionicons name="chevron-forward" size={16} color={colors.gray} />
           </View>
         </TouchableOpacity>
       </View>
@@ -574,7 +575,7 @@ export default function ProfileScreen() {
           <Text style={styles.detailLabel}>Drinking</Text>
           <View style={styles.editRowRight}>
             <Text style={styles.detailValue}>{formatLabel(profile.drinking || '') || 'Not set'}</Text>
-            <Ionicons name="chevron-forward" size={16} color="#999" />
+            <Ionicons name="chevron-forward" size={16} color={colors.gray} />
           </View>
         </TouchableOpacity>
 
@@ -582,7 +583,7 @@ export default function ProfileScreen() {
           <Text style={styles.detailLabel}>Smoking</Text>
           <View style={styles.editRowRight}>
             <Text style={styles.detailValue}>{formatLabel(profile.smoking || '') || 'Not set'}</Text>
-            <Ionicons name="chevron-forward" size={16} color="#999" />
+            <Ionicons name="chevron-forward" size={16} color={colors.gray} />
           </View>
         </TouchableOpacity>
 
@@ -590,7 +591,7 @@ export default function ProfileScreen() {
           <Text style={styles.detailLabel}>Exercise</Text>
           <View style={styles.editRowRight}>
             <Text style={styles.detailValue}>{formatLabel(profile.exercise || '') || 'Not set'}</Text>
-            <Ionicons name="chevron-forward" size={16} color="#999" />
+            <Ionicons name="chevron-forward" size={16} color={colors.gray} />
           </View>
         </TouchableOpacity>
 
@@ -598,7 +599,7 @@ export default function ProfileScreen() {
           <Text style={styles.detailLabel}>Diet</Text>
           <View style={styles.editRowRight}>
             <Text style={styles.detailValue}>{formatLabel(profile.diet || '') || 'Not set'}</Text>
-            <Ionicons name="chevron-forward" size={16} color="#999" />
+            <Ionicons name="chevron-forward" size={16} color={colors.gray} />
           </View>
         </TouchableOpacity>
 
@@ -606,7 +607,7 @@ export default function ProfileScreen() {
           <Text style={styles.detailLabel}>Sleep</Text>
           <View style={styles.editRowRight}>
             <Text style={styles.detailValue}>{formatLabel(profile.sleep_schedule || '') || 'Not set'}</Text>
-            <Ionicons name="chevron-forward" size={16} color="#999" />
+            <Ionicons name="chevron-forward" size={16} color={colors.gray} />
           </View>
         </TouchableOpacity>
       </View>
@@ -624,7 +625,7 @@ export default function ProfileScreen() {
           <Text style={styles.detailLabel}>Body Type</Text>
           <View style={styles.editRowRight}>
             <Text style={styles.detailValue}>{formatLabel(profile.body_type || '') || 'Not set'}</Text>
-            <Ionicons name="chevron-forward" size={16} color="#999" />
+            <Ionicons name="chevron-forward" size={16} color={colors.gray} />
           </View>
         </TouchableOpacity>
 
@@ -637,7 +638,7 @@ export default function ProfileScreen() {
           <Text style={styles.detailLabel}>Style</Text>
           <View style={styles.editRowRight}>
             <Text style={styles.detailValue}>{(profile.style_tags || []).map(formatLabel).join(', ') || 'Not set'}</Text>
-            <Ionicons name="chevron-forward" size={16} color="#999" />
+            <Ionicons name="chevron-forward" size={16} color={colors.gray} />
           </View>
         </TouchableOpacity>
       </View>
@@ -691,9 +692,9 @@ export default function ProfileScreen() {
       {/* Friends */}
       <TouchableOpacity style={styles.card} onPress={() => navigation.navigate('Friends')}>
         <View style={styles.friendsRow}>
-          <Ionicons name="people" size={24} color="#E91E63" />
+          <Ionicons name="people" size={24} color={colors.primary} />
           <Text style={styles.friendsText}>My Friends</Text>
-          <Ionicons name="chevron-forward" size={20} color="#999" />
+          <Ionicons name="chevron-forward" size={20} color={colors.gray} />
         </View>
       </TouchableOpacity>
 
@@ -711,11 +712,11 @@ export default function ProfileScreen() {
 // ── Styles ──
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
+  container: { flex: 1, backgroundColor: colors.surfaceElevated },
   content: { padding: 16, paddingBottom: 40 },
-  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#fff' },
-  errorText: { fontSize: 16, color: '#999', marginBottom: 12 },
-  retryButton: { backgroundColor: '#E91E63', paddingHorizontal: 24, paddingVertical: 10, borderRadius: 8 },
+  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.surfaceElevated },
+  errorText: { fontSize: 16, color: colors.gray, marginBottom: 12 },
+  retryButton: { backgroundColor: colors.primary, paddingHorizontal: 24, paddingVertical: 10, borderRadius: 8 },
   retryButtonText: { color: '#fff', fontWeight: '600' },
 
   // Saving indicator
@@ -723,77 +724,77 @@ const styles = StyleSheet.create({
   savingText: { fontSize: 13, color: '#E65100' },
 
   // Cards
-  card: { backgroundColor: '#f9f9f9', borderRadius: 12, padding: 16, marginBottom: 12 },
+  card: { backgroundColor: colors.surfaceElevated, borderRadius: 12, padding: 16, marginBottom: 12 },
   cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
-  cardTitle: { fontSize: 16, fontWeight: '700', color: '#333', marginBottom: 4 },
-  cardHint: { fontSize: 12, color: '#999' },
-  editText: { fontSize: 14, color: '#E91E63', fontWeight: '600' },
-  valueText: { fontSize: 15, color: '#333' },
+  cardTitle: { fontSize: 16, fontWeight: '700', color: colors.dark, marginBottom: 4 },
+  cardHint: { fontSize: 12, color: colors.gray },
+  editText: { fontSize: 14, color: colors.primary, fontWeight: '600' },
+  valueText: { fontSize: 15, color: colors.dark },
 
   // Header
   headerRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
   avatar: { width: 80, height: 80, borderRadius: 40 },
   avatarPlaceholder: { backgroundColor: '#f0f0f0', justifyContent: 'center', alignItems: 'center' },
   headerInfo: { marginLeft: 16, flex: 1 },
-  nameText: { fontSize: 22, fontWeight: 'bold', color: '#333' },
-  programText: { fontSize: 14, color: '#666', marginTop: 2 },
+  nameText: { fontSize: 22, fontWeight: 'bold', color: colors.dark },
+  programText: { fontSize: 14, color: colors.darkSecondary, marginTop: 2 },
   badgeRow: { flexDirection: 'row', marginTop: 6 },
   badge: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  badgeText: { fontSize: 12, color: '#4CAF50', fontWeight: '600' },
+  badgeText: { fontSize: 12, color: colors.success, fontWeight: '600' },
 
   // Photos
   photoGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   photoSlot: { width: PHOTO_SIZE, height: PHOTO_SIZE * 1.25, borderRadius: 10, overflow: 'hidden' },
   photo: { width: '100%', height: '100%', borderRadius: 10 },
-  emptyPhotoSlot: { flex: 1, borderWidth: 2, borderColor: '#ddd', borderStyle: 'dashed', borderRadius: 10, alignItems: 'center', justifyContent: 'center', backgroundColor: '#fafafa' },
+  emptyPhotoSlot: { flex: 1, borderWidth: 2, borderColor: colors.border, borderStyle: 'dashed', borderRadius: 10, alignItems: 'center', justifyContent: 'center', backgroundColor: '#fafafa' },
 
   // Chips
   chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  chip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, borderWidth: 1, borderColor: '#ddd', backgroundColor: '#fff' },
-  chipSelected: { backgroundColor: '#E91E63', borderColor: '#E91E63' },
+  chip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surfaceElevated },
+  chipSelected: { backgroundColor: colors.primary, borderColor: colors.primary },
   chipDisabled: { opacity: 0.3 },
-  chipText: { fontSize: 13, color: '#333' },
+  chipText: { fontSize: 13, color: colors.dark },
   chipTextSelected: { color: '#fff', fontSize: 13 },
 
   // Editable rows
   editRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#f0f0f0' },
   editRowRight: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   detailRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 6 },
-  detailLabel: { fontSize: 14, color: '#666' },
-  detailValue: { fontSize: 14, color: '#333', fontWeight: '600' },
+  detailLabel: { fontSize: 14, color: colors.darkSecondary },
+  detailValue: { fontSize: 14, color: colors.dark, fontWeight: '600' },
 
   // Prompts
-  promptCard: { backgroundColor: '#fff', borderRadius: 8, padding: 12, marginBottom: 8, position: 'relative' },
-  promptQuestion: { fontSize: 13, color: '#E91E63', fontWeight: '600', marginBottom: 4 },
-  promptAnswer: { fontSize: 14, color: '#333', paddingRight: 20 },
+  promptCard: { backgroundColor: colors.surfaceElevated, borderRadius: 8, padding: 12, marginBottom: 8, position: 'relative' },
+  promptQuestion: { fontSize: 13, color: colors.primary, fontWeight: '600', marginBottom: 4 },
+  promptAnswer: { fontSize: 14, color: colors.dark, paddingRight: 20 },
   pencilIcon: { position: 'absolute', top: 12, right: 12 },
 
   // Friends & Logout
   friendsRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  friendsText: { fontSize: 16, fontWeight: '600', color: '#333', flex: 1 },
-  logoutButton: { backgroundColor: '#FF3B30', paddingVertical: 14, borderRadius: 12, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 8, marginTop: 4 },
+  friendsText: { fontSize: 16, fontWeight: '600', color: colors.dark, flex: 1 },
+  logoutButton: { backgroundColor: colors.error, paddingVertical: 14, borderRadius: 12, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 8, marginTop: 4 },
   logoutText: { color: '#fff', fontSize: 16, fontWeight: '600' },
 
   // Modals
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' },
-  modalContent: { backgroundColor: '#fff', borderRadius: 16, padding: 24, width: '90%', maxHeight: '80%' },
-  modalTitle: { fontSize: 18, fontWeight: 'bold', color: '#333', marginBottom: 4 },
-  modalSub: { fontSize: 13, color: '#999', marginBottom: 16 },
-  modalOption: { paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: '#eee', borderRadius: 8 },
+  modalContent: { backgroundColor: colors.surfaceElevated, borderRadius: 16, padding: 24, width: '90%', maxHeight: '80%' },
+  modalTitle: { fontSize: 18, fontWeight: 'bold', color: colors.dark, marginBottom: 4 },
+  modalSub: { fontSize: 13, color: colors.gray, marginBottom: 16 },
+  modalOption: { paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: colors.border, borderRadius: 8 },
   modalOptionActive: { backgroundColor: '#FFF5F7' },
-  modalOptionText: { fontSize: 16, color: '#333' },
-  modalOptionTextActive: { color: '#E91E63', fontWeight: '600' },
+  modalOptionText: { fontSize: 16, color: colors.dark },
+  modalOptionTextActive: { color: colors.primary, fontWeight: '600' },
   modalActions: { flexDirection: 'row', justifyContent: 'flex-end', gap: 12, marginTop: 16 },
   modalCancelBtn: { paddingVertical: 10, paddingHorizontal: 16 },
-  modalCancelText: { fontSize: 16, color: '#999', textAlign: 'center' },
-  modalSaveBtn: { backgroundColor: '#E91E63', paddingVertical: 10, paddingHorizontal: 24, borderRadius: 8 },
+  modalCancelText: { fontSize: 16, color: colors.gray, textAlign: 'center' },
+  modalSaveBtn: { backgroundColor: colors.primary, paddingVertical: 10, paddingHorizontal: 24, borderRadius: 8 },
   modalSaveBtnText: { color: '#fff', fontWeight: '600', fontSize: 15 },
-  promptQuestionModal: { fontSize: 14, color: '#E91E63', marginBottom: 12 },
-  modalInput: { borderWidth: 1, borderColor: '#ddd', borderRadius: 8, padding: 12, fontSize: 16, minHeight: 80, textAlignVertical: 'top', marginBottom: 8 },
+  promptQuestionModal: { fontSize: 14, color: colors.primary, marginBottom: 12 },
+  modalInput: { borderWidth: 1, borderColor: colors.border, borderRadius: 8, padding: 12, fontSize: 16, minHeight: 80, textAlignVertical: 'top', marginBottom: 8 },
 
   // Age modal
   ageRow: { flexDirection: 'row', gap: 16, marginTop: 12 },
   ageField: { flex: 1 },
-  ageLabel: { fontSize: 14, color: '#666', marginBottom: 6 },
-  ageInput: { borderWidth: 1, borderColor: '#ddd', borderRadius: 8, padding: 12, fontSize: 18, textAlign: 'center', backgroundColor: '#f9f9f9' },
+  ageLabel: { fontSize: 14, color: colors.darkSecondary, marginBottom: 6 },
+  ageInput: { borderWidth: 1, borderColor: colors.border, borderRadius: 8, padding: 12, fontSize: 18, textAlign: 'center', backgroundColor: colors.surfaceElevated },
 });

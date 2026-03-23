@@ -5,7 +5,6 @@ import {
   TouchableOpacity,
   StyleSheet,
   ScrollView,
-  ActivityIndicator,
   Alert,
   RefreshControl,
 } from 'react-native';
@@ -13,6 +12,8 @@ import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { getMyDateRequests, getMyGroups, cancelDateRequest } from '../api/dates';
 import { DateRequest, DateGroup, ActivityType } from '../types';
+import { colors } from '../theme';
+import { LoadingState, EmptyState } from '../components';
 
 const ACTIVITY_EMOJI: Record<string, string> = {
   dinner: '\u{1F37D}',
@@ -104,11 +105,7 @@ export default function MyDatesScreen() {
   const pastGroups = groups.filter(g => g.status === 'completed' || g.status === 'past');
 
   if (loading) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#E91E63" />
-      </View>
-    );
+    return <LoadingState />;
   }
 
   const isEmpty = activeRequests.length === 0 && upcomingGroups.length === 0 && pastGroups.length === 0;
@@ -117,14 +114,14 @@ export default function MyDatesScreen() {
     <ScrollView
       style={styles.container}
       contentContainerStyle={styles.content}
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#E91E63" />}
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
     >
       {isEmpty && (
-        <View style={styles.emptyContainer}>
-          <Ionicons name="calendar-outline" size={60} color="#ddd" />
-          <Text style={styles.emptyTitle}>No Dates Yet</Text>
-          <Text style={styles.emptyText}>Create a date request from the Home screen to get started!</Text>
-        </View>
+        <EmptyState
+          icon="calendar-outline"
+          title="No dates yet"
+          description="Create a date request from the Home screen to get started!"
+        />
       )}
 
       {/* Active Requests */}
@@ -200,7 +197,7 @@ export default function MyDatesScreen() {
                     {group.venue_name ? ` \u00B7 ${group.venue_name}` : ''}
                   </Text>
                 </View>
-                <Ionicons name="chevron-forward" size={20} color="#999" />
+                <Ionicons name="chevron-forward" size={20} color={colors.gray} />
               </View>
             </TouchableOpacity>
           ))}
@@ -243,41 +240,33 @@ export default function MyDatesScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
+  container: { flex: 1, backgroundColor: colors.surface },
   content: { padding: 16, paddingBottom: 40 },
-  loadingContainer: {
-    flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#fff',
-  },
-  emptyContainer: {
-    alignItems: 'center', paddingVertical: 60,
-  },
-  emptyTitle: { fontSize: 20, fontWeight: 'bold', color: '#333', marginTop: 16 },
-  emptyText: { fontSize: 14, color: '#999', marginTop: 8, textAlign: 'center', paddingHorizontal: 40 },
   sectionTitle: {
-    fontSize: 18, fontWeight: '700', color: '#333', marginBottom: 12, marginTop: 8,
+    fontSize: 18, fontWeight: '700', color: colors.dark, marginBottom: 12, marginTop: 8,
   },
   card: {
-    backgroundColor: '#f9f9f9', borderRadius: 12, padding: 14, marginBottom: 10,
+    backgroundColor: colors.surfaceElevated, borderRadius: 12, padding: 14, marginBottom: 10,
   },
   cardRow: { flexDirection: 'row', alignItems: 'center' },
   activityEmoji: { fontSize: 28, marginRight: 12 },
   cardInfo: { flex: 1 },
-  activityLabel: { fontSize: 16, fontWeight: '600', color: '#333' },
-  detailText: { fontSize: 13, color: '#666', marginTop: 2 },
-  metaText: { fontSize: 12, color: '#999', marginTop: 2 },
+  activityLabel: { fontSize: 16, fontWeight: '600', color: colors.dark },
+  detailText: { fontSize: 13, color: colors.darkSecondary, marginTop: 2 },
+  metaText: { fontSize: 12, color: colors.gray, marginTop: 2 },
   actionRow: { flexDirection: 'column', gap: 6, alignItems: 'flex-end' },
   editButton: {
-    borderWidth: 1, borderColor: '#E91E63', paddingHorizontal: 14, paddingVertical: 6,
+    borderWidth: 1, borderColor: colors.primary, paddingHorizontal: 14, paddingVertical: 6,
     borderRadius: 16,
   },
-  editText: { color: '#E91E63', fontSize: 13, fontWeight: '600' },
+  editText: { color: colors.primary, fontSize: 13, fontWeight: '600' },
   cancelButton: {
-    borderWidth: 1, borderColor: '#FF3B30', paddingHorizontal: 14, paddingVertical: 6,
+    borderWidth: 1, borderColor: colors.error, paddingHorizontal: 14, paddingVertical: 6,
     borderRadius: 16,
   },
-  cancelText: { color: '#FF3B30', fontSize: 13, fontWeight: '600' },
+  cancelText: { color: colors.error, fontSize: 13, fontWeight: '600' },
   statusBadge: {
     backgroundColor: '#E8F5E9', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12,
   },
-  statusText: { color: '#4CAF50', fontSize: 12, fontWeight: '600' },
+  statusText: { color: colors.success, fontSize: 12, fontWeight: '600' },
 });

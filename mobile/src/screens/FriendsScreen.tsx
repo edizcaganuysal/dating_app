@@ -27,6 +27,7 @@ import {
   PendingRequest,
   SearchResult,
 } from '../api/friends';
+import { colors } from '../theme';
 
 export default function FriendsScreen() {
   const [friends, setFriends] = useState<Friend[]>([]);
@@ -161,7 +162,7 @@ export default function FriendsScreen() {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#E91E63" />
+        <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
   }
@@ -170,7 +171,7 @@ export default function FriendsScreen() {
     <ScrollView
       style={styles.container}
       contentContainerStyle={styles.content}
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#E91E63" />}
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
     >
       {/* My Code */}
       <View style={styles.card}>
@@ -248,7 +249,7 @@ export default function FriendsScreen() {
                   style={styles.sendRequestButton}
                   onPress={() => handleSendRequest(result.id)}
                 >
-                  <Ionicons name="person-add" size={16} color="#E91E63" />
+                  <Ionicons name="person-add" size={16} color={colors.primary} />
                 </TouchableOpacity>
               </View>
             ))}
@@ -296,7 +297,7 @@ export default function FriendsScreen() {
                 <Image source={{ uri: friend.photo_urls[0] }} style={styles.friendAvatar} />
               ) : (
                 <View style={[styles.friendAvatar, styles.friendAvatarPlaceholder]}>
-                  <Ionicons name="person" size={20} color="#ccc" />
+                  <Ionicons name="person" size={20} color={colors.grayLight} />
                 </View>
               )}
               <View style={styles.friendInfo}>
@@ -304,7 +305,7 @@ export default function FriendsScreen() {
                 <View style={styles.friendMeta}>
                   <View style={[
                     styles.genderBadge,
-                    { backgroundColor: friend.gender === 'male' ? '#2196F3' : '#E91E63' },
+                    { backgroundColor: friend.gender === 'male' ? colors.info : colors.primary },
                   ]}>
                     <Text style={styles.genderText}>
                       {friend.gender === 'male' ? 'M' : 'F'}
@@ -316,7 +317,7 @@ export default function FriendsScreen() {
                 </View>
               </View>
               <TouchableOpacity onPress={() => handleRemove(friend)}>
-                <Ionicons name="close-circle-outline" size={22} color="#FF3B30" />
+                <Ionicons name="close-circle-outline" size={22} color={colors.error} />
               </TouchableOpacity>
             </View>
           ))
@@ -329,74 +330,74 @@ export default function FriendsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
+  container: { flex: 1, backgroundColor: colors.surfaceElevated },
   content: { padding: 16, paddingBottom: 40 },
   loadingContainer: {
-    flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#fff',
+    flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.surfaceElevated,
   },
   card: {
-    backgroundColor: '#f9f9f9', borderRadius: 12, padding: 16, marginBottom: 12,
+    backgroundColor: colors.surfaceElevated, borderRadius: 12, padding: 16, marginBottom: 12,
   },
-  cardTitle: { fontSize: 16, fontWeight: '700', color: '#333', marginBottom: 12 },
-  subLabel: { fontSize: 13, fontWeight: '600', color: '#666', marginBottom: 6 },
+  cardTitle: { fontSize: 16, fontWeight: '700', color: colors.dark, marginBottom: 12 },
+  subLabel: { fontSize: 13, fontWeight: '600', color: colors.darkSecondary, marginBottom: 6 },
   codeRow: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
   },
   codeText: {
-    fontSize: 24, fontWeight: 'bold', color: '#E91E63', letterSpacing: 2,
+    fontSize: 24, fontWeight: 'bold', color: colors.primary, letterSpacing: 2,
   },
   shareButton: {
-    backgroundColor: '#E91E63', flexDirection: 'row', alignItems: 'center', gap: 6,
+    backgroundColor: colors.primary, flexDirection: 'row', alignItems: 'center', gap: 6,
     paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20,
   },
   shareButtonText: { color: '#fff', fontWeight: '600', fontSize: 14 },
   inputRow: { flexDirection: 'row', gap: 8, alignItems: 'center' },
   input: {
-    borderWidth: 1, borderColor: '#ddd', borderRadius: 8,
-    padding: 10, fontSize: 15, backgroundColor: '#fff',
+    borderWidth: 1, borderColor: colors.border, borderRadius: 8,
+    padding: 10, fontSize: 15, backgroundColor: colors.surfaceElevated,
   },
   addButton: {
-    backgroundColor: '#E91E63', paddingHorizontal: 20, paddingVertical: 10, borderRadius: 8,
+    backgroundColor: colors.primary, paddingHorizontal: 20, paddingVertical: 10, borderRadius: 8,
   },
   addButtonText: { color: '#fff', fontWeight: '600', fontSize: 15 },
   buttonDisabled: { opacity: 0.5 },
   searchButton: {
-    backgroundColor: '#E91E63', padding: 10, borderRadius: 8,
+    backgroundColor: colors.primary, padding: 10, borderRadius: 8,
   },
   searchResults: { marginTop: 12 },
   searchResultRow: {
     flexDirection: 'row', alignItems: 'center', paddingVertical: 10,
-    borderBottomWidth: 1, borderBottomColor: '#eee',
+    borderBottomWidth: 1, borderBottomColor: colors.border,
   },
   sendRequestButton: {
-    padding: 8, borderWidth: 1, borderColor: '#E91E63', borderRadius: 20,
+    padding: 8, borderWidth: 1, borderColor: colors.primary, borderRadius: 20,
   },
   pendingRow: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: '#eee',
+    paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: colors.border,
   },
   pendingActions: { flexDirection: 'row', gap: 8 },
   acceptButton: {
-    backgroundColor: '#E91E63', paddingHorizontal: 14, paddingVertical: 6, borderRadius: 16,
+    backgroundColor: colors.primary, paddingHorizontal: 14, paddingVertical: 6, borderRadius: 16,
   },
   acceptText: { color: '#fff', fontWeight: '600', fontSize: 13 },
   rejectButton: {
-    borderWidth: 1, borderColor: '#ddd', paddingHorizontal: 14, paddingVertical: 6, borderRadius: 16,
+    borderWidth: 1, borderColor: colors.border, paddingHorizontal: 14, paddingVertical: 6, borderRadius: 16,
   },
-  rejectText: { color: '#666', fontSize: 13 },
-  emptyText: { fontSize: 14, color: '#999', textAlign: 'center', paddingVertical: 16 },
+  rejectText: { color: colors.darkSecondary, fontSize: 13 },
+  emptyText: { fontSize: 14, color: colors.gray, textAlign: 'center', paddingVertical: 16 },
   friendRow: {
     flexDirection: 'row', alignItems: 'center', paddingVertical: 10,
-    borderBottomWidth: 1, borderBottomColor: '#eee',
+    borderBottomWidth: 1, borderBottomColor: colors.border,
   },
   friendAvatar: { width: 44, height: 44, borderRadius: 22 },
   friendAvatarPlaceholder: {
-    backgroundColor: '#eee', justifyContent: 'center', alignItems: 'center',
+    backgroundColor: colors.border, justifyContent: 'center', alignItems: 'center',
   },
   friendInfo: { flex: 1, marginLeft: 12 },
-  friendName: { fontSize: 15, fontWeight: '600', color: '#333' },
+  friendName: { fontSize: 15, fontWeight: '600', color: colors.dark },
   friendMeta: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 2 },
-  friendSub: { fontSize: 13, color: '#666' },
+  friendSub: { fontSize: 13, color: colors.darkSecondary },
   genderBadge: {
     width: 20, height: 20, borderRadius: 10, justifyContent: 'center', alignItems: 'center',
   },

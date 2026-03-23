@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import {
   View,
   Text,
@@ -6,30 +6,70 @@ import {
   TouchableOpacity,
   StyleSheet,
   Alert,
-  ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
+  Pressable,
 } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useAuth } from "../context/AuthContext";
 import { AuthStackParamList } from "../navigation/AppNavigator";
+import { colors, typography, spacing, radii } from "../theme";
+import { AnimatedButton } from "../components";
+import { haptic } from "../utils/haptics";
+
+const OTP_LENGTH = 6;
+const RESEND_COOLDOWN = 60;
 
 type Props = NativeStackScreenProps<AuthStackParamList, "VerifyEmail">;
 
 export default function VerifyEmailScreen({ navigation, route }: Props) {
   const { verifyEmail, login } = useAuth();
   const { email, otp: devOtp, password } = route.params;
+
   const [otp, setOtp] = useState("");
   const [loading, setLoading] = useState(false);
+  const [focusedIndex, setFocusedIndex] = useState(0);
+  const [resendCountdown, setResendCountdown] = useState(RESEND_COOLDOWN);
+  const hiddenInputRef = useRef<TextInput>(null);
+  const hasAutoSubmitted = useRef(false);
 
-  async function handleVerify() {
-    if (otp.length !== 6) {
+  // Countdown timer for resend button
+  useEffect(() => {
+    if (resendCountdown <= 0) return;
+    const timer = setInterval(() => {
+      setResendCountdown((prev) => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [resendCountdown]);
+
+  // Auto-submit when all 6 digits are filled
+  useEffect(() => {
+    if (otp.length === OTP_LENGTH && !hasAutoSubmitted.current && !loading) {
+      hasAutoSubmitted.current = true;
+      handleVerify();
+    }
+    // Reset auto-submit flag when OTP is incomplete
+    if (otp.length < OTP_LENGTH) {
+      hasAutoSubmitted.current = false;
+    }
+  }, [otp]);
+
+  const handleVerify = useCallback(async () => {
+    if (otp.length !== OTP_LENGTH) {
       Alert.alert("Error", "Please enter a 6-digit code");
       return;
     }
     setLoading(true);
     try {
       await verifyEmail(email, otp);
+      haptic.success();
       // Auto-login after verification so user goes straight to onboarding
       if (password) {
         try {
@@ -44,13 +84,44 @@ export default function VerifyEmailScreen({ navigation, route }: Props) {
         message: "Email verified! Please log in.",
       });
     } catch (error: any) {
+      haptic.error();
       const message =
         error.response?.data?.detail || "Verification failed. Please try again.";
       Alert.alert("Verification Failed", message);
     } finally {
       setLoading(false);
     }
+  }, [otp, email, password, verifyEmail, login, navigation]);
+
+  function handleOtpChange(text: string) {
+    // Only allow digits
+    const digits = text.replace(/[^0-9]/g, "").slice(0, OTP_LENGTH);
+    setOtp(digits);
+    setFocusedIndex(Math.min(digits.length, OTP_LENGTH - 1));
   }
+
+  function handleKeyPress(e: { nativeEvent: { key: string } }) {
+    if (e.nativeEvent.key === "Backspace" && otp.length > 0) {
+      setFocusedIndex(Math.max(0, otp.length - 2));
+    }
+  }
+
+  function handleBoxPress() {
+    hiddenInputRef.current?.focus();
+  }
+
+  function handleResend() {
+    if (resendCountdown > 0) return;
+    haptic.light();
+    setResendCountdown(RESEND_COOLDOWN);
+    Alert.alert("Code Sent", `A new verification code has been sent to ${email}`);
+  }
+
+  function handleFocus() {
+    setFocusedIndex(Math.min(otp.length, OTP_LENGTH - 1));
+  }
+
+  const isInputFocused = useRef(false);
 
   return (
     <KeyboardAvoidingView
@@ -58,9 +129,16 @@ export default function VerifyEmailScreen({ navigation, route }: Props) {
       behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
       <View style={styles.inner}>
-        <Text style={styles.title}>Verify Email</Text>
+        {/* Email icon */}
+        <View style={styles.iconContainer}>
+          <View style={styles.iconCircle}>
+            <Ionicons name="mail-outline" size={32} color={colors.primary} />
+          </View>
+        </View>
+
+        <Text style={styles.title}>Verify Your Email</Text>
         <Text style={styles.subtitle}>
-          Enter the 6-digit code sent to:
+          We sent a 6-digit code to
         </Text>
         <Text style={styles.email}>{email}</Text>
 
@@ -71,28 +149,87 @@ export default function VerifyEmailScreen({ navigation, route }: Props) {
           </View>
         )}
 
+        {/* Hidden TextInput that captures all digits */}
         <TextInput
-          style={styles.input}
-          placeholder="000000"
+          ref={hiddenInputRef}
+          style={styles.hiddenInput}
           value={otp}
-          onChangeText={setOtp}
+          onChangeText={handleOtpChange}
+          onKeyPress={handleKeyPress}
+          onFocus={() => {
+            isInputFocused.current = true;
+            handleFocus();
+          }}
+          onBlur={() => {
+            isInputFocused.current = false;
+          }}
           keyboardType="number-pad"
-          maxLength={6}
-          textAlign="center"
+          maxLength={OTP_LENGTH}
+          autoFocus
           testID="otp-input"
+          caretHidden
         />
 
+        {/* 6 visual digit boxes */}
+        <Pressable onPress={handleBoxPress} style={styles.otpContainer}>
+          {Array.from({ length: OTP_LENGTH }).map((_, index) => {
+            const digit = otp[index] || "";
+            const isFocused = index === focusedIndex && otp.length < OTP_LENGTH;
+            const isFilled = digit !== "";
+
+            return (
+              <View
+                key={index}
+                style={[
+                  styles.otpBox,
+                  isFocused && styles.otpBoxFocused,
+                  isFilled && styles.otpBoxFilled,
+                ]}
+              >
+                <Text style={[styles.otpDigit, isFilled && styles.otpDigitFilled]}>
+                  {digit}
+                </Text>
+              </View>
+            );
+          })}
+        </Pressable>
+
+        {/* Verify button */}
+        <View style={styles.buttonContainer}>
+          <AnimatedButton
+            label="Verify"
+            onPress={handleVerify}
+            loading={loading}
+            disabled={otp.length !== OTP_LENGTH || loading}
+            fullWidth
+            size="lg"
+            icon="checkmark-circle-outline"
+          />
+        </View>
+
+        {/* Resend code */}
         <TouchableOpacity
-          style={styles.button}
-          onPress={handleVerify}
-          disabled={loading}
-          testID="verify-button"
+          onPress={handleResend}
+          disabled={resendCountdown > 0}
+          style={styles.resendButton}
+          activeOpacity={0.7}
         >
-          {loading ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <Text style={styles.buttonText}>Verify</Text>
-          )}
+          <Ionicons
+            name="refresh-outline"
+            size={16}
+            color={resendCountdown > 0 ? colors.grayLight : colors.primary}
+            style={styles.resendIcon}
+          />
+          <Text
+            style={[
+              styles.resendText,
+              resendCountdown > 0 && styles.resendTextDisabled,
+            ]}
+          >
+            {resendCountdown > 0
+              ? `Resend in ${resendCountdown}s`
+              : "Resend Code"}
+          </Text>
         </TouchableOpacity>
       </View>
     </KeyboardAvoidingView>
@@ -102,44 +239,55 @@ export default function VerifyEmailScreen({ navigation, route }: Props) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#fff",
+    backgroundColor: colors.surface,
   },
   inner: {
     flex: 1,
     justifyContent: "center",
-    paddingHorizontal: 32,
+    paddingHorizontal: spacing.xxxl,
+  },
+  iconContainer: {
+    alignItems: "center",
+    marginBottom: spacing.xl,
+  },
+  iconCircle: {
+    width: 72,
+    height: 72,
+    borderRadius: radii.full,
+    backgroundColor: colors.surfaceSelected,
+    alignItems: "center",
+    justifyContent: "center",
   },
   title: {
-    fontSize: 28,
-    fontWeight: "bold",
+    ...typography.displaySmall,
     textAlign: "center",
-    color: "#E91E63",
-    marginBottom: 12,
+    color: colors.dark,
+    marginBottom: spacing.sm,
   },
   subtitle: {
-    fontSize: 16,
+    ...typography.bodyLarge,
     textAlign: "center",
-    color: "#666",
-    marginBottom: 4,
+    color: colors.darkSecondary,
   },
   email: {
-    fontSize: 16,
+    ...typography.labelLarge,
     textAlign: "center",
-    fontWeight: "600",
-    color: "#333",
-    marginBottom: 24,
+    color: colors.primary,
+    marginBottom: spacing.xxl,
   },
   devBox: {
-    backgroundColor: "#FFF3E0",
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 20,
+    backgroundColor: colors.warningLight,
+    borderRadius: radii.md,
+    padding: spacing.md,
+    marginBottom: spacing.xl,
     alignItems: "center",
   },
   devLabel: {
-    fontSize: 12,
+    ...typography.captionSmall,
     color: "#E65100",
-    marginBottom: 4,
+    marginBottom: spacing.xs,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
   },
   devOtp: {
     fontSize: 24,
@@ -147,25 +295,61 @@ const styles = StyleSheet.create({
     color: "#E65100",
     letterSpacing: 4,
   },
-  input: {
-    borderWidth: 1,
-    borderColor: "#ddd",
-    borderRadius: 8,
-    padding: 14,
-    fontSize: 24,
-    marginBottom: 20,
-    backgroundColor: "#f9f9f9",
-    letterSpacing: 8,
+  hiddenInput: {
+    position: "absolute",
+    width: 1,
+    height: 1,
+    opacity: 0,
   },
-  button: {
-    backgroundColor: "#E91E63",
-    padding: 16,
-    borderRadius: 8,
+  otpContainer: {
+    flexDirection: "row",
+    justifyContent: "center",
+    gap: spacing.sm,
+    marginBottom: spacing.xxl,
+  },
+  otpBox: {
+    width: 48,
+    height: 48,
+    borderRadius: radii.sm,
+    borderWidth: 1.5,
+    borderColor: colors.border,
+    backgroundColor: colors.surfaceElevated,
     alignItems: "center",
+    justifyContent: "center",
   },
-  buttonText: {
-    color: "#fff",
-    fontSize: 18,
-    fontWeight: "600",
+  otpBoxFocused: {
+    borderColor: colors.primary,
+    borderWidth: 2,
+    backgroundColor: colors.surfaceSelected,
+  },
+  otpBoxFilled: {
+    borderColor: colors.primaryLight,
+    backgroundColor: colors.surfaceElevated,
+  },
+  otpDigit: {
+    ...typography.headlineLarge,
+    color: colors.grayLight,
+  },
+  otpDigitFilled: {
+    color: colors.dark,
+  },
+  buttonContainer: {
+    marginBottom: spacing.xl,
+  },
+  resendButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: spacing.sm,
+  },
+  resendIcon: {
+    marginRight: spacing.xs,
+  },
+  resendText: {
+    ...typography.labelMedium,
+    color: colors.primary,
+  },
+  resendTextDisabled: {
+    color: colors.grayLight,
   },
 });
