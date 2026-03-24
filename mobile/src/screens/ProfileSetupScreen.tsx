@@ -403,6 +403,12 @@ export default function ProfileSetupScreen() {
   const [prefSocialEnergyMin, setPrefSocialEnergyMin] = useState(1);
   const [prefSocialEnergyMax, setPrefSocialEnergyMax] = useState(5);
 
+  // Location search state
+  const [addressQuery, setAddressQuery] = useState('');
+  const [suggestions, setSuggestions] = useState<Array<{ name: string; lat: number; lng: number }>>([]);
+  const [searchingAddr, setSearchingAddr] = useState(false);
+  const searchTimeout = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const photoCount = photos.filter(p => p !== null).length;
 
   // ── Steps definition ──
@@ -1091,12 +1097,6 @@ export default function ProfileSetupScreen() {
       {dealbreakers.length === 0 && <Text style={styles.noneText}>None selected -- that's fine too!</Text>}
     </View>
   );
-
-  // Location search state (must be at component top level, not inside renderLocation)
-  const [addressQuery, setAddressQuery] = useState('');
-  const [suggestions, setSuggestions] = useState<Array<{ name: string; lat: number; lng: number }>>([]);
-  const [searchingAddr, setSearchingAddr] = useState(false);
-  const searchTimeout = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const renderLocation = () => {
 
