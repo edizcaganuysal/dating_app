@@ -22,6 +22,7 @@ from app.services.image_verification import (
     score_user_photos,
     verify_photo_is_human,
     verify_photos_same_person,
+    verify_selfie_photo,
     verify_video_selfie,
 )
 
@@ -317,7 +318,7 @@ async def selfie_verify(
                     "verification": verification_result,
                 }
 
-    # Fallback for image selfie or no API key — still auto-verify via AI if possible
+    # Comprehensive selfie photo verification
     if settings.OPENAI_API_KEY and current_user.photo_urls and is_image:
         photo_paths = []
         for url in current_user.photo_urls[:4]:
@@ -326,8 +327,11 @@ async def selfie_verify(
                 photo_paths.append(path)
 
         if photo_paths:
-            same_result = await verify_photos_same_person([filepath] + photo_paths)
-            if same_result.get("same_person", False) and same_result.get("confidence", 0) >= 0.6:
+            verification_result = await verify_selfie_photo(filepath, photo_paths)
+
+            is_verified = verification_result.get("auto_approve", False)
+
+            if is_verified:
                 current_user.selfie_status = "verified"
                 current_user.is_selfie_verified = True
                 await db.commit()
@@ -335,15 +339,26 @@ async def selfie_verify(
                     "message": "Identity confirmed.",
                     "selfie_url": selfie_url,
                     "status": "verified",
+                    "verification": verification_result,
                 }
             else:
                 current_user.selfie_status = "rejected"
                 current_user.is_selfie_verified = False
+                reason = verification_result.get("reason", "We couldn't verify your identity.")
+                if verification_result.get("has_filters"):
+                    reason = "Filters detected. Please take a natural selfie without any filters or editing."
+                elif verification_result.get("is_screen_capture"):
+                    reason = "This looks like a photo of a screen. Please take a live selfie with your camera."
+                elif verification_result.get("is_ai_generated"):
+                    reason = "This image appears to be AI-generated. Please take a real selfie."
+                elif not verification_result.get("faces_match"):
+                    reason = "Your selfie doesn't match your profile photos. Make sure it's you!"
                 await db.commit()
                 return {
-                    "message": same_result.get("reason", "Your selfie doesn't match your profile photos."),
+                    "message": reason,
                     "selfie_url": selfie_url,
                     "status": "rejected",
+                    "verification": verification_result,
                 }
 
     # No API key configured — accept and mark verified (dev mode)

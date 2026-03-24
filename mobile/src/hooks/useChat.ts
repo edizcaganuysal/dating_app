@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { ChatMessage } from '../types';
 import { getChatMessages } from '../api/chat';
+import { API_BASE_URL } from '../api/client';
 
-const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://100.70.69.69:8000';
 const WS_BASE_URL = API_BASE_URL.replace(/^http/, 'ws');
 
 export default function useChat(roomId: string, token: string) {

@@ -18,7 +18,8 @@ interface UserAvatarProps {
   style?: object;
 }
 
-const API_BASE = process.env.EXPO_PUBLIC_API_URL || 'http://100.70.69.69:8000';
+import { API_BASE_URL } from '../api/client';
+const API_BASE = API_BASE_URL;
 
 function resolveUrl(url: string): string {
   if (url.startsWith('http')) return url;

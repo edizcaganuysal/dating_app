@@ -388,6 +388,7 @@ export default function ProfileSetupScreen() {
   // Location state
   const [locationLat, setLocationLat] = useState<number | null>(null);
   const [locationLng, setLocationLng] = useState<number | null>(null);
+  const [locationAddress, setLocationAddress] = useState('');
   const [locationLoading, setLocationLoading] = useState(false);
   const [maxDistanceKm, setMaxDistanceKm] = useState(25);
 
@@ -478,33 +479,32 @@ export default function ProfileSetupScreen() {
     }
   };
 
-  const handleVideoSelfie = async () => {
+  const handleSelfiePhoto = async () => {
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
     if (status !== 'granted') { Alert.alert('Permission Required', 'Camera access is needed for selfie verification.'); return; }
 
     try {
       const result = await ImagePicker.launchCameraAsync({
-        mediaTypes: ['videos'],
+        mediaTypes: ['images'],
         cameraType: ImagePicker.CameraType.front,
-        videoMaxDuration: 5,
-        videoQuality: ImagePicker.UIImagePickerControllerQualityType.Medium,
         allowsEditing: false,
+        quality: 0.9,
       });
 
       if (!result.canceled && result.assets[0]) {
         setSelfieUri(result.assets[0].uri);
         setSelfieStatus('verifying');
-        setSelfieMessage('Analyzing your video...');
+        setSelfieMessage('Verifying your identity...');
 
         try {
-          const response = await selfieVerify(result.assets[0].uri, true);
+          const response = await selfieVerify(result.assets[0].uri, false);
 
           if (response.status === 'verified') {
             setSelfieStatus('verified');
             setSelfieMessage('Identity confirmed');
           } else {
             setSelfieStatus('failed');
-            setSelfieMessage(response.message || 'We couldn\'t verify your identity. Please try again.');
+            setSelfieMessage(response.message || 'Verification failed. Please try again with a clear, unfiltered selfie.');
           }
         } catch (e: any) {
           setSelfieStatus('failed');
@@ -637,7 +637,26 @@ export default function ProfileSetupScreen() {
 
       navigation.reset({ index: 0, routes: [{ name: 'MainTabs' }] });
     } catch (e: any) {
-      Alert.alert('Error', e?.response?.data?.detail || 'Failed to create profile');
+      let message = 'Failed to create profile.';
+      if (e?.response?.data?.detail) {
+        const detail = e.response.data.detail;
+        if (typeof detail === 'string') {
+          message = detail;
+        } else if (Array.isArray(detail)) {
+          // Pydantic validation errors
+          message = detail.map((err: any) => {
+            const field = err.loc?.slice(1).join('.') || 'unknown field';
+            return `${field}: ${err.msg}`;
+          }).join('\n');
+        }
+      } else if (e?.code === 'ECONNABORTED') {
+        message = 'Request timed out. Check your connection and try again.';
+      } else if (e?.code === 'ERR_NETWORK') {
+        message = 'Cannot reach the server. Check your connection.';
+      } else if (e?.message) {
+        message = e.message;
+      }
+      Alert.alert('Profile Creation Failed', message);
     } finally { setLoading(false); }
   };
 
@@ -664,7 +683,7 @@ export default function ProfileSetupScreen() {
 
   if (path === null) {
     return (
-      <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+      <ScrollView style={styles.container} contentContainerStyle={styles.pathContent}>
         <Text style={styles.header}>Set Up Your Profile</Text>
         <Text style={styles.subtitle}>How much time do you have?</Text>
 
@@ -718,10 +737,10 @@ export default function ProfileSetupScreen() {
         {selfieStatus === 'none' && (
           <>
             <Text style={styles.selfieDesc}>
-              Record a quick video so we can confirm you're real. Just look at the camera and turn your head slightly.
+              Take a quick selfie so we can confirm you're real. No filters, no editing — just you!
             </Text>
-            <TouchableOpacity style={styles.selfieBtn} onPress={handleVideoSelfie} disabled={uploading}>
-              <Text style={styles.selfieBtnText}>Record Video</Text>
+            <TouchableOpacity style={styles.selfieBtn} onPress={handleSelfiePhoto} disabled={uploading}>
+              <Text style={styles.selfieBtnText}>Take Selfie</Text>
             </TouchableOpacity>
           </>
         )}
@@ -747,7 +766,7 @@ export default function ProfileSetupScreen() {
             <View style={styles.verifiedContent}>
               <Text style={styles.verifiedIcon}>✓</Text>
               <Text style={styles.verifiedText}>Identity confirmed</Text>
-              <Text style={styles.verifiedSubtext}>Your photos match your video selfie</Text>
+              <Text style={styles.verifiedSubtext}>Your photos match your selfie</Text>
             </View>
           </View>
         )}
@@ -1082,31 +1101,60 @@ export default function ProfileSetupScreen() {
         {locationLat && locationLng ? (
           <View style={styles.locationConfirmed}>
             <Text style={styles.locationIcon}>📍</Text>
-            <Text style={styles.locationText}>Location set!</Text>
-            <TouchableOpacity onPress={handleGetLocation}>
-              <Text style={styles.editText}>Update</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.locationText}>Location set!</Text>
+              {locationAddress ? <Text style={{ fontSize: 12, color: colors.gray }}>{locationAddress}</Text> : null}
+            </View>
+            <TouchableOpacity onPress={() => { setLocationLat(null); setLocationLng(null); setLocationAddress(''); }}>
+              <Text style={styles.editText}>Change</Text>
             </TouchableOpacity>
           </View>
         ) : (
-          <TouchableOpacity style={styles.selfieBtn} onPress={handleGetLocation} disabled={locationLoading}>
-            {locationLoading ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <Text style={styles.selfieBtnText}>Use My Current Location</Text>
-            )}
-          </TouchableOpacity>
+          <View style={{ gap: 10 }}>
+            <TouchableOpacity style={styles.selfieBtn} onPress={handleGetLocation} disabled={locationLoading}>
+              {locationLoading ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <Text style={styles.selfieBtnText}>📍 Use My Current Location</Text>
+              )}
+            </TouchableOpacity>
+
+            <Text style={{ textAlign: 'center', color: colors.gray, fontSize: 13 }}>or</Text>
+
+            <TextInput
+              style={[styles.input, { marginTop: 0 }]}
+              placeholder="Enter your address or neighborhood"
+              value={locationAddress}
+              onChangeText={setLocationAddress}
+              onBlur={async () => {
+                if (!locationAddress.trim()) return;
+                try {
+                  const results = await Location.geocodeAsync(locationAddress.trim());
+                  if (results.length > 0) {
+                    setLocationLat(results[0].latitude);
+                    setLocationLng(results[0].longitude);
+                  } else {
+                    Alert.alert('Not Found', 'Could not find that address. Try a different one.');
+                  }
+                } catch {
+                  Alert.alert('Error', 'Could not look up that address.');
+                }
+              }}
+              returnKeyType="search"
+            />
+          </View>
         )}
 
         <Text style={[styles.label, { marginTop: 20 }]}>Maximum distance for matches</Text>
-        <View style={styles.distanceRow}>
-          {[10, 25, 50, 100].map(km => (
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginVertical: 8 }}>
+          {[5, 10, 15, 25, 50, 75, 100, 200].map(km => (
             <TouchableOpacity key={km}
-              style={[styles.chip, maxDistanceKm === km && styles.chipSelected]}
+              style={[styles.chip, { marginRight: 10 }, maxDistanceKm === km && styles.chipSelected]}
               onPress={() => setMaxDistanceKm(km)}>
               <Text style={[styles.chipText, maxDistanceKm === km && styles.chipTextSelected]}>{km} km</Text>
             </TouchableOpacity>
           ))}
-        </View>
+        </ScrollView>
 
         <Text style={styles.noneText}>You can skip this step and set your location later.</Text>
       </View>
@@ -1154,13 +1202,27 @@ export default function ProfileSetupScreen() {
           toggle(prefBodyType.filter(x => x !== 'No preference'), b, setPrefBodyType);
         }} />
 
-      <Text style={styles.label}>Preferred social energy</Text>
+      <Text style={styles.label}>Preferred social energy range</Text>
+      <Text style={styles.stepSub}>Tap to set min, tap again to set max. Selected: {prefSocialEnergyMin}-{prefSocialEnergyMax}</Text>
       <View style={styles.distanceRow}>
         <Text style={{ color: colors.gray, fontSize: 12 }}>Introvert</Text>
         <View style={styles.sliderRow}>
           {[1, 2, 3, 4, 5].map(n => (
             <TouchableOpacity key={n} onPress={() => {
-              if (n <= prefSocialEnergyMax) setPrefSocialEnergyMin(n);
+              // First tap sets one end, second tap sets the other end
+              if (prefSocialEnergyMin === prefSocialEnergyMax) {
+                // Single value selected — expand range
+                if (n < prefSocialEnergyMin) setPrefSocialEnergyMin(n);
+                else setPrefSocialEnergyMax(n);
+              } else if (n < prefSocialEnergyMin) {
+                setPrefSocialEnergyMin(n);
+              } else if (n > prefSocialEnergyMax) {
+                setPrefSocialEnergyMax(n);
+              } else {
+                // Tap inside range — reset to single value
+                setPrefSocialEnergyMin(n);
+                setPrefSocialEnergyMax(n);
+              }
             }} style={[styles.sliderDot, n >= prefSocialEnergyMin && n <= prefSocialEnergyMax && styles.sliderDotActive]}>
               <Text style={[styles.sliderDotText, n >= prefSocialEnergyMin && n <= prefSocialEnergyMax && styles.sliderDotTextActive]}>{n}</Text>
             </TouchableOpacity>
@@ -1236,6 +1298,8 @@ export default function ProfileSetupScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.surfaceElevated },
   content: { padding: 20, paddingBottom: 60 },
+  pathContent: { padding: 20, paddingBottom: 60, flexGrow: 1, justifyContent: 'center' },
+  input: { borderWidth: 1, borderColor: colors.border, borderRadius: 10, padding: 14, fontSize: 16, backgroundColor: colors.surfaceElevated },
   header: { fontSize: 24, fontWeight: 'bold', color: colors.primary, marginBottom: 4 },
   subtitle: { fontSize: 15, color: colors.darkSecondary, marginBottom: 24 },
   stepIndicator: { fontSize: 13, color: colors.gray, marginBottom: 16 },

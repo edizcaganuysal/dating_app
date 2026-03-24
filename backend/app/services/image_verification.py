@@ -175,6 +175,127 @@ async def verify_photos_same_person(photo_paths: list[str]) -> dict:
         return {"same_person": True, "confidence": 0.0, "reason": f"Verification unavailable: {e}"}
 
 
+async def verify_selfie_photo(selfie_path: str, photo_paths: list[str]) -> dict:
+    """
+    Comprehensive selfie photo verification using OpenAI Vision.
+
+    Checks:
+    1. Selfie is a real photo taken by a camera (not a photo of a screen/printout)
+    2. Person is real (not AI-generated, not a mask, not a mannequin)
+    3. No filters, face-altering apps, heavy editing, or beauty mode
+    4. Face clearly visible and matches the profile photos
+    5. Photo metadata consistency (lighting suggests live capture)
+
+    Returns:
+        {
+            "is_real_person": bool,
+            "is_live_photo": bool,
+            "faces_match": bool,
+            "is_ai_generated": bool,
+            "has_filters": bool,
+            "is_screen_capture": bool,
+            "confidence": float (0-1),
+            "reason": str,
+            "auto_approve": bool
+        }
+    """
+    try:
+        ai = _get_client()
+        selfie_b64 = _image_to_base64(selfie_path)
+
+        content_parts = [
+            {
+                "type": "text",
+                "text": (
+                    "This is a selfie verification for a dating app. I'm providing:\n"
+                    "1. A selfie photo (taken just now via front camera)\n"
+                    "2. The user's profile photos\n\n"
+                    "You MUST check ALL of these strictly:\n"
+                    "- Is this a real human person? (not AI-generated, not a drawing, not a mannequin)\n"
+                    "- Is this a live camera photo? (NOT a photo of a screen, NOT a photo of a printed picture, NOT a screenshot)\n"
+                    "- Are there beauty filters, face-altering filters, or heavy editing? (Snapchat filters, FaceApp, beauty mode = FAIL)\n"
+                    "- Is the person's face clearly visible and unobstructed?\n"
+                    "- Does the selfie person match the profile photos?\n"
+                    "- Does the lighting/environment look like a natural selfie? (screen glow on face = photo of screen)\n\n"
+                    "Be VERY strict. This prevents catfishing. When in doubt, reject."
+                ),
+            },
+            {"type": "text", "text": "SELFIE (just taken):"},
+            {
+                "type": "image_url",
+                "image_url": {"url": f"data:image/jpeg;base64,{selfie_b64}", "detail": "high"},
+            },
+        ]
+
+        for i, photo_path in enumerate(photo_paths[:4]):
+            b64 = _image_to_base64(photo_path)
+            content_parts.append({"type": "text", "text": f"Profile photo {i + 1}:"})
+            content_parts.append({
+                "type": "image_url",
+                "image_url": {"url": f"data:image/jpeg;base64,{b64}", "detail": "low"},
+            })
+
+        response = await ai.chat.completions.create(
+            model="gpt-4o",
+            messages=[
+                {
+                    "role": "system",
+                    "content": (
+                        "You are a strict identity verification system for a dating app. "
+                        "Your job is to prevent catfishing, fake profiles, and AI-generated identities. "
+                        "Respond ONLY with valid JSON:\n"
+                        "{\n"
+                        '  "is_real_person": bool,\n'
+                        '  "is_live_photo": bool,\n'
+                        '  "faces_match": bool,\n'
+                        '  "is_ai_generated": bool,\n'
+                        '  "has_filters": bool,\n'
+                        '  "is_screen_capture": bool,\n'
+                        '  "confidence": float 0-1,\n'
+                        '  "reason": "brief explanation"\n'
+                        "}"
+                    ),
+                },
+                {"role": "user", "content": content_parts},
+            ],
+            max_tokens=300,
+        )
+
+        content = response.choices[0].message.content or "{}"
+        content = content.strip()
+        if content.startswith("```"):
+            content = content.split("\n", 1)[-1].rsplit("```", 1)[0].strip()
+        result = json.loads(content)
+
+        auto_approve = (
+            result.get("is_real_person", False)
+            and result.get("is_live_photo", False)
+            and result.get("faces_match", False)
+            and not result.get("is_ai_generated", True)
+            and not result.get("has_filters", True)
+            and not result.get("is_screen_capture", True)
+            and result.get("confidence", 0) >= 0.75
+        )
+        result["auto_approve"] = auto_approve
+
+        logger.info(f"Selfie verification result: approved={auto_approve}, confidence={result.get('confidence')}, reason={result.get('reason')}")
+        return result
+
+    except Exception as e:
+        logger.error(f"Selfie photo verification failed: {e}")
+        return {
+            "is_real_person": False,
+            "is_live_photo": False,
+            "faces_match": False,
+            "is_ai_generated": False,
+            "has_filters": False,
+            "is_screen_capture": False,
+            "confidence": 0.0,
+            "reason": f"Verification unavailable: {e}",
+            "auto_approve": False,
+        }
+
+
 async def verify_video_selfie(video_path: str, photo_paths: list[str]) -> dict:
     """
     Verify a video selfie for liveness detection and face matching.

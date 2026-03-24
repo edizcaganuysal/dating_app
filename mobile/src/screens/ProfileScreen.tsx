@@ -19,6 +19,7 @@ import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { getMyProfile, updateProfile, uploadPhoto } from '../api/profiles';
+import { API_BASE_URL } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import { PrivateProfile } from '../types';
 import { colors } from '../theme';
@@ -199,7 +200,7 @@ export default function ProfileScreen() {
   const [ageMin, setAgeMin] = useState('18');
   const [ageMax, setAgeMax] = useState('25');
 
-  const apiBase = (process.env.EXPO_PUBLIC_API_URL || 'http://100.70.69.69:8000');
+  const apiBase = API_BASE_URL;
 
   const resolvePhotoUrl = (url: string) => {
     if (url.startsWith('http')) return url;
