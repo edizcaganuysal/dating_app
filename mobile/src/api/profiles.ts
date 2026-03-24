@@ -16,6 +16,11 @@ export const updateProfile = async (data: ProfileUpdateData): Promise<PrivatePro
   return response.data;
 };
 
+export const verifyPhotosBatch = async (photoUrls: string[]): Promise<{ same_person: boolean; reason: string }> => {
+  const response = await apiClient.post('/api/profiles/verify-photos-batch', { photo_urls: photoUrls }, { timeout: 60000 });
+  return response.data;
+};
+
 export const uploadPhoto = async (uri: string, existingUrls: string[] = []): Promise<{ url: string }> => {
   const formData = new FormData();
   const filename = uri.split('/').pop() || 'photo.jpg';

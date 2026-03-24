@@ -8,7 +8,7 @@ import { useNavigation } from '@react-navigation/native';
 import * as ImagePicker from 'expo-image-picker';
 import * as Location from 'expo-location';
 // MapView removed — requires dev build, not available in Expo Go
-import { createProfile, uploadPhoto, selfieVerify } from '../api/profiles';
+import { createProfile, uploadPhoto, selfieVerify, verifyPhotosBatch } from '../api/profiles';
 import { VibeAnswer } from '../types';
 import { colors } from '../theme';
 
@@ -584,7 +584,7 @@ export default function ProfileSetupScreen() {
 
   const canProceed = (): boolean => {
     switch (currentStepName) {
-      case 'photos': return photoCount >= 3;
+      case 'photos': return photoCount >= 3 && Object.keys(uploadingSlots).length === 0;
       case 'location': return true; // Location is optional, user can skip
       case 'about_you': return true; // Self-description is optional
       case 'your_prefs': return true; // Preferences about others are optional
@@ -717,7 +717,29 @@ export default function ProfileSetupScreen() {
     }
   };
 
-  const handleNext = () => {
+  const handleNext = async () => {
+    // When leaving photos step, do a final cross-check of ALL photos
+    if (currentStepName === 'photos') {
+      const completedPhotos = photos.filter(p => p !== null && p.serverUrl !== '');
+      const anyUploading = Object.keys(uploadingSlots).length > 0;
+      if (anyUploading) {
+        Alert.alert('Please wait', 'Some photos are still being verified. Wait for all photos to finish before continuing.');
+        return;
+      }
+      if (completedPhotos.length >= 2) {
+        setLoading(true);
+        try {
+          await verifyPhotosBatch(completedPhotos.map(p => p!.serverUrl));
+        } catch (e: any) {
+          const detail = e?.response?.data?.detail || 'Could not verify your photos match. Please check that all photos are of you.';
+          Alert.alert('Photo Verification Failed', detail);
+          setLoading(false);
+          return;
+        }
+        setLoading(false);
+      }
+    }
+
     if (step === totalSteps - 1) {
       handleSubmit();
     } else {

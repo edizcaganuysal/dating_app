@@ -195,6 +195,44 @@ async def get_user_profile(
     return user
 
 
+@router.post("/verify-photos-batch")
+async def verify_photos_batch(
+    data: dict,
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Cross-check ALL uploaded photos at once to ensure they show the same person.
+    Called when user finishes uploading all photos (before moving to next step).
+    Body: {"photo_urls": ["/uploads/xxx.jpg", "/uploads/yyy.jpg", ...]}
+    """
+    photo_urls = data.get("photo_urls", [])
+    if len(photo_urls) < 2:
+        return {"same_person": True, "confidence": 1.0, "reason": "Only one photo, nothing to compare."}
+
+    if not settings.OPENAI_API_KEY:
+        raise HTTPException(status_code=500, detail="Verification service unavailable.")
+
+    photo_paths = []
+    for url in photo_urls[:6]:
+        path = os.path.join(UPLOADS_DIR, os.path.basename(url))
+        if os.path.exists(path):
+            photo_paths.append(path)
+
+    if len(photo_paths) < 2:
+        return {"same_person": True, "confidence": 1.0, "reason": "Not enough photos found on server to compare."}
+
+    result = await verify_photos_same_person(photo_paths)
+    logger.info(f"[BATCH CHECK] {current_user.email}: {len(photo_paths)} photos, result={result}")
+
+    if not result.get("same_person", True):
+        raise HTTPException(
+            status_code=400,
+            detail=f"Your photos don't all show the same person. {result.get('reason', 'Please make sure all photos are of you.')}",
+        )
+
+    return result
+
+
 @router.post("/upload-photo")
 async def upload_photo(
     file: UploadFile = File(...),
