@@ -1,124 +1,95 @@
-import React, { useEffect } from 'react';
-import { View, Text, StyleSheet, Dimensions } from 'react-native';
+import React, { useRef, useEffect } from 'react';
+import { View, Text, StyleSheet, Dimensions, Animated, Easing } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import LottieView from 'lottie-react-native';
-import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withSpring,
-  withDelay,
-  withTiming,
-  withSequence,
-  withRepeat,
-  Easing,
-  FadeInDown,
-} from 'react-native-reanimated';
 import { Match } from '../types';
-import { colors, typography, spacing, radii, shadows, animations } from '../theme';
+import { colors, typography, spacing, radii, shadows } from '../theme';
 import { UserAvatar, AnimatedButton } from '../components';
 import { haptic } from '../utils/haptics';
+import { useFadeIn, usePulse } from '../utils/animations';
 
 const { width: SCREEN_W } = Dimensions.get('window');
+
+function InterestChip({ label, index }: { label: string; index: number }) {
+  const fadeStyle = useFadeIn({ delay: 1200 + index * 80, direction: 'down', distance: 16 });
+  return (
+    <Animated.View style={[styles.interestChip, fadeStyle]}>
+      <Text style={styles.interestText}>{label}</Text>
+    </Animated.View>
+  );
+}
 
 export default function MatchRevealScreen() {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
   const match: Match = route.params.match;
 
-  // ── Animation shared values ──
-  const bgOpacity = useSharedValue(0);
-  const titleScale = useSharedValue(0);
-  const titleOpacity = useSharedValue(0);
-  const titleRotation = useSharedValue(-3);
-  const leftPhotoX = useSharedValue(-SCREEN_W * 0.5);
-  const leftPhotoOpacity = useSharedValue(0);
-  const rightPhotoX = useSharedValue(SCREEN_W * 0.5);
-  const rightPhotoOpacity = useSharedValue(0);
-  const nameOpacity = useSharedValue(0);
-  const buttonsY = useSharedValue(60);
-  const buttonsOpacity = useSharedValue(0);
-  const ctaPulse = useSharedValue(1);
+  // Animation values
+  const bgOpacity = useRef(new Animated.Value(0)).current;
+  const titleScale = useRef(new Animated.Value(0)).current;
+  const titleOpacity = useRef(new Animated.Value(0)).current;
+  const titleRotation = useRef(new Animated.Value(-3)).current;
+  const leftPhotoX = useRef(new Animated.Value(-SCREEN_W * 0.5)).current;
+  const leftPhotoOpacity = useRef(new Animated.Value(0)).current;
+  const nameOpacity = useRef(new Animated.Value(0)).current;
+  const buttonsY = useRef(new Animated.Value(60)).current;
+  const buttonsOpacity = useRef(new Animated.Value(0)).current;
+
+  // Pulsing CTA
+  const ctaPulseStyle = usePulse(1, 1.03, 800, 1800);
 
   useEffect(() => {
     // 0ms — Background fades in
-    bgOpacity.value = withTiming(1, { duration: 300 });
+    Animated.timing(bgOpacity, { toValue: 1, duration: 300, useNativeDriver: true }).start();
 
-    // 300ms — Haptic heavy buzz
-    setTimeout(() => haptic.heavy(), 300);
+    // 300ms — Haptic + Title bounces in
+    setTimeout(() => {
+      haptic.heavy();
+      Animated.parallel([
+        Animated.timing(titleOpacity, { toValue: 1, duration: 200, useNativeDriver: true }),
+        Animated.spring(titleScale, { toValue: 1, friction: 5, tension: 80, useNativeDriver: true }),
+        Animated.sequence([
+          Animated.timing(titleRotation, { toValue: 3, duration: 100, useNativeDriver: true }),
+          Animated.timing(titleRotation, { toValue: -2, duration: 80, useNativeDriver: true }),
+          Animated.timing(titleRotation, { toValue: 0, duration: 120, useNativeDriver: true }),
+        ]),
+      ]).start();
+    }, 300);
 
-    // 300-600ms — Title bounces in with wiggle
-    titleScale.value = withDelay(300,
-      withSequence(
-        withSpring(1.2, { damping: 8, stiffness: 200, mass: 0.6 }),
-        withSpring(1.0, animations.bouncy),
-      ),
-    );
-    titleOpacity.value = withDelay(300, withTiming(1, { duration: 200 }));
-    titleRotation.value = withDelay(300,
-      withSequence(
-        withTiming(-3, { duration: 0 }),
-        withTiming(3, { duration: 100 }),
-        withTiming(-2, { duration: 80 }),
-        withTiming(0, { duration: 120 }),
-      ),
-    );
+    // 600ms — Haptic + Photos slide in
+    setTimeout(() => {
+      haptic.success();
+      Animated.parallel([
+        Animated.spring(leftPhotoX, { toValue: 0, friction: 8, tension: 40, useNativeDriver: true }),
+        Animated.timing(leftPhotoOpacity, { toValue: 1, duration: 300, useNativeDriver: true }),
+      ]).start();
+    }, 600);
 
-    // 600ms — Haptic success + Photos slide in from sides
-    setTimeout(() => haptic.success(), 600);
-    leftPhotoX.value = withDelay(600, withSpring(0, animations.dramatic));
-    leftPhotoOpacity.value = withDelay(600, withTiming(1, { duration: 300 }));
-    rightPhotoX.value = withDelay(600, withSpring(0, animations.dramatic));
-    rightPhotoOpacity.value = withDelay(600, withTiming(1, { duration: 300 }));
-
-    // 900ms — Name + activity text
-    nameOpacity.value = withDelay(900, withTiming(1, { duration: 400 }));
+    // 900ms — Name + text
+    setTimeout(() => {
+      Animated.timing(nameOpacity, { toValue: 1, duration: 400, useNativeDriver: true }).start();
+    }, 900);
 
     // 1500ms — Buttons slide up
-    buttonsY.value = withDelay(1500, withSpring(0, animations.gentle));
-    buttonsOpacity.value = withDelay(1500, withTiming(1, { duration: 300 }));
-
-    // Pulsing CTA glow (starts after buttons appear)
     setTimeout(() => {
-      ctaPulse.value = withRepeat(
-        withSequence(
-          withTiming(1.03, { duration: 800, easing: Easing.inOut(Easing.ease) }),
-          withTiming(1.0, { duration: 800, easing: Easing.inOut(Easing.ease) }),
-        ),
-        -1,
-        true,
-      );
-    }, 1800);
+      Animated.parallel([
+        Animated.spring(buttonsY, { toValue: 0, friction: 8, tension: 40, useNativeDriver: true }),
+        Animated.timing(buttonsOpacity, { toValue: 1, duration: 300, useNativeDriver: true }),
+      ]).start();
+    }, 1500);
   }, []);
 
-  // ── Animated styles ──
-  const bgStyle = useAnimatedStyle(() => ({ opacity: bgOpacity.value }));
-  const titleStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: titleScale.value }, { rotate: `${titleRotation.value}deg` }],
-    opacity: titleOpacity.value,
-  }));
-  const leftPhotoStyle = useAnimatedStyle(() => ({
-    transform: [{ translateX: leftPhotoX.value }, { rotate: '-5deg' }],
-    opacity: leftPhotoOpacity.value,
-  }));
-  const rightPhotoStyle = useAnimatedStyle(() => ({
-    transform: [{ translateX: rightPhotoX.value }, { rotate: '5deg' }],
-    opacity: rightPhotoOpacity.value,
-  }));
-  const nameStyle = useAnimatedStyle(() => ({ opacity: nameOpacity.value }));
-  const buttonsStyle = useAnimatedStyle(() => ({
-    transform: [{ translateY: buttonsY.value }],
-    opacity: buttonsOpacity.value,
-  }));
-  const ctaStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: ctaPulse.value }],
-  }));
+  const titleRotateDeg = titleRotation.interpolate({
+    inputRange: [-10, 10],
+    outputRange: ['-10deg', '10deg'],
+  });
 
   const partnerInterests = match.partner.interests || [];
 
   return (
-    <Animated.View style={[styles.container, bgStyle]}>
+    <Animated.View style={[styles.container, { opacity: bgOpacity }]}>
       <LinearGradient
         colors={[colors.primaryDark, colors.primary, colors.secondary, '#FFF5F0']}
         start={{ x: 0.5, y: 0 }}
@@ -126,10 +97,8 @@ export default function MatchRevealScreen() {
         style={StyleSheet.absoluteFill}
       />
 
-      {/* Blur overlay for depth */}
       <BlurView intensity={20} style={styles.blurOverlay} />
 
-      {/* Confetti — fires at 600ms */}
       <LottieView
         source={require('../../assets/confetti.json')}
         autoPlay
@@ -139,13 +108,19 @@ export default function MatchRevealScreen() {
       />
 
       {/* Title */}
-      <Animated.View style={[styles.titleContainer, titleStyle]}>
+      <Animated.View style={[styles.titleContainer, {
+        opacity: titleOpacity,
+        transform: [{ scale: titleScale }, { rotate: titleRotateDeg }],
+      }]}>
         <Text style={styles.celebration}>It's a Match!</Text>
       </Animated.View>
 
-      {/* Photos — slide in from opposite sides */}
+      {/* Photo */}
       <View style={styles.photosRow}>
-        <Animated.View style={[styles.photoWrapper, leftPhotoStyle]}>
+        <Animated.View style={{
+          transform: [{ translateX: leftPhotoX }, { rotate: '-5deg' }],
+          opacity: leftPhotoOpacity,
+        }}>
           <View style={styles.photoRing}>
             <UserAvatar
               photoUrl={match.partner.photo_urls?.[0]}
@@ -159,7 +134,7 @@ export default function MatchRevealScreen() {
       </View>
 
       {/* Name + Activity */}
-      <Animated.View style={[styles.nameSection, nameStyle]}>
+      <Animated.View style={[styles.nameSection, { opacity: nameOpacity }]}>
         <Text style={styles.name}>{match.partner.first_name}</Text>
         {match.partner.program && (
           <Text style={styles.program}>{match.partner.program}</Text>
@@ -171,24 +146,21 @@ export default function MatchRevealScreen() {
         )}
       </Animated.View>
 
-      {/* Shared interests — stagger in one by one */}
+      {/* Shared interests */}
       {partnerInterests.length > 0 && (
         <View style={styles.interestsRow}>
           {partnerInterests.slice(0, 6).map((interest, i) => (
-            <Animated.View
-              key={i}
-              entering={FadeInDown.delay(1200 + i * 80).springify().damping(14)}
-              style={styles.interestChip}
-            >
-              <Text style={styles.interestText}>{interest}</Text>
-            </Animated.View>
+            <InterestChip key={i} label={interest} index={i} />
           ))}
         </View>
       )}
 
       {/* Buttons */}
-      <Animated.View style={[styles.buttonsSection, buttonsStyle]}>
-        <Animated.View style={ctaStyle}>
+      <Animated.View style={[styles.buttonsSection, {
+        opacity: buttonsOpacity,
+        transform: [{ translateY: buttonsY }],
+      }]}>
+        <Animated.View style={ctaPulseStyle}>
           <AnimatedButton
             label="Send a Message"
             onPress={() => navigation.replace('ChatDetail', { roomId: match.chat_room_id })}
@@ -247,7 +219,6 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xl,
     zIndex: 10,
   },
-  photoWrapper: {},
   photoRing: {
     borderRadius: 68,
     padding: 4,

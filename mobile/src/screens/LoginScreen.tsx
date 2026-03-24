@@ -8,15 +8,15 @@ import {
   Alert,
   KeyboardAvoidingView,
   Platform,
+  Animated,
 } from "react-native";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useAuth } from "../context/AuthContext";
 import { AuthStackParamList } from "../navigation/AppNavigator";
 import { colors, typography, spacing, radii } from '../theme';
-import Animated, { FadeInDown } from 'react-native-reanimated';
 import { AnimatedButton } from '../components';
 import { haptic } from '../utils/haptics';
-
+import { useFadeIn } from '../utils/animations';
 
 type Props = NativeStackScreenProps<AuthStackParamList, "Login">;
 
@@ -27,6 +27,12 @@ export default function LoginScreen({ navigation, route }: Props) {
   const [loading, setLoading] = useState(false);
 
   const successMessage = route.params?.message;
+
+  const titleFade = useFadeIn({ delay: 100 });
+  const subtitleFade = useFadeIn({ delay: 200 });
+  const emailFade = useFadeIn({ delay: 300 });
+  const passwordFade = useFadeIn({ delay: 400 });
+  const buttonFade = useFadeIn({ delay: 500 });
 
   async function handleLogin() {
     if (!email.trim() || !password.trim()) {
@@ -60,10 +66,10 @@ export default function LoginScreen({ navigation, route }: Props) {
       behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
       <View style={styles.inner}>
-        <Animated.View entering={FadeInDown.delay(100).springify()}>
+        <Animated.View style={titleFade}>
           <Text style={styles.title}>LoveGenie</Text>
         </Animated.View>
-        <Animated.View entering={FadeInDown.delay(200).springify()}>
+        <Animated.View style={subtitleFade}>
           <Text style={styles.subtitle}>Group dating for university students</Text>
         </Animated.View>
 
@@ -71,7 +77,7 @@ export default function LoginScreen({ navigation, route }: Props) {
           <Text style={styles.successMessage}>{successMessage}</Text>
         )}
 
-        <Animated.View entering={FadeInDown.delay(300).springify()}>
+        <Animated.View style={emailFade}>
           <TextInput
             style={styles.input}
             placeholder="Email"
@@ -83,7 +89,7 @@ export default function LoginScreen({ navigation, route }: Props) {
             testID="email-input"
           />
         </Animated.View>
-        <Animated.View entering={FadeInDown.delay(400).springify()}>
+        <Animated.View style={passwordFade}>
           <TextInput
             style={styles.input}
             placeholder="Password"
@@ -94,7 +100,7 @@ export default function LoginScreen({ navigation, route }: Props) {
           />
         </Animated.View>
 
-        <Animated.View entering={FadeInDown.delay(500).springify()}>
+        <Animated.View style={buttonFade}>
           <AnimatedButton
             label="Log In"
             onPress={handleLogin}
@@ -119,50 +125,16 @@ export default function LoginScreen({ navigation, route }: Props) {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.surface,
-  },
-  inner: {
-    flex: 1,
-    justifyContent: "center",
-    paddingHorizontal: spacing.xxxl,
-  },
-  title: {
-    ...typography.displayLarge,
-    textAlign: "center",
-    color: colors.primary,
-    marginBottom: spacing.sm,
-  },
-  subtitle: {
-    ...typography.bodyLarge,
-    textAlign: "center",
-    color: colors.darkSecondary,
-    marginBottom: spacing.xxxxl,
-  },
-  successMessage: {
-    ...typography.bodySmall,
-    color: colors.success,
-    textAlign: "center",
-    marginBottom: spacing.lg,
-  },
+  container: { flex: 1, backgroundColor: colors.surface },
+  inner: { flex: 1, justifyContent: "center", paddingHorizontal: spacing.xxxl },
+  title: { ...typography.displayLarge, textAlign: "center", color: colors.primary, marginBottom: spacing.sm },
+  subtitle: { ...typography.bodyLarge, textAlign: "center", color: colors.darkSecondary, marginBottom: spacing.xxxxl },
+  successMessage: { ...typography.bodySmall, color: colors.success, textAlign: "center", marginBottom: spacing.lg },
   input: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radii.sm,
-    padding: spacing.md + 2,
-    fontSize: 16,
-    marginBottom: spacing.lg,
+    borderWidth: 1, borderColor: colors.border, borderRadius: radii.sm,
+    padding: spacing.md + 2, fontSize: 16, marginBottom: spacing.lg,
     backgroundColor: colors.surfaceElevated,
   },
-  linkText: {
-    textAlign: "center",
-    color: colors.darkSecondary,
-    fontSize: 14,
-    marginTop: spacing.xl,
-  },
-  link: {
-    color: colors.primary,
-    fontWeight: "600",
-  },
+  linkText: { textAlign: "center", color: colors.darkSecondary, fontSize: 14, marginTop: spacing.xl },
+  link: { color: colors.primary, fontWeight: "600" },
 });

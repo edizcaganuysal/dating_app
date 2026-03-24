@@ -12,7 +12,7 @@ import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { getMyDateRequests, getMyGroups, cancelDateRequest } from '../api/dates';
 import { DateRequest, DateGroup, ActivityType } from '../types';
-import Animated, { FadeInDown } from 'react-native-reanimated';
+import { Animated } from 'react-native';
 import { colors } from '../theme';
 import { LoadingState, EmptyState, PressableScale, SkeletonCard } from '../components';
 
@@ -136,7 +136,7 @@ export default function MyDatesScreen() {
         <>
           <Text style={styles.sectionTitle}>Active Requests</Text>
           {activeRequests.map((req, index) => (
-            <Animated.View key={req.id} entering={FadeInDown.delay(index * 60).springify()}>
+            <Animated.View key={req.id} >
               <View style={styles.card}>
                 <View style={styles.cardRow}>
                   <Text style={styles.activityEmoji}>
@@ -182,7 +182,7 @@ export default function MyDatesScreen() {
         <>
           <Text style={styles.sectionTitle}>Upcoming Dates</Text>
           {upcomingGroups.map((group, index) => (
-            <Animated.View key={group.id} entering={FadeInDown.delay(index * 60).springify()}>
+            <Animated.View key={group.id} >
               <PressableScale
                 style={styles.card}
                 onPress={() => navigation.navigate('Home', {
@@ -219,7 +219,7 @@ export default function MyDatesScreen() {
         <>
           <Text style={styles.sectionTitle}>Past Dates</Text>
           {pastGroups.map((group, index) => (
-            <Animated.View key={group.id} entering={FadeInDown.delay(index * 60).springify()}>
+            <Animated.View key={group.id} >
               <View style={styles.card}>
                 <View style={styles.cardRow}>
                   <Text style={styles.activityEmoji}>

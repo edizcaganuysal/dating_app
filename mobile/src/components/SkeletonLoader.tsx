@@ -1,14 +1,8 @@
-import React, { useEffect } from 'react';
-import { View, StyleSheet, ViewStyle } from 'react-native';
-import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withRepeat,
-  withTiming,
-  interpolate,
-} from 'react-native-reanimated';
+import React from 'react';
+import { View, StyleSheet, Animated, ViewStyle } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { colors, radii, spacing } from '../theme';
+import { useShimmer } from '../utils/animations';
 
 interface SkeletonLoaderProps {
   width: number | string;
@@ -23,15 +17,7 @@ export function SkeletonLoader({
   borderRadius = radii.sm,
   style,
 }: SkeletonLoaderProps) {
-  const shimmer = useSharedValue(0);
-
-  useEffect(() => {
-    shimmer.value = withRepeat(withTiming(1, { duration: 1200 }), -1, false);
-  }, []);
-
-  const animatedStyle = useAnimatedStyle(() => ({
-    transform: [{ translateX: interpolate(shimmer.value, [0, 1], [-200, 200]) }],
-  }));
+  const shimmerStyle = useShimmer();
 
   return (
     <View
@@ -46,7 +32,7 @@ export function SkeletonLoader({
         style,
       ]}
     >
-      <Animated.View style={[StyleSheet.absoluteFill, animatedStyle]}>
+      <Animated.View style={[StyleSheet.absoluteFill, shimmerStyle]}>
         <LinearGradient
           colors={['transparent', 'rgba(255,255,255,0.4)', 'transparent']}
           start={{ x: 0, y: 0.5 }}

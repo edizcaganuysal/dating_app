@@ -1,14 +1,9 @@
 import React from 'react';
-import { Text, ActivityIndicator, StyleSheet, View } from 'react-native';
-import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withSpring,
-} from 'react-native-reanimated';
-import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import { Text, ActivityIndicator, StyleSheet, View, Animated, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, spacing, radii, shadows, animations } from '../theme';
+import { colors, spacing, radii, shadows } from '../theme';
 import { haptic } from '../utils/haptics';
+import { usePressScale } from '../utils/animations';
 
 type Variant = 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger';
 type Size = 'sm' | 'md' | 'lg';
@@ -50,34 +45,23 @@ export default function AnimatedButton({
   icon,
   iconRight,
 }: AnimatedButtonProps) {
-  const scale = useSharedValue(1);
+  const { onPressIn, onPressOut, animatedStyle } = usePressScale(0.96);
   const v = VARIANT_STYLES[variant];
   const s = SIZE_STYLES[size];
   const isDisabled = disabled || loading;
-
-  const gesture = Gesture.Tap()
-    .enabled(!isDisabled)
-    .onBegin(() => {
-      'worklet';
-      scale.value = withSpring(0.96, animations.snappy);
-    })
-    .onFinalize(() => {
-      'worklet';
-      scale.value = withSpring(1, animations.bouncy);
-    })
-    .onEnd(() => {
-      haptic.light();
-      onPress();
-    });
-
-  const animatedStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value }],
-  }));
-
   const showShadow = variant === 'primary' && !isDisabled;
 
   return (
-    <GestureDetector gesture={gesture}>
+    <Pressable
+      onPress={() => {
+        if (isDisabled) return;
+        haptic.light();
+        onPress();
+      }}
+      onPressIn={isDisabled ? undefined : onPressIn}
+      onPressOut={isDisabled ? undefined : onPressOut}
+      disabled={isDisabled}
+    >
       <Animated.View
         style={[
           styles.base,
@@ -96,15 +80,29 @@ export default function AnimatedButton({
           <ActivityIndicator size="small" color={v.text} />
         ) : (
           <View style={styles.content}>
-            {icon && <Ionicons name={icon as any} size={s.fontSize + 2} color={isDisabled ? colors.gray : v.text} style={styles.iconLeft} />}
+            {icon && (
+              <Ionicons
+                name={icon as any}
+                size={s.fontSize + 2}
+                color={isDisabled ? colors.gray : v.text}
+                style={styles.iconLeft}
+              />
+            )}
             <Text style={[styles.label, { fontSize: s.fontSize, color: isDisabled ? colors.gray : v.text }]}>
               {label}
             </Text>
-            {iconRight && <Ionicons name={iconRight as any} size={s.fontSize + 2} color={isDisabled ? colors.gray : v.text} style={styles.iconRight} />}
+            {iconRight && (
+              <Ionicons
+                name={iconRight as any}
+                size={s.fontSize + 2}
+                color={isDisabled ? colors.gray : v.text}
+                style={styles.iconRight}
+              />
+            )}
           </View>
         )}
       </Animated.View>
-    </GestureDetector>
+    </Pressable>
   );
 }
 

@@ -1,13 +1,7 @@
 import React from 'react';
-import { StyleProp, ViewStyle } from 'react-native';
-import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withSpring,
-} from 'react-native-reanimated';
-import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import { Animated, Pressable, StyleProp, ViewStyle } from 'react-native';
 import { haptic } from '../utils/haptics';
-import { animations } from '../theme';
+import { usePressScale } from '../utils/animations';
 
 interface PressableScaleProps {
   onPress?: () => void;
@@ -30,44 +24,24 @@ export default function PressableScale({
   hapticOnPress = true,
   testID,
 }: PressableScaleProps) {
-  const scale = useSharedValue(1);
-
-  const gesture = Gesture.Tap()
-    .enabled(!disabled)
-    .onBegin(() => {
-      'worklet';
-      scale.value = withSpring(scaleValue, animations.snappy);
-    })
-    .onFinalize(() => {
-      'worklet';
-      scale.value = withSpring(1, animations.bouncy);
-    })
-    .onEnd(() => {
-      if (hapticOnPress) haptic.light();
-      onPress?.();
-    });
-
-  const longPressGesture = Gesture.LongPress()
-    .enabled(!disabled && !!onLongPress)
-    .minDuration(500)
-    .onStart(() => {
-      haptic.medium();
-      onLongPress?.();
-    });
-
-  const composed = onLongPress
-    ? Gesture.Race(gesture, longPressGesture)
-    : gesture;
-
-  const animatedStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value }],
-  }));
+  const { onPressIn, onPressOut, animatedStyle } = usePressScale(scaleValue);
 
   return (
-    <GestureDetector gesture={composed}>
-      <Animated.View style={[animatedStyle, style]} testID={testID}>
+    <Pressable
+      onPress={() => {
+        if (disabled) return;
+        if (hapticOnPress) haptic.light();
+        onPress?.();
+      }}
+      onLongPress={disabled ? undefined : onLongPress}
+      onPressIn={disabled ? undefined : onPressIn}
+      onPressOut={disabled ? undefined : onPressOut}
+      disabled={disabled}
+      testID={testID}
+    >
+      <Animated.View style={[animatedStyle, style]}>
         {children}
       </Animated.View>
-    </GestureDetector>
+    </Pressable>
   );
 }

@@ -27,7 +27,7 @@ import {
   PendingRequest,
   SearchResult,
 } from '../api/friends';
-import Animated, { FadeInDown } from 'react-native-reanimated';
+import { Animated } from 'react-native';
 import { colors } from '../theme';
 import { PressableScale } from '../components';
 
@@ -264,7 +264,7 @@ export default function FriendsScreen() {
         <View style={styles.card}>
           <Text style={styles.cardTitle}>Pending Requests</Text>
           {pending.map((req, index) => (
-            <Animated.View key={req.id} entering={FadeInDown.delay(index * 50).springify()}>
+            <Animated.View key={req.id} >
               <View style={styles.pendingRow}>
                 <Text style={styles.friendName}>{req.friend_name}</Text>
                 <View style={styles.pendingActions}>
@@ -296,7 +296,7 @@ export default function FriendsScreen() {
           <Text style={styles.emptyText}>No friends yet. Add some above!</Text>
         ) : (
           friends.map((friend, index) => (
-            <Animated.View key={friend.id} entering={FadeInDown.delay(index * 50).springify()}>
+            <Animated.View key={friend.id} >
               <View style={styles.friendRow}>
                 {friend.photo_urls?.[0] ? (
                   <Image source={{ uri: friend.photo_urls[0] }} style={styles.friendAvatar} />

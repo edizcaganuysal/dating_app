@@ -17,9 +17,7 @@
           "photosPermission": "LoveGenie needs access to your photos to add them to your profile.",
           "cameraPermission": "LoveGenie needs access to your camera to take profile photos and verify your identity."
         }
-      ],
-      "react-native-reanimated"
-    ],
-    "newArchEnabled": true
+      ]
+    ]
   }
 }

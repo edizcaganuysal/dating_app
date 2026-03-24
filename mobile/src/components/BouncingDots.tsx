@@ -1,14 +1,7 @@
-import React, { useEffect } from 'react';
-import { View, StyleSheet } from 'react-native';
-import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withRepeat,
-  withSequence,
-  withTiming,
-  withDelay,
-} from 'react-native-reanimated';
+import React from 'react';
+import { View, StyleSheet, Animated } from 'react-native';
 import { colors, spacing } from '../theme';
+import { useBounce } from '../utils/animations';
 
 interface BouncingDotsProps {
   color?: string;
@@ -16,31 +9,13 @@ interface BouncingDotsProps {
 }
 
 function Dot({ delay, color, size }: { delay: number; color: string; size: number }) {
-  const translateY = useSharedValue(0);
-
-  useEffect(() => {
-    translateY.value = withDelay(
-      delay,
-      withRepeat(
-        withSequence(
-          withTiming(-6, { duration: 300 }),
-          withTiming(0, { duration: 300 }),
-        ),
-        -1,
-        false,
-      ),
-    );
-  }, []);
-
-  const animatedStyle = useAnimatedStyle(() => ({
-    transform: [{ translateY: translateY.value }],
-  }));
+  const bounceStyle = useBounce(delay);
 
   return (
     <Animated.View
       style={[
         { width: size, height: size, borderRadius: size / 2, backgroundColor: color },
-        animatedStyle,
+        bounceStyle,
       ]}
     />
   );

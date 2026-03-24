@@ -9,8 +9,8 @@ import {
   KeyboardAvoidingView,
   Platform,
   Modal,
+  Animated,
 } from 'react-native';
-import Animated, { FadeInDown } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import { useRoute } from '@react-navigation/native';
 import { useAuth } from '../context/AuthContext';
@@ -20,6 +20,7 @@ import { ChatMessage, GENIE_USER_ID } from '../types';
 import { colors, spacing, typography, radii } from '../theme';
 import { UserAvatar, RelativeTimestamp, PressableScale, BouncingDots } from '../components';
 import { markRoomRead } from '../hooks/useUnreadCount';
+import { useFadeIn } from '../utils/animations';
 
 const GENIE_PRESETS = [
   { label: 'Suggest a venue', question: 'Can you suggest some good venues for our date?' },
@@ -38,7 +39,6 @@ export default function ChatScreen() {
     token || '',
   );
 
-  // Mark room as read when opened
   React.useEffect(() => { markRoomRead(roomId); }, [roomId]);
 
   const [text, setText] = useState('');
@@ -46,20 +46,6 @@ export default function ChatScreen() {
   const [genieMenuVisible, setGenieMenuVisible] = useState(false);
   const [genieLoading, setGenieLoading] = useState(false);
   const flatListRef = useRef<FlatList>(null);
-  const initialRenderDone = useRef(false);
-  const seenMessageIds = useRef(new Set<string>());
-
-  // Mark initial render complete after first batch of messages arrives
-  React.useEffect(() => {
-    if (messages.length > 0 && !initialRenderDone.current) {
-      // Allow animations for the first batch, then mark done
-      const timer = setTimeout(() => {
-        initialRenderDone.current = true;
-        messages.forEach(m => seenMessageIds.current.add(m.id));
-      }, 600);
-      return () => clearTimeout(timer);
-    }
-  }, [messages]);
 
   const handleSend = () => {
     const content = text.trim();
@@ -76,48 +62,21 @@ export default function ChatScreen() {
   const handleAskGenie = async (question: string) => {
     setGenieMenuVisible(false);
     setGenieLoading(true);
-    try {
-      await askGenie(roomId, question);
-    } catch {
-      // Response comes through WebSocket, error is silent
-    } finally {
-      setGenieLoading(false);
-    }
+    try { await askGenie(roomId, question); } catch {} finally { setGenieLoading(false); }
   };
 
   const handleLoadMore = useCallback(async () => {
     if (loadingHistory || messages.length === 0) return;
     setLoadingHistory(true);
-    try {
-      await loadHistory(messages[0]?.id);
-    } catch {
-      // Silently handle
-    } finally {
-      setLoadingHistory(false);
-    }
+    try { await loadHistory(messages[0]?.id); } catch {} finally { setLoadingHistory(false); }
   }, [loadingHistory, messages, loadHistory]);
 
   const renderMessage = ({ item }: { item: ChatMessage }) => {
     const isOwn = item.sender_id === user?.id;
     const isGenie = item.sender_id === GENIE_USER_ID;
 
-    // Only animate new messages, not previously seen or history-loaded ones
-    const shouldAnimate = !seenMessageIds.current.has(item.id) && !initialRenderDone.current;
-    seenMessageIds.current.add(item.id);
-
-    const wrapWithAnimation = (content: React.ReactNode) => {
-      if (shouldAnimate) {
-        return (
-          <Animated.View entering={FadeInDown.duration(200).springify()}>
-            {content}
-          </Animated.View>
-        );
-      }
-      return <>{content}</>;
-    };
-
     if (isGenie) {
-      return wrapWithAnimation(
+      return (
         <View style={styles.genieBubble} testID={`message-${item.id}`}>
           <View style={styles.genieHeader}>
             <Text style={styles.genieEmoji}>🧞</Text>
@@ -131,7 +90,7 @@ export default function ChatScreen() {
       );
     }
 
-    return wrapWithAnimation(
+    return (
       <View style={[styles.messageRow, isOwn && styles.messageRowOwn]} testID={`message-${item.id}`}>
         {!isOwn && (
           <UserAvatar firstName={item.sender_name || '?'} size="xs" style={{ marginRight: spacing.sm, marginTop: 2 }} />
@@ -193,7 +152,6 @@ export default function ChatScreen() {
       )}
 
       <View style={styles.inputContainer}>
-        {/* Genie Button */}
         <PressableScale
           style={styles.genieButton}
           onPress={() => setGenieMenuVisible(true)}
@@ -217,14 +175,11 @@ export default function ChatScreen() {
           onPress={handleSend}
           activeOpacity={0.7}
         >
-          <View style={styles.sendIconContainer}>
-            <Animated.View style={{ opacity: text.trim() ? 1 : 0, position: 'absolute' }}>
-              <Ionicons name="send" size={20} color="#fff" />
-            </Animated.View>
-            <Animated.View style={{ opacity: text.trim() ? 0 : 1 }}>
-              <Ionicons name="mic-outline" size={20} color={colors.gray} />
-            </Animated.View>
-          </View>
+          <Ionicons
+            name={text.trim() ? 'send' : 'mic-outline'}
+            size={20}
+            color={text.trim() ? '#fff' : colors.gray}
+          />
         </TouchableOpacity>
       </View>
 
@@ -259,8 +214,6 @@ const styles = StyleSheet.create({
   connectionBanner: { backgroundColor: colors.warning, padding: 4, alignItems: 'center' },
   connectionText: { color: '#fff', fontSize: 12 },
   messageList: { flex: 1, paddingHorizontal: 12 },
-
-  // Regular messages
   messageRow: { flexDirection: 'row', alignItems: 'flex-start', marginVertical: 2, justifyContent: 'flex-start' },
   messageRowOwn: { justifyContent: 'flex-end' },
   messageBubble: { maxWidth: '70%', padding: 10, borderRadius: 16, marginVertical: 2 },
@@ -271,8 +224,6 @@ const styles = StyleSheet.create({
   ownMessageText: { color: '#fff' },
   timestamp: { fontSize: 10, color: colors.gray, marginTop: 4, alignSelf: 'flex-end' },
   ownTimestamp: { color: 'rgba(255,255,255,0.7)' },
-
-  // Genie messages
   genieBubble: {
     maxWidth: '85%', alignSelf: 'center', marginVertical: 6,
     backgroundColor: '#F3E5F5', borderRadius: 16, padding: 12,
@@ -283,16 +234,12 @@ const styles = StyleSheet.create({
   genieName: { fontSize: 12, fontWeight: '700', color: '#7B1FA2' },
   genieText: { fontSize: 14, color: colors.dark, lineHeight: 20 },
   genieTimestamp: { fontSize: 10, color: '#9E9E9E', marginTop: 6, alignSelf: 'flex-end' },
-
-  // Typing
   typingContainer: { paddingHorizontal: 16, paddingVertical: 4 },
   typingText: { fontSize: 12, color: colors.gray, fontStyle: 'italic' },
   genieTypingRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   genieTypingEmoji: { fontSize: 14 },
   genieTypingText: { fontSize: 12, color: '#7B1FA2', fontStyle: 'italic', marginRight: 4 },
   typingRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-
-  // Input bar
   inputContainer: {
     flexDirection: 'row', padding: 8, borderTopWidth: 1, borderTopColor: colors.border,
     alignItems: 'flex-end',
@@ -311,10 +258,7 @@ const styles = StyleSheet.create({
     borderRadius: 20, marginLeft: 8,
   },
   sendButtonDisabled: { backgroundColor: colors.grayLight },
-  sendButtonText: { color: '#fff', fontWeight: '600' },
   sendIconContainer: { width: 20, height: 20, alignItems: 'center', justifyContent: 'center' },
-
-  // Genie bottom sheet
   genieOverlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.4)' },
   genieSheet: {
     backgroundColor: colors.surfaceElevated, borderTopLeftRadius: 20, borderTopRightRadius: 20,
