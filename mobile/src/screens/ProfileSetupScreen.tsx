@@ -7,7 +7,7 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import * as ImagePicker from 'expo-image-picker';
 import * as Location from 'expo-location';
-import MapView, { Marker, Circle } from 'react-native-maps';
+// MapView removed — requires dev build, not available in Expo Go
 import { createProfile, uploadPhoto, selfieVerify } from '../api/profiles';
 import { VibeAnswer } from '../types';
 import { colors } from '../theme';
@@ -1157,24 +1157,6 @@ export default function ProfileSetupScreen() {
       setSuggestions([]);
     };
 
-    const handleMapPress = async (e: any) => {
-      const { latitude, longitude } = e.nativeEvent.coordinate;
-      setLocationLat(latitude);
-      setLocationLng(longitude);
-      try {
-        const addrs = await Location.reverseGeocodeAsync({ latitude, longitude });
-        if (addrs.length > 0) {
-          const a = addrs[0];
-          setLocationAddress([a.name, a.street, a.city, a.region].filter(Boolean).join(', '));
-        }
-      } catch {}
-    };
-
-    // Default center: Toronto if no location set
-    const mapCenter = locationLat && locationLng
-      ? { latitude: locationLat, longitude: locationLng }
-      : { latitude: 43.6532, longitude: -79.3832 };
-
     return (
       <View>
         <Text style={styles.stepTitle}>Set Your Location</Text>
@@ -1215,42 +1197,15 @@ export default function ProfileSetupScreen() {
           </View>
         )}
 
-        {/* Map */}
-        <View style={styles.mapContainer}>
-          <MapView
-            style={styles.map}
-            region={{
-              ...mapCenter,
-              latitudeDelta: 0.05,
-              longitudeDelta: 0.05,
-            }}
-            onPress={handleMapPress}
-            showsUserLocation
-            showsMyLocationButton={false}
-          >
-            {locationLat && locationLng && (
-              <>
-                <Marker coordinate={{ latitude: locationLat, longitude: locationLng }}>
-                  <View style={styles.mapMarker}>
-                    <Text style={{ fontSize: 20 }}>📍</Text>
-                  </View>
-                </Marker>
-                <Circle
-                  center={{ latitude: locationLat, longitude: locationLng }}
-                  radius={maxDistanceKm * 1000}
-                  fillColor="rgba(255, 107, 107, 0.1)"
-                  strokeColor="rgba(255, 107, 107, 0.3)"
-                  strokeWidth={1}
-                />
-              </>
-            )}
-          </MapView>
-          {!locationLat && (
-            <View style={styles.mapOverlay}>
-              <Text style={styles.mapOverlayText}>Tap the map or search above to set your location</Text>
-            </View>
-          )}
-        </View>
+        {/* Location visual */}
+        {locationLat && locationLng && !locationAddress && (
+          <View style={styles.locationPinVisual}>
+            <Text style={{ fontSize: 36 }}>📍</Text>
+            <Text style={styles.locationPinCoords}>
+              {locationLat.toFixed(4)}, {locationLng.toFixed(4)}
+            </Text>
+          </View>
+        )}
 
         {/* Location confirmation */}
         {locationLat && locationLng && locationAddress ? (
@@ -1592,11 +1547,8 @@ const styles = StyleSheet.create({
   suggestionItem: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12, paddingHorizontal: 14, borderBottomWidth: 1, borderBottomColor: colors.borderLight },
   suggestionIcon: { fontSize: 16, marginRight: 10 },
   suggestionText: { fontSize: 14, color: colors.dark, flex: 1 },
-  mapContainer: { height: 200, borderRadius: 16, overflow: 'hidden', marginVertical: 12, borderWidth: 1, borderColor: colors.border },
-  map: { flex: 1 },
-  mapMarker: { alignItems: 'center', justifyContent: 'center' },
-  mapOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.05)', alignItems: 'center', justifyContent: 'center' },
-  mapOverlayText: { fontSize: 13, color: colors.gray, textAlign: 'center', paddingHorizontal: 40 },
+  locationPinVisual: { alignItems: 'center', paddingVertical: 16, backgroundColor: colors.surfaceSelected, borderRadius: 12, marginVertical: 12 },
+  locationPinCoords: { fontSize: 12, color: colors.gray, marginTop: 4 },
   locationConfirmed: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: '#E8F5E9', padding: 16, borderRadius: 12, marginBottom: 12 },
   locationIcon: { fontSize: 24 },
   locationText: { fontSize: 16, fontWeight: '600', color: '#2E7D32', flex: 1 },
