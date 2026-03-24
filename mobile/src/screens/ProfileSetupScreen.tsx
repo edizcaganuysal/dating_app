@@ -7,6 +7,7 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import * as ImagePicker from 'expo-image-picker';
 import * as Location from 'expo-location';
+import MapView, { Marker, Circle } from 'react-native-maps';
 import { createProfile, uploadPhoto, selfieVerify } from '../api/profiles';
 import { VibeAnswer } from '../types';
 import { colors } from '../theme';
@@ -1089,6 +1090,11 @@ export default function ProfileSetupScreen() {
   );
 
   const renderLocation = () => {
+    const [addressQuery, setAddressQuery] = useState('');
+    const [suggestions, setSuggestions] = useState<Array<{ name: string; lat: number; lng: number }>>([]);
+    const [searchingAddr, setSearchingAddr] = useState(false);
+    const searchTimeout = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+
     const handleGetLocation = async () => {
       setLocationLoading(true);
       try {
@@ -1100,12 +1106,71 @@ export default function ProfileSetupScreen() {
         const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
         setLocationLat(loc.coords.latitude);
         setLocationLng(loc.coords.longitude);
+        // Reverse geocode to get address
+        try {
+          const addrs = await Location.reverseGeocodeAsync({ latitude: loc.coords.latitude, longitude: loc.coords.longitude });
+          if (addrs.length > 0) {
+            const a = addrs[0];
+            setLocationAddress([a.name, a.street, a.city, a.region].filter(Boolean).join(', '));
+          }
+        } catch {}
       } catch {
-        Alert.alert('Error', 'Could not get your location. You can set it later.');
+        Alert.alert('Error', 'Could not get your location. Please try entering an address instead.');
       } finally {
         setLocationLoading(false);
       }
     };
+
+    const handleAddressSearch = (text: string) => {
+      setAddressQuery(text);
+      if (searchTimeout.current) clearTimeout(searchTimeout.current);
+      if (text.trim().length < 3) { setSuggestions([]); return; }
+      searchTimeout.current = setTimeout(async () => {
+        setSearchingAddr(true);
+        try {
+          const results = await Location.geocodeAsync(text.trim());
+          const mapped = await Promise.all(
+            results.slice(0, 5).map(async (r) => {
+              try {
+                const addrs = await Location.reverseGeocodeAsync({ latitude: r.latitude, longitude: r.longitude });
+                const a = addrs[0];
+                return { name: [a?.name, a?.street, a?.city, a?.region].filter(Boolean).join(', ') || text, lat: r.latitude, lng: r.longitude };
+              } catch {
+                return { name: `${r.latitude.toFixed(4)}, ${r.longitude.toFixed(4)}`, lat: r.latitude, lng: r.longitude };
+              }
+            })
+          );
+          setSuggestions(mapped);
+        } catch { setSuggestions([]); }
+        finally { setSearchingAddr(false); }
+      }, 500);
+    };
+
+    const selectSuggestion = (s: { name: string; lat: number; lng: number }) => {
+      setLocationLat(s.lat);
+      setLocationLng(s.lng);
+      setLocationAddress(s.name);
+      setAddressQuery('');
+      setSuggestions([]);
+    };
+
+    const handleMapPress = async (e: any) => {
+      const { latitude, longitude } = e.nativeEvent.coordinate;
+      setLocationLat(latitude);
+      setLocationLng(longitude);
+      try {
+        const addrs = await Location.reverseGeocodeAsync({ latitude, longitude });
+        if (addrs.length > 0) {
+          const a = addrs[0];
+          setLocationAddress([a.name, a.street, a.city, a.region].filter(Boolean).join(', '));
+        }
+      } catch {}
+    };
+
+    // Default center: Toronto if no location set
+    const mapCenter = locationLat && locationLng
+      ? { latitude: locationLat, longitude: locationLng }
+      : { latitude: 43.6532, longitude: -79.3832 };
 
     return (
       <View>
@@ -1114,65 +1179,115 @@ export default function ProfileSetupScreen() {
           We use your location to find groups near you. Your exact location is never shared with other users.
         </Text>
 
-        {locationLat && locationLng ? (
+        {/* GPS button */}
+        <TouchableOpacity style={styles.locationGpsBtn} onPress={handleGetLocation} disabled={locationLoading}>
+          {locationLoading ? (
+            <ActivityIndicator color="#fff" size="small" />
+          ) : (
+            <Text style={styles.locationGpsBtnText}>📍 Use My Current Location</Text>
+          )}
+        </TouchableOpacity>
+
+        {/* Address search with autocomplete */}
+        <View style={styles.addressSearchContainer}>
+          <TextInput
+            style={styles.addressInput}
+            placeholder="Search for an address..."
+            placeholderTextColor={colors.grayLight}
+            value={addressQuery}
+            onChangeText={handleAddressSearch}
+            returnKeyType="search"
+          />
+          {searchingAddr && <ActivityIndicator size="small" color={colors.primary} style={{ position: 'absolute', right: 12, top: 14 }} />}
+        </View>
+
+        {suggestions.length > 0 && (
+          <View style={styles.suggestionsContainer}>
+            {suggestions.map((s, i) => (
+              <TouchableOpacity key={i} style={styles.suggestionItem} onPress={() => selectSuggestion(s)}>
+                <Text style={styles.suggestionIcon}>📍</Text>
+                <Text style={styles.suggestionText} numberOfLines={1}>{s.name}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
+
+        {/* Map */}
+        <View style={styles.mapContainer}>
+          <MapView
+            style={styles.map}
+            region={{
+              ...mapCenter,
+              latitudeDelta: 0.05,
+              longitudeDelta: 0.05,
+            }}
+            onPress={handleMapPress}
+            showsUserLocation
+            showsMyLocationButton={false}
+          >
+            {locationLat && locationLng && (
+              <>
+                <Marker coordinate={{ latitude: locationLat, longitude: locationLng }}>
+                  <View style={styles.mapMarker}>
+                    <Text style={{ fontSize: 20 }}>📍</Text>
+                  </View>
+                </Marker>
+                <Circle
+                  center={{ latitude: locationLat, longitude: locationLng }}
+                  radius={maxDistanceKm * 1000}
+                  fillColor="rgba(255, 107, 107, 0.1)"
+                  strokeColor="rgba(255, 107, 107, 0.3)"
+                  strokeWidth={1}
+                />
+              </>
+            )}
+          </MapView>
+          {!locationLat && (
+            <View style={styles.mapOverlay}>
+              <Text style={styles.mapOverlayText}>Tap the map or search above to set your location</Text>
+            </View>
+          )}
+        </View>
+
+        {/* Location confirmation */}
+        {locationLat && locationLng && locationAddress ? (
           <View style={styles.locationConfirmed}>
             <Text style={styles.locationIcon}>📍</Text>
             <View style={{ flex: 1 }}>
-              <Text style={styles.locationText}>Location set!</Text>
-              {locationAddress ? <Text style={{ fontSize: 12, color: colors.gray }}>{locationAddress}</Text> : null}
+              <Text style={styles.locationText}>Location set</Text>
+              <Text style={{ fontSize: 12, color: colors.gray }}>{locationAddress}</Text>
             </View>
             <TouchableOpacity onPress={() => { setLocationLat(null); setLocationLng(null); setLocationAddress(''); }}>
               <Text style={styles.editText}>Change</Text>
             </TouchableOpacity>
           </View>
-        ) : (
-          <View style={{ gap: 10 }}>
-            <TouchableOpacity style={styles.selfieBtn} onPress={handleGetLocation} disabled={locationLoading}>
-              {locationLoading ? (
-                <ActivityIndicator color="#fff" />
-              ) : (
-                <Text style={styles.selfieBtnText}>📍 Use My Current Location</Text>
-              )}
-            </TouchableOpacity>
+        ) : null}
 
-            <Text style={{ textAlign: 'center', color: colors.gray, fontSize: 13 }}>or</Text>
-
-            <TextInput
-              style={[styles.input, { marginTop: 0 }]}
-              placeholder="Enter your address or neighborhood"
-              value={locationAddress}
-              onChangeText={setLocationAddress}
-              onBlur={async () => {
-                if (!locationAddress.trim()) return;
-                try {
-                  const results = await Location.geocodeAsync(locationAddress.trim());
-                  if (results.length > 0) {
-                    setLocationLat(results[0].latitude);
-                    setLocationLng(results[0].longitude);
-                  } else {
-                    Alert.alert('Not Found', 'Could not find that address. Try a different one.');
-                  }
-                } catch {
-                  Alert.alert('Error', 'Could not look up that address.');
-                }
-              }}
-              returnKeyType="search"
+        {/* Distance slider */}
+        <Text style={[styles.label, { marginTop: 20 }]}>Maximum distance: {maxDistanceKm} km</Text>
+        <View style={styles.sliderContainer}>
+          <Text style={styles.sliderLabel}>5 km</Text>
+          <View style={styles.sliderTrack}>
+            <View style={[styles.sliderFill, { width: `${((maxDistanceKm - 5) / 195) * 100}%` }]} />
+            <View
+              style={[styles.sliderThumb, { left: `${((maxDistanceKm - 5) / 195) * 100}%` }]}
+              {...(() => {
+                // Use a simple touchable approach for the slider
+                return {};
+              })()}
             />
           </View>
-        )}
-
-        <Text style={[styles.label, { marginTop: 20 }]}>Maximum distance for matches</Text>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginVertical: 8 }}>
+          <Text style={styles.sliderLabel}>200 km</Text>
+        </View>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 8 }}>
           {[5, 10, 15, 25, 50, 75, 100, 200].map(km => (
             <TouchableOpacity key={km}
-              style={[styles.chip, { marginRight: 10 }, maxDistanceKm === km && styles.chipSelected]}
+              style={[styles.chip, { marginRight: 8 }, maxDistanceKm === km && styles.chipSelected]}
               onPress={() => setMaxDistanceKm(km)}>
               <Text style={[styles.chipText, maxDistanceKm === km && styles.chipTextSelected]}>{km} km</Text>
             </TouchableOpacity>
           ))}
         </ScrollView>
-
-        <Text style={styles.noneText}>You can skip this step and set your location later.</Text>
       </View>
     );
   };
@@ -1212,37 +1327,46 @@ export default function ProfileSetupScreen() {
       </Text>
 
       <Text style={styles.label}>Preferred body type (select all that apply)</Text>
-      <ChipSelect options={[...BODY_TYPES, 'No preference']} selected={prefBodyType} multi
+      <ChipSelect options={[...BODY_TYPES, 'No preference']} selected={prefBodyType.length === 0 ? ['No preference'] : prefBodyType} multi
         onToggle={(b) => {
           if (b === 'No preference') { setPrefBodyType([]); return; }
-          toggle(prefBodyType.filter(x => x !== 'No preference'), b, setPrefBodyType);
+          setPrefBodyType(prev => {
+            const filtered = prev.filter(x => x !== 'No preference');
+            return filtered.includes(b) ? filtered.filter(x => x !== b) : [...filtered, b];
+          });
         }} />
 
       <Text style={styles.label}>Preferred social energy range</Text>
-      <Text style={styles.stepSub}>Tap to set min, tap again to set max. Selected: {prefSocialEnergyMin}-{prefSocialEnergyMax}</Text>
+      <Text style={styles.stepSub}>Tap each level you're open to</Text>
       <View style={styles.distanceRow}>
         <Text style={{ color: colors.gray, fontSize: 12 }}>Introvert</Text>
         <View style={styles.sliderRow}>
-          {[1, 2, 3, 4, 5].map(n => (
-            <TouchableOpacity key={n} onPress={() => {
-              // First tap sets one end, second tap sets the other end
-              if (prefSocialEnergyMin === prefSocialEnergyMax) {
-                // Single value selected — expand range
-                if (n < prefSocialEnergyMin) setPrefSocialEnergyMin(n);
-                else setPrefSocialEnergyMax(n);
-              } else if (n < prefSocialEnergyMin) {
-                setPrefSocialEnergyMin(n);
-              } else if (n > prefSocialEnergyMax) {
-                setPrefSocialEnergyMax(n);
-              } else {
-                // Tap inside range — reset to single value
-                setPrefSocialEnergyMin(n);
-                setPrefSocialEnergyMax(n);
-              }
-            }} style={[styles.sliderDot, n >= prefSocialEnergyMin && n <= prefSocialEnergyMax && styles.sliderDotActive]}>
-              <Text style={[styles.sliderDotText, n >= prefSocialEnergyMin && n <= prefSocialEnergyMax && styles.sliderDotTextActive]}>{n}</Text>
-            </TouchableOpacity>
-          ))}
+          {[1, 2, 3, 4, 5].map(n => {
+            const isSelected = n >= prefSocialEnergyMin && n <= prefSocialEnergyMax;
+            return (
+              <TouchableOpacity key={n} onPress={() => {
+                if (isSelected) {
+                  // Deselect: shrink range from the nearest edge
+                  if (n === prefSocialEnergyMin && n === prefSocialEnergyMax) {
+                    // Last one selected, reset to full range
+                    setPrefSocialEnergyMin(1);
+                    setPrefSocialEnergyMax(5);
+                  } else if (n === prefSocialEnergyMin) {
+                    setPrefSocialEnergyMin(n + 1);
+                  } else if (n === prefSocialEnergyMax) {
+                    setPrefSocialEnergyMax(n - 1);
+                  }
+                  // Can't deselect from middle of range
+                } else {
+                  // Select: expand range to include this value
+                  setPrefSocialEnergyMin(Math.min(prefSocialEnergyMin, n));
+                  setPrefSocialEnergyMax(Math.max(prefSocialEnergyMax, n));
+                }
+              }} style={[styles.sliderDot, isSelected && styles.sliderDotActive]}>
+                <Text style={[styles.sliderDotText, isSelected && styles.sliderDotTextActive]}>{n}</Text>
+              </TouchableOpacity>
+            );
+          })}
         </View>
         <Text style={{ color: colors.gray, fontSize: 12 }}>Extrovert</Text>
       </View>
@@ -1372,7 +1496,6 @@ const styles = StyleSheet.create({
   sliderDotText: { fontSize: 16, fontWeight: '600', color: colors.darkSecondary },
   sliderDotTextActive: { color: '#fff' },
   sliderLabels: { flexDirection: 'row', justifyContent: 'space-between' },
-  sliderLabel: { fontSize: 12, color: colors.gray },
 
   // Intent
   intentCard: { borderWidth: 1, borderColor: colors.border, borderRadius: 12, padding: 14, marginBottom: 10 },
@@ -1458,9 +1581,27 @@ const styles = StyleSheet.create({
   btnDisabled: { opacity: 0.4 },
 
   // Location
+  locationGpsBtn: { backgroundColor: colors.primary, paddingVertical: 14, borderRadius: 12, alignItems: 'center', marginBottom: 12 },
+  locationGpsBtnText: { color: '#fff', fontSize: 16, fontWeight: '600' },
+  addressSearchContainer: { position: 'relative', marginBottom: 4 },
+  addressInput: { borderWidth: 1, borderColor: colors.border, borderRadius: 12, padding: 14, fontSize: 15, backgroundColor: '#fff', color: colors.dark },
+  suggestionsContainer: { backgroundColor: '#fff', borderWidth: 1, borderColor: colors.border, borderRadius: 12, marginBottom: 8, overflow: 'hidden' },
+  suggestionItem: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12, paddingHorizontal: 14, borderBottomWidth: 1, borderBottomColor: colors.borderLight },
+  suggestionIcon: { fontSize: 16, marginRight: 10 },
+  suggestionText: { fontSize: 14, color: colors.dark, flex: 1 },
+  mapContainer: { height: 200, borderRadius: 16, overflow: 'hidden', marginVertical: 12, borderWidth: 1, borderColor: colors.border },
+  map: { flex: 1 },
+  mapMarker: { alignItems: 'center', justifyContent: 'center' },
+  mapOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.05)', alignItems: 'center', justifyContent: 'center' },
+  mapOverlayText: { fontSize: 13, color: colors.gray, textAlign: 'center', paddingHorizontal: 40 },
   locationConfirmed: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: '#E8F5E9', padding: 16, borderRadius: 12, marginBottom: 12 },
   locationIcon: { fontSize: 24 },
   locationText: { fontSize: 16, fontWeight: '600', color: '#2E7D32', flex: 1 },
+  sliderContainer: { flexDirection: 'row', alignItems: 'center', gap: 8, marginVertical: 8 },
+  sliderLabel: { fontSize: 12, color: colors.gray, width: 40 },
+  sliderTrack: { flex: 1, height: 6, backgroundColor: colors.border, borderRadius: 3, position: 'relative' },
+  sliderFill: { height: '100%', backgroundColor: colors.primary, borderRadius: 3 },
+  sliderThumb: { position: 'absolute', top: -8, width: 22, height: 22, borderRadius: 11, backgroundColor: colors.primary, borderWidth: 3, borderColor: '#fff', marginLeft: -11, elevation: 3, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.2, shadowRadius: 3 },
   editText: { fontSize: 14, color: colors.primary, fontWeight: '600' },
   distanceRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, alignItems: 'center' },
 });
