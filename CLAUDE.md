@@ -168,6 +168,24 @@ Do NOT ask the user to start backend or dashboard manually — just do it.
 
 When making git commits, do NOT include any Co-Authored-By lines or AI attribution. All commits are authored by the user. Keep commit messages clean and professional.
 
+## Honesty Rules
+
+**NEVER claim a task is complete if it isn't actually working.** Specifically:
+- If a feature depends on an API key, environment variable, or external service — **verify it's actually configured and working** before claiming success. Test it end-to-end.
+- If you add code with guards like `if settings.SOME_KEY:` that silently skip the feature when unconfigured — **that's not implementing the feature**. Flag it.
+- If a feature can't be implemented as requested (e.g., native module not available in Expo Go), **tell the user immediately** with the exact limitation and alternatives. Don't silently downgrade.
+- If you're unsure whether something works, **say so**. "I wrote the code but couldn't verify it works because X" is always better than "Done!"
+- When the user asks for something specific, either do it exactly or explain why you're doing it differently. Never silently ignore instructions.
+
+## Dev Build Setup
+
+The project uses a **development build** (not Expo Go) for testing. To rebuild and install:
+```
+cd mobile
+JAVA_HOME=/Library/Java/JavaVirtualMachines/temurin-17.jdk/Contents/Home ANDROID_HOME=~/Library/Android/sdk npx expo run:android
+```
+After first build, just run `npx expo start --dev-client` and relaunch the app on the phone.
+
 ## Current Phase
 
 All 18 build phases complete. Onboarding overhaul complete.

@@ -1092,11 +1092,13 @@ export default function ProfileSetupScreen() {
     </View>
   );
 
+  // Location search state (must be at component top level, not inside renderLocation)
+  const [addressQuery, setAddressQuery] = useState('');
+  const [suggestions, setSuggestions] = useState<Array<{ name: string; lat: number; lng: number }>>([]);
+  const [searchingAddr, setSearchingAddr] = useState(false);
+  const searchTimeout = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const renderLocation = () => {
-    const [addressQuery, setAddressQuery] = useState('');
-    const [suggestions, setSuggestions] = useState<Array<{ name: string; lat: number; lng: number }>>([]);
-    const [searchingAddr, setSearchingAddr] = useState(false);
-    const searchTimeout = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 
     const handleGetLocation = async () => {
       setLocationLoading(true);
