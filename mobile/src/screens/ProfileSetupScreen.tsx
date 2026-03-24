@@ -403,6 +403,7 @@ export default function ProfileSetupScreen() {
   const [prefBodyType, setPrefBodyType] = useState<string[]>([]);
   const [prefSocialEnergyMin, setPrefSocialEnergyMin] = useState(1);
   const [prefSocialEnergyMax, setPrefSocialEnergyMax] = useState(5);
+  const [prefSocialEnergyLevels, setPrefSocialEnergyLevels] = useState<number[]>([1, 2, 3, 4, 5]);
 
   // Location search state
   const [addressQuery, setAddressQuery] = useState('');
@@ -628,7 +629,7 @@ export default function ProfileSetupScreen() {
           ...(styleTags.length > 0 ? { style_tags: styleTags.map(s => s.toLowerCase()) } : {}),
           // Preferences about others
           ...(prefBodyType.length > 0 ? { pref_body_type: prefBodyType.map(b => b.toLowerCase()) } : {}),
-          pref_social_energy_range: [prefSocialEnergyMin, prefSocialEnergyMax],
+          pref_social_energy_range: [Math.min(...prefSocialEnergyLevels), Math.max(...prefSocialEnergyLevels)],
           social_energy: socialEnergy,
           humor_styles: humorStyles.filter(h => h !== '__other__').map(h => h.toLowerCase()).concat(
             customHumor.trim() ? [customHumor.trim().toLowerCase()] : [],
@@ -1317,31 +1318,21 @@ export default function ProfileSetupScreen() {
         }} />
 
       <Text style={styles.label}>Preferred social energy range</Text>
-      <Text style={styles.stepSub}>Tap each level you're open to</Text>
+      <Text style={styles.stepSub}>Tap to select/deselect each level</Text>
       <View style={styles.distanceRow}>
         <Text style={{ color: colors.gray, fontSize: 12 }}>Introvert</Text>
         <View style={styles.sliderRow}>
           {[1, 2, 3, 4, 5].map(n => {
-            const isSelected = n >= prefSocialEnergyMin && n <= prefSocialEnergyMax;
+            const isSelected = prefSocialEnergyLevels.includes(n);
             return (
               <TouchableOpacity key={n} onPress={() => {
-                if (isSelected) {
-                  // Deselect: shrink range from the nearest edge
-                  if (n === prefSocialEnergyMin && n === prefSocialEnergyMax) {
-                    // Last one selected, reset to full range
-                    setPrefSocialEnergyMin(1);
-                    setPrefSocialEnergyMax(5);
-                  } else if (n === prefSocialEnergyMin) {
-                    setPrefSocialEnergyMin(n + 1);
-                  } else if (n === prefSocialEnergyMax) {
-                    setPrefSocialEnergyMax(n - 1);
+                setPrefSocialEnergyLevels(prev => {
+                  if (prev.includes(n)) {
+                    const next = prev.filter(x => x !== n);
+                    return next.length === 0 ? [n] : next; // keep at least 1
                   }
-                  // Can't deselect from middle of range
-                } else {
-                  // Select: expand range to include this value
-                  setPrefSocialEnergyMin(Math.min(prefSocialEnergyMin, n));
-                  setPrefSocialEnergyMax(Math.max(prefSocialEnergyMax, n));
-                }
+                  return [...prev, n].sort();
+                });
               }} style={[styles.sliderDot, isSelected && styles.sliderDotActive]}>
                 <Text style={[styles.sliderDotText, isSelected && styles.sliderDotTextActive]}>{n}</Text>
               </TouchableOpacity>
