@@ -263,7 +263,7 @@ export default function AppNavigator() {
       setCheckingProfile(true);
       getMyProfile()
         .then(profile => {
-          setHasProfile(!!profile.bio);
+          setHasProfile(!!profile.bio || (profile.interests && profile.interests.length > 0));
         })
         .catch(() => {
           setHasProfile(false);

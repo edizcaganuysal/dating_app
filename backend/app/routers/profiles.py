@@ -48,9 +48,11 @@ async def create_profile(
     current_user.age_range_min = data.age_range_min
     current_user.age_range_max = data.age_range_max
 
-    # Legacy bio compat
+    # Auto-generate bio from prompts if not provided
     if data.bio:
         current_user.bio = data.bio
+    elif data.prompts and not current_user.bio:
+        current_user.bio = " | ".join(f"{p.prompt} {p.answer}" for p in data.prompts[:2])
 
     # Thorough-only fields
     if data.social_energy is not None:

@@ -583,7 +583,7 @@ export default function ProfileSetupScreen() {
   const handleSubmit = async () => {
     setLoading(true);
     try {
-      const photoUrls = photos.filter(p => p !== null).map(p => p!.serverUrl);
+      const photoUrls = photos.filter(p => p !== null && p.serverUrl !== '').map(p => p!.serverUrl);
       const vibes: VibeAnswer[] = VIBE_QUESTIONS.map((q, i) => ({ question: q.question, answer: vibeAnswers[i]! }));
       const finalProgram = program === 'Other' ? customProgram.trim() : program;
 
@@ -666,7 +666,10 @@ export default function ProfileSetupScreen() {
       } else if (e?.message) {
         message = e.message;
       }
-      Alert.alert('Profile Creation Failed', message);
+      // Include status code for debugging
+      const status = e?.response?.status ? ` (${e.response.status})` : '';
+      console.error('Profile creation error:', JSON.stringify(e?.response?.data || e?.message));
+      Alert.alert('Profile Creation Failed', message + status);
     } finally { setLoading(false); }
   };
 
