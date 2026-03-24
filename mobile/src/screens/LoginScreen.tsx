@@ -17,6 +17,7 @@ import { colors, typography, spacing, radii } from '../theme';
 import { AnimatedButton } from '../components';
 import { haptic } from '../utils/haptics';
 import { useFadeIn } from '../utils/animations';
+import { API_BASE_URL } from '../api/client';
 
 type Props = NativeStackScreenProps<AuthStackParamList, "Login">;
 
@@ -50,7 +51,7 @@ export default function LoginScreen({ navigation, route }: Props) {
         } else if (error.code === "ERR_NETWORK" || error.message?.includes("Network")) {
           message = "Cannot reach the server. Check your connection or try again later.";
         } else {
-          message = `Unexpected error: ${error.message || String(error)}`;
+          message = `Unexpected error: ${error.message || String(error)}\n\nAPI URL: ${API_BASE_URL}`;
         }
       }
       haptic.error();
@@ -72,6 +73,9 @@ export default function LoginScreen({ navigation, route }: Props) {
         <Animated.View style={subtitleFade}>
           <Text style={styles.subtitle}>Group dating for university students</Text>
         </Animated.View>
+        <Text style={{ fontSize: 10, color: colors.gray, textAlign: 'center', marginBottom: 8 }}>
+          API: {API_BASE_URL}
+        </Text>
 
         {successMessage && (
           <Text style={styles.successMessage}>{successMessage}</Text>
