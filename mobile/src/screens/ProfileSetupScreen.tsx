@@ -348,6 +348,7 @@ export default function ProfileSetupScreen() {
   const [step, setStep] = useState(0);
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [uploadingSlots, setUploadingSlots] = useState<Record<number, boolean>>({});
 
   // Shared state
   const [photos, setPhotos] = useState<(PhotoSlot | null)[]>([null, null, null, null, null, null]);
@@ -454,28 +455,26 @@ export default function ProfileSetupScreen() {
       } else {
         const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
         if (status !== 'granted') { Alert.alert('Permission Required', 'Photo library access needed.'); return; }
-        result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], allowsEditing: true, aspect: [4, 5], quality: 0.8 });
+        result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], allowsEditing: true, aspect: [4, 5], quality: 0.8, orderedSelection: true, selectionLimit: 1 });
       }
       if (!result.canceled && result.assets[0]) {
-        // Show photo immediately with analyzing state
         const localUri = result.assets[0].uri;
-        const updated = [...photos];
-        updated[index] = { localUri, serverUrl: '' };
-        setPhotos(updated);
-        setUploading(true);
-        try {
-          const response = await uploadPhoto(localUri);
-          const updated2 = [...photos];
-          updated2[index] = { localUri, serverUrl: response.url };
-          setPhotos(updated2);
-        } catch (e: any) {
-          // Remove the photo on failure
-          const reverted = [...photos];
-          reverted[index] = null;
-          setPhotos(reverted);
-          const detail = e?.response?.data?.detail || 'Could not upload.';
-          Alert.alert('Photo Rejected', detail);
-        } finally { setUploading(false); }
+        // Show photo immediately with analyzing overlay
+        setPhotos(prev => { const u = [...prev]; u[index] = { localUri, serverUrl: '' }; return u; });
+        setUploadingSlots(prev => ({ ...prev, [index]: true }));
+        // Upload + AI verify in background — doesn't block other slots
+        uploadPhoto(localUri)
+          .then(response => {
+            setPhotos(prev => { const u = [...prev]; u[index] = { localUri, serverUrl: response.url }; return u; });
+          })
+          .catch((e: any) => {
+            setPhotos(prev => { const u = [...prev]; u[index] = null; return u; });
+            const detail = e?.response?.data?.detail || 'Could not upload.';
+            Alert.alert('Photo Rejected', detail);
+          })
+          .finally(() => {
+            setUploadingSlots(prev => { const u = { ...prev }; delete u[index]; return u; });
+          });
       }
     } catch { Alert.alert('Error', 'Could not access photos.'); }
   };
@@ -730,27 +729,41 @@ export default function ProfileSetupScreen() {
     <View>
       <Text style={styles.stepTitle}>Add your photos</Text>
       <Text style={styles.stepSub}>{photoCount < 3 ? `Add at least ${3 - photoCount} more` : `${photoCount} photos added`}</Text>
+      <View style={styles.photoGuidelinesBox}>
+        <Text style={styles.photoGuidelinesTitle}>Photo guidelines</Text>
+        <Text style={styles.photoGuidelinesText}>- Clear photos of your face (no heavy filters)</Text>
+        <Text style={styles.photoGuidelinesText}>- All photos must be of you (same person)</Text>
+        <Text style={styles.photoGuidelinesText}>- No group photos, screenshots, or AI images</Text>
+        <Text style={styles.photoGuidelinesText}>- First photo is your main profile picture</Text>
+      </View>
       <View style={styles.photoGrid}>
-        {photos.map((p, i) => (
-          <TouchableOpacity key={i} style={styles.photoSlot} onPress={() => p ? setPhotos(photos.map((ph, j) => j === i ? null : ph)) : showPhotoOptions(i)} disabled={uploading}>
+        {photos.map((p, i) => {
+          const isSlotUploading = uploadingSlots[i] || false;
+          return (
+          <TouchableOpacity key={i} style={styles.photoSlot} onPress={() => {
+            if (isSlotUploading) return;
+            if (p && p.serverUrl !== '') { setPhotos(prev => { const u = [...prev]; u[i] = null; return u; }); }
+            else if (!p) { showPhotoOptions(i); }
+          }} disabled={isSlotUploading}>
             {p ? (
               <View style={styles.photoFull}>
                 <Image source={{ uri: p.localUri }} style={styles.photoImg} />
                 {p.serverUrl === '' && (
                   <View style={styles.analyzingOverlay}>
                     <ActivityIndicator size="small" color="#fff" />
-                    <Text style={styles.analyzingText}>Analyzing...</Text>
+                    <Text style={styles.analyzingText}>Verifying...</Text>
                   </View>
                 )}
                 {p.serverUrl !== '' && (
-                  <TouchableOpacity style={styles.removeBtn} onPress={() => setPhotos(photos.map((ph, j) => j === i ? null : ph))}><Text style={styles.removeTxt}>X</Text></TouchableOpacity>
+                  <TouchableOpacity style={styles.removeBtn} onPress={() => setPhotos(prev => { const u = [...prev]; u[i] = null; return u; })}><Text style={styles.removeTxt}>X</Text></TouchableOpacity>
                 )}
               </View>
             ) : (
               <View style={styles.emptySlot}><Text style={styles.plusIcon}>+</Text>{i < 3 && <Text style={styles.reqLabel}>Required</Text>}</View>
             )}
           </TouchableOpacity>
-        ))}
+          );
+        })}
       </View>
 
       {/* Video Selfie Verification */}
@@ -1398,9 +1411,9 @@ export default function ProfileSetupScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.surfaceElevated },
   content: { padding: 20, paddingBottom: 60 },
-  pathContent: { padding: 20, paddingBottom: 60, flexGrow: 1, justifyContent: 'center' },
+  pathContent: { paddingHorizontal: 24, paddingVertical: 40, flexGrow: 1, justifyContent: 'center', alignItems: 'center' },
   input: { borderWidth: 1, borderColor: colors.border, borderRadius: 10, padding: 14, fontSize: 16, backgroundColor: colors.surfaceElevated },
-  header: { fontSize: 24, fontWeight: 'bold', color: colors.primary, marginBottom: 4 },
+  header: { fontSize: 28, fontWeight: 'bold', color: colors.primary, marginBottom: 8, textAlign: 'center' },
   subtitle: { fontSize: 15, color: colors.darkSecondary, marginBottom: 24 },
   stepIndicator: { fontSize: 13, color: colors.gray, marginBottom: 16 },
   stepTitle: { fontSize: 22, fontWeight: '700', marginBottom: 6 },
@@ -1473,6 +1486,9 @@ const styles = StyleSheet.create({
   removeTxt: { color: '#fff', fontSize: 12, fontWeight: 'bold' },
   analyzingOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.5)', borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
   analyzingText: { color: '#fff', fontSize: 11, fontWeight: '600', marginTop: 4 },
+  photoGuidelinesBox: { backgroundColor: colors.surfaceSelected, borderRadius: 12, padding: 14, marginBottom: 14, borderWidth: 1, borderColor: colors.borderLight },
+  photoGuidelinesTitle: { fontSize: 14, fontWeight: '700', color: colors.dark, marginBottom: 6 },
+  photoGuidelinesText: { fontSize: 13, color: colors.darkSecondary, lineHeight: 20 },
   emptySlot: { flex: 1, borderWidth: 2, borderColor: colors.border, borderStyle: 'dashed', borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: '#fafafa' },
   plusIcon: { fontSize: 32, color: colors.grayLight },
   reqLabel: { fontSize: 10, color: colors.gray, marginTop: 2 },
