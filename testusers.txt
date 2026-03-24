@@ -1,0 +1,38 @@
+LoveGenie Test Accounts
+=======================
+
+1. Admin Account
+   Email:    admin@mail.utoronto.ca
+   Password: admin123
+   Notes:    Has is_admin=True. Use for admin dashboard login, manual matching,
+             selfie review, user management. Created by seed script.
+
+2. Onboarding Test Account
+   Email:    test1@mail.utoronto.ca
+   Password: Test1234
+   Notes:    Profile resets on every login. Always starts onboarding from scratch.
+             Use to test the full onboarding flow (photos, prompts, vibes, etc.)
+             without creating new accounts each time.
+
+3. Pre-Filled Test Account (PRIMARY - use this to test features)
+   Email:    tester@mail.utoronto.ca
+   Password: Test1234
+   Notes:    Fully onboarded (Alex Chen, male, CS, 21yo). Skips onboarding entirely.
+             When this user creates a date request, the other 3 test users below
+             automatically create matching requests → instant group match for testing
+             group chat, romantic interest, and post-date features.
+
+4. Test Companion Account
+   Email:    tester2@mail.utoronto.ca
+   Password: Test1234
+   Notes:    Jordan Park, female, Psychology, 20yo. Auto-matched with tester@.
+
+5. Test Companion Account
+   Email:    tester3@mail.utoronto.ca
+   Password: Test1234
+   Notes:    Sam Wilson, male, Engineering, 22yo. Auto-matched with tester@.
+
+6. Test Companion Account
+   Email:    tester4@mail.utoronto.ca
+   Password: Test1234
+   Notes:    Riley Kim, female, Business, 21yo. Auto-matched with tester@.
