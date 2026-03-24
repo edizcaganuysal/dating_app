@@ -22,7 +22,7 @@ export const API_BASE_URL = getApiBaseUrl();
 
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 10000,
+  timeout: 30000, // 30s default — photo verification needs time
   headers: {
     "Content-Type": "application/json",
   },
