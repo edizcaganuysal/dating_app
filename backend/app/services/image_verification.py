@@ -128,7 +128,8 @@ async def verify_photo_is_human(image_path: str) -> dict:
 
     except Exception as e:
         logger.error(f"Photo verification failed: {e}")
-        return {"is_human": True, "is_ai_generated": False, "confidence": 0.0, "reason": f"Verification unavailable: {e}"}
+        # FAIL CLOSED — reject on error, don't silently accept
+        return {"is_human": False, "is_ai_generated": False, "has_clear_face": False, "confidence": 0.0, "reason": f"Could not verify this photo. Please try again. ({type(e).__name__})"}
 
 
 async def verify_photos_same_person(photo_paths: list[str]) -> dict:
@@ -162,26 +163,41 @@ async def verify_photos_same_person(photo_paths: list[str]) -> dict:
                 {
                     "role": "system",
                     "content": (
-                        "You are a face-matching verification system. "
-                        "Analyze ALL provided photos and determine if they show the same person. "
-                        "Respond ONLY with valid JSON: "
-                        '{"same_person": bool, "confidence": float 0-1, "reason": "brief explanation"}'
+                        "You are a strict face-matching verification system for a dating app. "
+                        "You MUST determine if ALL provided photos show the SAME person. "
+                        "Look at facial features, bone structure, skin tone, hair, and overall appearance. "
+                        "Different people = same_person: false. Same person in different settings/outfits = same_person: true. "
+                        "Be STRICT — if you have any doubt, say false. This prevents catfishing.\n\n"
+                        "Respond ONLY with valid JSON (no markdown, no text before/after): "
+                        '{"same_person": bool, "confidence": float 0-1, "reason": "specific explanation of what matches or differs between the faces"}'
                     ),
                 },
-                {"role": "user", "content": [{"type": "text", "text": "Are all these photos of the same person?"}, *image_content]},
+                {"role": "user", "content": [{"type": "text", "text": "Check if ALL these photos show the same person. Be strict."}, *image_content]},
             ],
             max_tokens=200,
         )
 
-        content = response.choices[0].message.content or "{}"
+        content = response.choices[0].message.content or ""
         content = content.strip()
         if content.startswith("```"):
             content = content.split("\n", 1)[-1].rsplit("```", 1)[0].strip()
-        return json.loads(content)
+
+        if not content:
+            logger.error("Same-person verification: empty response from API")
+            return {"same_person": False, "confidence": 0.0, "reason": "Verification returned empty response. Please try again."}
+
+        try:
+            result = json.loads(content)
+        except json.JSONDecodeError:
+            logger.error(f"Same-person verification: invalid JSON: {content[:200]}")
+            return {"same_person": False, "confidence": 0.0, "reason": "Verification failed to parse. Please try again."}
+
+        logger.info(f"Same-person check result: {result}")
+        return result
 
     except Exception as e:
         logger.error(f"Same-person verification failed: {e}")
-        return {"same_person": True, "confidence": 0.0, "reason": f"Verification unavailable: {e}"}
+        return {"same_person": False, "confidence": 0.0, "reason": f"Could not verify if photos match. Please try again. ({type(e).__name__})"}
 
 
 async def verify_selfie_photo(selfie_path: str, photo_paths: list[str]) -> dict:

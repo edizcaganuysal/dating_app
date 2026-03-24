@@ -5,7 +5,7 @@ import uuid
 logger = logging.getLogger(__name__)
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -198,7 +198,7 @@ async def get_user_profile(
 @router.post("/upload-photo")
 async def upload_photo(
     file: UploadFile = File(...),
-    existing_urls: str = "",
+    existing_urls: str = Form(""),
     current_user: User = Depends(get_current_user),
 ):
     """
@@ -240,6 +240,7 @@ async def upload_photo(
                 all_existing_paths.append(epath)
 
     # From onboarding session (passed by frontend)
+    logger.info(f"[UPLOAD] {current_user.email}: existing_urls='{existing_urls}', saved_photos={len(all_existing_paths)}")
     if existing_urls:
         for existing_url in existing_urls.split(","):
             existing_url = existing_url.strip()
@@ -291,7 +292,7 @@ async def upload_photo(
 
             logger.info(f"[SAME PERSON] {current_user.email}: same={same_result.get('same_person')}, conf={same_result.get('confidence')}, reason={same_result.get('reason')}")
 
-            if not same_result.get("same_person", True) and same_result.get("confidence", 0) >= 0.7:
+            if not same_result.get("same_person", True) and same_result.get("confidence", 0) >= 0.5:
                 os.remove(filepath)
                 raise HTTPException(
                     status_code=400,
@@ -311,7 +312,7 @@ async def upload_photo(
 @router.post("/selfie-verify")
 async def selfie_verify(
     file: UploadFile = File(...),
-    photo_urls: str = "",
+    photo_urls: str = Form(""),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
