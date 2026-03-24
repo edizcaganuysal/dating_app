@@ -462,8 +462,12 @@ export default function ProfileSetupScreen() {
         // Show photo immediately with analyzing overlay
         setPhotos(prev => { const u = [...prev]; u[index] = { localUri, serverUrl: '' }; return u; });
         setUploadingSlots(prev => ({ ...prev, [index]: true }));
+        // Collect existing uploaded URLs for cross-checking
+        const existingUrls = photos
+          .filter((p, idx) => p !== null && p.serverUrl !== '' && idx !== index)
+          .map(p => p!.serverUrl);
         // Upload + AI verify in background — doesn't block other slots
-        uploadPhoto(localUri)
+        uploadPhoto(localUri, existingUrls)
           .then(response => {
             setPhotos(prev => { const u = [...prev]; u[index] = { localUri, serverUrl: response.url }; return u; });
           })
@@ -512,7 +516,10 @@ export default function ProfileSetupScreen() {
         setSelfieMessage('Verifying your identity...');
 
         try {
-          const response = await selfieVerify(result.assets[0].uri, false);
+          const existingPhotoUrls = photos
+            .filter(p => p !== null && p.serverUrl !== '')
+            .map(p => p!.serverUrl);
+          const response = await selfieVerify(result.assets[0].uri, false, existingPhotoUrls);
 
           if (response.status === 'verified') {
             setSelfieStatus('verified');

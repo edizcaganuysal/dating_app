@@ -16,7 +16,7 @@ export const updateProfile = async (data: ProfileUpdateData): Promise<PrivatePro
   return response.data;
 };
 
-export const uploadPhoto = async (uri: string): Promise<{ url: string }> => {
+export const uploadPhoto = async (uri: string, existingUrls: string[] = []): Promise<{ url: string }> => {
   const formData = new FormData();
   const filename = uri.split('/').pop() || 'photo.jpg';
   const ext = filename.split('.').pop()?.toLowerCase() || 'jpg';
@@ -28,8 +28,14 @@ export const uploadPhoto = async (uri: string): Promise<{ url: string }> => {
     type: mimeType,
   } as any);
 
+  // Pass existing photo URLs so backend can cross-check same person
+  if (existingUrls.length > 0) {
+    formData.append('existing_urls', existingUrls.join(','));
+  }
+
   const response = await apiClient.post('/api/profiles/upload-photo', formData, {
     headers: { 'Content-Type': 'multipart/form-data' },
+    timeout: 60000, // AI verification can take time
   });
   return response.data;
 };
@@ -37,6 +43,7 @@ export const uploadPhoto = async (uri: string): Promise<{ url: string }> => {
 export const selfieVerify = async (
   uri: string,
   isVideo: boolean = false,
+  photoUrls: string[] = [],
 ): Promise<{ message: string; selfie_url: string; status: string; verification?: any }> => {
   const formData = new FormData();
   const filename = uri.split('/').pop() || (isVideo ? 'selfie.mp4' : 'selfie.jpg');
@@ -54,6 +61,10 @@ export const selfieVerify = async (
     name: filename,
     type: mimeType,
   } as any);
+
+  if (photoUrls.length > 0) {
+    formData.append('photo_urls', photoUrls.join(','));
+  }
 
   const response = await apiClient.post('/api/profiles/selfie-verify', formData, {
     headers: { 'Content-Type': 'multipart/form-data' },
