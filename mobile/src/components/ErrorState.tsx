@@ -11,7 +11,7 @@ interface ErrorStateProps {
 }
 
 export default function ErrorState({
-  message = 'Something went wrong',
+  message = 'Could not load this page. Check your connection and try again.',
   onRetry,
   icon = 'alert-circle-outline',
   fullScreen = true,

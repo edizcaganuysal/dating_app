@@ -296,12 +296,19 @@ export default function ProfileScreen() {
           await updateProfile({ photo_urls: urls } as any);
           setProfile(prev => prev ? { ...prev, photo_urls: urls } : prev);
         } catch (e: any) {
-          Alert.alert('Upload Failed', e?.response?.data?.detail || 'Could not upload photo.');
+          let detail = e?.response?.data?.detail;
+          if (!detail) {
+            if (e?.code === 'ECONNABORTED') detail = 'Photo verification timed out. Try a smaller photo or retake it.';
+            else if (e?.code === 'ERR_NETWORK') detail = 'Cannot reach the server. Check your WiFi connection.';
+            else if (e?.response?.status === 500) detail = 'Verification service error. Please try again.';
+            else detail = `Upload failed: ${e?.message || 'Unknown error'}`;
+          }
+          Alert.alert('Photo Rejected', detail);
         } finally {
           setSaving(false);
         }
       }
-    } catch { Alert.alert('Error', 'Could not access photos.'); }
+    } catch (err: any) { Alert.alert('Camera Error', err?.message || 'Could not access camera or photos. Check your permissions in Settings.'); }
   };
 
   const showPhotoOptions = (index: number) => {

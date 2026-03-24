@@ -474,14 +474,29 @@ export default function ProfileSetupScreen() {
           })
           .catch((e: any) => {
             setPhotos(prev => { const u = [...prev]; u[index] = null; return u; });
-            const detail = e?.response?.data?.detail || 'Could not upload.';
+            let detail: string;
+            if (e?.response?.data?.detail) {
+              detail = typeof e.response.data.detail === 'string'
+                ? e.response.data.detail
+                : JSON.stringify(e.response.data.detail);
+            } else if (e?.code === 'ECONNABORTED' || e?.message?.includes('timeout')) {
+              detail = 'Photo verification is taking too long. This can happen with large photos — try a smaller image or retake with your camera.';
+            } else if (e?.code === 'ERR_NETWORK' || e?.message?.includes('Network')) {
+              detail = 'Cannot reach the server. Check your WiFi connection and try again.';
+            } else if (e?.response?.status === 500) {
+              detail = 'The verification service encountered an error. Please try again in a moment.';
+            } else if (e?.response?.status === 413) {
+              detail = 'This photo is too large. Please use a smaller image (under 10MB).';
+            } else {
+              detail = `Upload failed: ${e?.message || 'Unknown network issue'}. Check your connection and try again.`;
+            }
             Alert.alert('Photo Rejected', detail);
           })
           .finally(() => {
             setUploadingSlots(prev => { const u = { ...prev }; delete u[index]; return u; });
           });
       }
-    } catch { Alert.alert('Error', 'Could not access photos.'); }
+    } catch (err: any) { Alert.alert('Camera Error', err?.message || 'Could not access your camera or photo library. Check your permissions in Settings.'); }
   };
 
   const showPhotoOptions = (index: number) => {
@@ -527,16 +542,21 @@ export default function ProfileSetupScreen() {
             setSelfieMessage('Identity confirmed');
           } else {
             setSelfieStatus('failed');
-            setSelfieMessage(response.message || 'Verification failed. Please try again with a clear, unfiltered selfie.');
+            setSelfieMessage(response.message || 'Your selfie could not be verified. Make sure your face is clearly visible, well-lit, and without filters.');
           }
         } catch (e: any) {
           setSelfieStatus('failed');
-          setSelfieMessage(e?.response?.data?.detail || 'Verification failed. Please try again.');
+          const selfieErr = e?.response?.data?.detail
+            || (e?.code === 'ECONNABORTED' ? 'Selfie verification timed out. Try again with better lighting.'
+            : e?.code === 'ERR_NETWORK' ? 'Cannot reach the server. Check your connection.'
+            : e?.response?.status === 500 ? 'Verification service error. Please try again in a moment.'
+            : `Verification failed: ${e?.message || 'Unknown error'}. Try again.`);
+          setSelfieMessage(selfieErr);
         }
       }
     } catch {
       setSelfieStatus('failed');
-      setSelfieMessage('Could not access camera.');
+      setSelfieMessage('Could not access your camera. Check camera permissions in your phone Settings.');
     }
   };
 
@@ -1141,7 +1161,7 @@ export default function ProfileSetupScreen() {
           }
         } catch {}
       } catch {
-        Alert.alert('Error', 'Could not get your location. Please try entering an address instead.');
+        Alert.alert('Location Error', 'Could not determine your location. Make sure GPS is enabled, or type your address manually below.');
       } finally {
         setLocationLoading(false);
       }

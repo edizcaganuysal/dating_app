@@ -316,7 +316,7 @@ async def verify_selfie_photo(selfie_path: str, photo_paths: list[str]) -> dict:
             "has_filters": False,
             "is_screen_capture": False,
             "confidence": 0.0,
-            "reason": f"Verification unavailable: {e}",
+            "reason": f"Selfie verification service encountered an error. Please try again with good lighting and a clear view of your face. ({type(e).__name__})",
             "auto_approve": False,
         }
 
@@ -440,7 +440,7 @@ async def verify_video_selfie(video_path: str, photo_paths: list[str]) -> dict:
             "faces_match": False,
             "is_ai_generated": False,
             "confidence": 0.0,
-            "reason": f"Verification unavailable: {e}",
+            "reason": f"Video verification service encountered an error. Please try again with good lighting and a clear view of your face. ({type(e).__name__})",
             "auto_approve": False,
         }
 
