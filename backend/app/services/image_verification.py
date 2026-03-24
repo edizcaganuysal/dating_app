@@ -88,12 +88,21 @@ async def verify_photo_is_human(image_path: str) -> dict:
                 {
                     "role": "system",
                     "content": (
-                        "You are an image verification system for a dating app. "
-                        "Analyze the provided photo and determine: "
-                        "1) Does it contain a real human face? "
-                        "2) Does it appear to be AI-generated (deepfake, midjourney, stable diffusion, etc)? "
+                        "You are a strict image verification system for a dating app. "
+                        "Analyze the photo and check ALL of the following:\n"
+                        "1) Does it contain a clearly visible real human face?\n"
+                        "2) Does it appear to be AI-generated (deepfake, midjourney, stable diffusion, DALL-E, etc)?\n"
+                        "3) Is it a meme, screenshot, cartoon, drawing, or non-photo image?\n"
+                        "4) Is the face clearly visible and not obscured by objects, masks, or heavy filters?\n\n"
+                        "The 'reason' field MUST be specific and user-friendly. Examples:\n"
+                        "- 'This is a photo of a landscape with no person visible'\n"
+                        "- 'This appears to be a screenshot of a social media post, not a personal photo'\n"
+                        "- 'The face is too blurry to verify — try a clearer photo'\n"
+                        "- 'This looks like an AI-generated portrait with unnatural skin texture'\n"
+                        "- 'This is a group photo — upload a photo of just yourself'\n"
+                        "- 'This appears to be a photo of a pet, not a person'\n\n"
                         "Respond ONLY with valid JSON: "
-                        '{"is_human": bool, "is_ai_generated": bool, "confidence": float 0-1, "reason": "brief explanation"}'
+                        '{"is_human": bool, "is_ai_generated": bool, "has_clear_face": bool, "confidence": float 0-1, "reason": "specific user-friendly explanation of what is wrong or right"}'
                     ),
                 },
                 {

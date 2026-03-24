@@ -1,5 +1,8 @@
+import logging
 import os
 import uuid
+
+logger = logging.getLogger(__name__)
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
@@ -221,22 +224,23 @@ async def upload_photo(
         verification = result
         ai_generated = result.get("is_ai_generated", False)
         is_human = result.get("is_human", True)
+        has_clear_face = result.get("has_clear_face", True)
         confidence = result.get("confidence", 0)
-        reason = result.get("reason", "")
+        reason = result.get("reason", "Unknown issue")
 
-        if ai_generated and confidence >= 0.7:
-            os.remove(filepath)
-            raise HTTPException(
-                status_code=400,
-                detail=f"This photo appears to be AI-generated. {reason}. Please upload a real photo.",
-            )
+        logger.info(f"[PHOTO CHECK] {current_user.email}: human={is_human}, ai={ai_generated}, face={has_clear_face}, conf={confidence}, reason={reason}")
 
-        if not is_human and confidence >= 0.7:
+        if ai_generated and confidence >= 0.6:
             os.remove(filepath)
-            raise HTTPException(
-                status_code=400,
-                detail=f"No face detected in this photo. {reason}. Please upload a clear photo showing your face.",
-            )
+            raise HTTPException(status_code=400, detail=reason)
+
+        if not is_human and confidence >= 0.6:
+            os.remove(filepath)
+            raise HTTPException(status_code=400, detail=reason)
+
+        if not has_clear_face and confidence >= 0.6:
+            os.remove(filepath)
+            raise HTTPException(status_code=400, detail=reason)
 
         # Compare with existing photos to ensure same person
         if current_user.photo_urls:
