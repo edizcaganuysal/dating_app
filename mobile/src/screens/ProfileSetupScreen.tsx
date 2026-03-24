@@ -487,13 +487,13 @@ export default function ProfileSetupScreen() {
   const showPhotoOptions = (index: number) => {
     if (Platform.OS === 'ios') {
       ActionSheetIOS.showActionSheetWithOptions(
-        { options: ['Take Photo', 'Choose from Gallery', 'Cancel'], cancelButtonIndex: 2 },
+        { options: ['Take Photo', 'Choose from Photos', 'Cancel'], cancelButtonIndex: 2, title: 'Add a photo of yourself' },
         (i) => { if (i === 0) pickImage(index, 'camera'); else if (i === 1) pickImage(index, 'gallery'); },
       );
     } else {
-      Alert.alert('Add Photo', '', [
-        { text: 'Take Photo', onPress: () => pickImage(index, 'camera') },
-        { text: 'Choose from Gallery', onPress: () => pickImage(index, 'gallery') },
+      Alert.alert('Add Photo', 'Use a clear photo of yourself', [
+        { text: 'Take Photo (Recommended)', onPress: () => pickImage(index, 'camera') },
+        { text: 'Choose from Photos', onPress: () => pickImage(index, 'gallery') },
         { text: 'Cancel', style: 'cancel' },
       ]);
     }
