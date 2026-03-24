@@ -450,15 +450,24 @@ export default function ProfileSetupScreen() {
         result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], allowsEditing: true, aspect: [4, 5], quality: 0.8 });
       }
       if (!result.canceled && result.assets[0]) {
+        // Show photo immediately with analyzing state
+        const localUri = result.assets[0].uri;
+        const updated = [...photos];
+        updated[index] = { localUri, serverUrl: '' };
+        setPhotos(updated);
         setUploading(true);
         try {
-          const { url } = await uploadPhoto(result.assets[0].uri);
-          const updated = [...photos];
-          updated[index] = { localUri: result.assets[0].uri, serverUrl: url };
-          setPhotos(updated);
+          const response = await uploadPhoto(localUri);
+          const updated2 = [...photos];
+          updated2[index] = { localUri, serverUrl: response.url };
+          setPhotos(updated2);
         } catch (e: any) {
+          // Remove the photo on failure
+          const reverted = [...photos];
+          reverted[index] = null;
+          setPhotos(reverted);
           const detail = e?.response?.data?.detail || 'Could not upload.';
-          Alert.alert('Upload Failed', detail);
+          Alert.alert('Photo Rejected', detail);
         } finally { setUploading(false); }
       }
     } catch { Alert.alert('Error', 'Could not access photos.'); }
@@ -711,14 +720,21 @@ export default function ProfileSetupScreen() {
     <View>
       <Text style={styles.stepTitle}>Add your photos</Text>
       <Text style={styles.stepSub}>{photoCount < 3 ? `Add at least ${3 - photoCount} more` : `${photoCount} photos added`}</Text>
-      {uploading && <View style={styles.uploadBar}><ActivityIndicator size="small" color={colors.primary} /><Text style={styles.uploadText}>Uploading...</Text></View>}
       <View style={styles.photoGrid}>
         {photos.map((p, i) => (
           <TouchableOpacity key={i} style={styles.photoSlot} onPress={() => p ? setPhotos(photos.map((ph, j) => j === i ? null : ph)) : showPhotoOptions(i)} disabled={uploading}>
             {p ? (
               <View style={styles.photoFull}>
                 <Image source={{ uri: p.localUri }} style={styles.photoImg} />
-                <TouchableOpacity style={styles.removeBtn} onPress={() => setPhotos(photos.map((ph, j) => j === i ? null : ph))}><Text style={styles.removeTxt}>X</Text></TouchableOpacity>
+                {p.serverUrl === '' && (
+                  <View style={styles.analyzingOverlay}>
+                    <ActivityIndicator size="small" color="#fff" />
+                    <Text style={styles.analyzingText}>Analyzing...</Text>
+                  </View>
+                )}
+                {p.serverUrl !== '' && (
+                  <TouchableOpacity style={styles.removeBtn} onPress={() => setPhotos(photos.map((ph, j) => j === i ? null : ph))}><Text style={styles.removeTxt}>X</Text></TouchableOpacity>
+                )}
               </View>
             ) : (
               <View style={styles.emptySlot}><Text style={styles.plusIcon}>+</Text>{i < 3 && <Text style={styles.reqLabel}>Required</Text>}</View>
@@ -1372,6 +1388,8 @@ const styles = StyleSheet.create({
   photoImg: { width: '100%', height: '100%', borderRadius: 12 },
   removeBtn: { position: 'absolute', top: 6, right: 6, width: 24, height: 24, borderRadius: 12, backgroundColor: 'rgba(0,0,0,0.6)', alignItems: 'center', justifyContent: 'center' },
   removeTxt: { color: '#fff', fontSize: 12, fontWeight: 'bold' },
+  analyzingOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.5)', borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  analyzingText: { color: '#fff', fontSize: 11, fontWeight: '600', marginTop: 4 },
   emptySlot: { flex: 1, borderWidth: 2, borderColor: colors.border, borderStyle: 'dashed', borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: '#fafafa' },
   plusIcon: { fontSize: 32, color: colors.grayLight },
   reqLabel: { fontSize: 10, color: colors.gray, marginTop: 2 },

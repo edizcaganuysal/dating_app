@@ -213,33 +213,57 @@ async def upload_photo(
     url = f"/uploads/{filename}"
 
     # Run AI verification if API key is configured
+    verification = {}
     if settings.OPENAI_API_KEY:
         result = await verify_photo_is_human(filepath)
+        verification = result
         ai_generated = result.get("is_ai_generated", False)
         is_human = result.get("is_human", True)
         confidence = result.get("confidence", 0)
+        reason = result.get("reason", "")
 
         if ai_generated and confidence >= 0.7:
             os.remove(filepath)
             raise HTTPException(
                 status_code=400,
-                detail="This photo appears to be AI-generated. Please upload a real photo of yourself.",
+                detail=f"This photo appears to be AI-generated. {reason}. Please upload a real photo.",
             )
 
         if not is_human and confidence >= 0.7:
             os.remove(filepath)
             raise HTTPException(
                 status_code=400,
-                detail="This photo doesn't appear to contain a person. Please upload a clear photo of yourself.",
+                detail=f"No face detected in this photo. {reason}. Please upload a clear photo showing your face.",
             )
 
-    # Score attractiveness (runs in background, doesn't block upload)
+        # Compare with existing photos to ensure same person
+        if current_user.photo_urls:
+            existing_paths = []
+            for existing_url in current_user.photo_urls[:4]:
+                epath = os.path.join(UPLOADS_DIR, os.path.basename(existing_url))
+                if os.path.exists(epath):
+                    existing_paths.append(epath)
+
+            if existing_paths:
+                all_paths = existing_paths + [filepath]
+                same_result = await verify_photos_same_person(all_paths)
+                verification["same_person_check"] = same_result
+
+                if not same_result.get("same_person", True) and same_result.get("confidence", 0) >= 0.75:
+                    os.remove(filepath)
+                    raise HTTPException(
+                        status_code=400,
+                        detail=f"This photo doesn't match your other photos. {same_result.get('reason', 'All photos must be of the same person.')}",
+                    )
+
+    # Score attractiveness
     attractiveness_result = None
     if settings.OPENAI_API_KEY:
         attractiveness_result = await score_attractiveness(filepath)
+        verification["attractiveness"] = attractiveness_result
         print(f"[ATTRACTIVENESS] {current_user.email} photo score: {attractiveness_result}")
 
-    return {"url": url, "filename": filename}
+    return {"url": url, "filename": filename, "verification": verification}
 
 
 @router.post("/selfie-verify")
@@ -344,15 +368,25 @@ async def selfie_verify(
             else:
                 current_user.selfie_status = "rejected"
                 current_user.is_selfie_verified = False
-                reason = verification_result.get("reason", "We couldn't verify your identity.")
+                # Build specific failure message based on what went wrong
+                issues = []
+                if verification_result.get("is_ai_generated"):
+                    issues.append("This image appears to be AI-generated or digitally created.")
+                if verification_result.get("is_screen_capture"):
+                    issues.append("This looks like a photo of a screen or printed picture, not a live selfie.")
                 if verification_result.get("has_filters"):
-                    reason = "Filters detected. Please take a natural selfie without any filters or editing."
-                elif verification_result.get("is_screen_capture"):
-                    reason = "This looks like a photo of a screen. Please take a live selfie with your camera."
-                elif verification_result.get("is_ai_generated"):
-                    reason = "This image appears to be AI-generated. Please take a real selfie."
-                elif not verification_result.get("faces_match"):
-                    reason = "Your selfie doesn't match your profile photos. Make sure it's you!"
+                    issues.append("Beauty filters or face-altering effects were detected. Remove all filters.")
+                if not verification_result.get("is_real_person", True):
+                    issues.append("No real human face was clearly detected in this photo.")
+                if not verification_result.get("is_live_photo", True):
+                    issues.append("This doesn't appear to be a live photo taken just now.")
+                if not verification_result.get("faces_match", True):
+                    issues.append("The person in this selfie doesn't match your profile photos.")
+
+                if issues:
+                    reason = " ".join(issues) + " Please try again."
+                else:
+                    reason = verification_result.get("reason", "Verification failed. Please try again with better lighting and no filters.")
                 await db.commit()
                 return {
                     "message": reason,
