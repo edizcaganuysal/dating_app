@@ -1,5 +1,5 @@
 import React from 'react';
-import { ViewStyle } from 'react-native';
+import { StyleProp, ViewStyle } from 'react-native';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -13,10 +13,11 @@ interface PressableScaleProps {
   onPress?: () => void;
   onLongPress?: () => void;
   children: React.ReactNode;
-  style?: ViewStyle;
+  style?: StyleProp<ViewStyle>;
   disabled?: boolean;
   scaleValue?: number;
   hapticOnPress?: boolean;
+  testID?: string;
 }
 
 export default function PressableScale({
@@ -27,6 +28,7 @@ export default function PressableScale({
   disabled = false,
   scaleValue = 0.96,
   hapticOnPress = true,
+  testID,
 }: PressableScaleProps) {
   const scale = useSharedValue(1);
 
@@ -63,7 +65,7 @@ export default function PressableScale({
 
   return (
     <GestureDetector gesture={composed}>
-      <Animated.View style={[animatedStyle, style]}>
+      <Animated.View style={[animatedStyle, style]} testID={testID}>
         {children}
       </Animated.View>
     </GestureDetector>

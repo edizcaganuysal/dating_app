@@ -27,7 +27,9 @@ import {
   PendingRequest,
   SearchResult,
 } from '../api/friends';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 import { colors } from '../theme';
+import { PressableScale } from '../components';
 
 export default function FriendsScreen() {
   const [friends, setFriends] = useState<Friend[]>([]);
@@ -261,24 +263,26 @@ export default function FriendsScreen() {
       {pending.length > 0 && (
         <View style={styles.card}>
           <Text style={styles.cardTitle}>Pending Requests</Text>
-          {pending.map(req => (
-            <View key={req.id} style={styles.pendingRow}>
-              <Text style={styles.friendName}>{req.friend_name}</Text>
-              <View style={styles.pendingActions}>
-                <TouchableOpacity
-                  style={styles.acceptButton}
-                  onPress={() => handleAccept(req.id)}
-                >
-                  <Text style={styles.acceptText}>Accept</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.rejectButton}
-                  onPress={() => handleReject(req.id)}
-                >
-                  <Text style={styles.rejectText}>Reject</Text>
-                </TouchableOpacity>
+          {pending.map((req, index) => (
+            <Animated.View key={req.id} entering={FadeInDown.delay(index * 50).springify()}>
+              <View style={styles.pendingRow}>
+                <Text style={styles.friendName}>{req.friend_name}</Text>
+                <View style={styles.pendingActions}>
+                  <PressableScale
+                    style={styles.acceptButton}
+                    onPress={() => handleAccept(req.id)}
+                  >
+                    <Text style={styles.acceptText}>Accept</Text>
+                  </PressableScale>
+                  <PressableScale
+                    style={styles.rejectButton}
+                    onPress={() => handleReject(req.id)}
+                  >
+                    <Text style={styles.rejectText}>Reject</Text>
+                  </PressableScale>
+                </View>
               </View>
-            </View>
+            </Animated.View>
           ))}
         </View>
       )}
@@ -291,35 +295,37 @@ export default function FriendsScreen() {
         {friends.length === 0 ? (
           <Text style={styles.emptyText}>No friends yet. Add some above!</Text>
         ) : (
-          friends.map(friend => (
-            <View key={friend.id} style={styles.friendRow}>
-              {friend.photo_urls?.[0] ? (
-                <Image source={{ uri: friend.photo_urls[0] }} style={styles.friendAvatar} />
-              ) : (
-                <View style={[styles.friendAvatar, styles.friendAvatarPlaceholder]}>
-                  <Ionicons name="person" size={20} color={colors.grayLight} />
-                </View>
-              )}
-              <View style={styles.friendInfo}>
-                <Text style={styles.friendName}>{friend.first_name} {friend.last_name}</Text>
-                <View style={styles.friendMeta}>
-                  <View style={[
-                    styles.genderBadge,
-                    { backgroundColor: friend.gender === 'male' ? colors.info : colors.primary },
-                  ]}>
-                    <Text style={styles.genderText}>
-                      {friend.gender === 'male' ? 'M' : 'F'}
-                    </Text>
+          friends.map((friend, index) => (
+            <Animated.View key={friend.id} entering={FadeInDown.delay(index * 50).springify()}>
+              <View style={styles.friendRow}>
+                {friend.photo_urls?.[0] ? (
+                  <Image source={{ uri: friend.photo_urls[0] }} style={styles.friendAvatar} />
+                ) : (
+                  <View style={[styles.friendAvatar, styles.friendAvatarPlaceholder]}>
+                    <Ionicons name="person" size={20} color={colors.grayLight} />
                   </View>
-                  {friend.program && (
-                    <Text style={styles.friendSub}>{friend.program}</Text>
-                  )}
+                )}
+                <View style={styles.friendInfo}>
+                  <Text style={styles.friendName}>{friend.first_name} {friend.last_name}</Text>
+                  <View style={styles.friendMeta}>
+                    <View style={[
+                      styles.genderBadge,
+                      { backgroundColor: friend.gender === 'male' ? colors.info : colors.primary },
+                    ]}>
+                      <Text style={styles.genderText}>
+                        {friend.gender === 'male' ? 'M' : 'F'}
+                      </Text>
+                    </View>
+                    {friend.program && (
+                      <Text style={styles.friendSub}>{friend.program}</Text>
+                    )}
+                  </View>
                 </View>
+                <PressableScale onPress={() => handleRemove(friend)}>
+                  <Ionicons name="close-circle-outline" size={22} color={colors.error} />
+                </PressableScale>
               </View>
-              <TouchableOpacity onPress={() => handleRemove(friend)}>
-                <Ionicons name="close-circle-outline" size={22} color={colors.error} />
-              </TouchableOpacity>
-            </View>
+            </Animated.View>
           ))
         )}
       </View>

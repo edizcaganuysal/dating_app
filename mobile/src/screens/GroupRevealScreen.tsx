@@ -11,8 +11,9 @@ import {
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { getGroupDetail, getIcebreakers, getVenueSuggestions } from '../api/chat';
 import { GroupDetail, Venue } from '../types';
+import Animated, { FadeIn, SlideInUp } from 'react-native-reanimated';
 import { colors } from '../theme';
-import { UserAvatar, LoadingState } from '../components';
+import { UserAvatar, LoadingState, PressableScale } from '../components';
 
 function getStatusLabel(group: GroupDetail): string {
   const today = new Date().toISOString().split('T')[0];
@@ -94,19 +95,21 @@ export default function GroupRevealScreen() {
 
       <Text style={styles.sectionTitle}>Your Group</Text>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.membersScroll}>
-        {group.members.map((member) => (
-          <View key={member.user_id} style={styles.memberCard} testID={`member-${member.user_id}`}>
-            <UserAvatar
-              photoUrl={member.profile.photo_urls.length > 0 ? member.profile.photo_urls[0] : null}
-              firstName={member.profile.first_name}
-              size="lg"
-            />
-            <Text style={styles.memberName}>{member.profile.first_name}</Text>
-            <Text style={styles.memberDetail}>Age {member.profile.age}</Text>
-            {member.profile.program && (
-              <Text style={styles.memberDetail}>{member.profile.program}</Text>
-            )}
-          </View>
+        {group.members.map((member, index) => (
+          <Animated.View key={member.user_id} entering={FadeIn.delay(index * 200).springify()}>
+            <View style={styles.memberCard} testID={`member-${member.user_id}`}>
+              <UserAvatar
+                photoUrl={member.profile.photo_urls.length > 0 ? member.profile.photo_urls[0] : null}
+                firstName={member.profile.first_name}
+                size="lg"
+              />
+              <Text style={styles.memberName}>{member.profile.first_name}</Text>
+              <Text style={styles.memberDetail}>Age {member.profile.age}</Text>
+              {member.profile.program && (
+                <Text style={styles.memberDetail}>{member.profile.program}</Text>
+              )}
+            </View>
+          </Animated.View>
         ))}
       </ScrollView>
 
@@ -114,18 +117,20 @@ export default function GroupRevealScreen() {
         <>
           <Text style={styles.sectionTitle}>Venue Suggestions</Text>
           {venues.map((venue, i) => (
-            <View key={i} style={styles.venueCard}>
-              <Text style={styles.venueName}>{venue.name}</Text>
-              <View style={styles.venueAddressRow}>
-                <Text style={styles.venueAddress}>{venue.address}</Text>
-                {venue.address && (
-                  <TouchableOpacity onPress={() => handleOpenMaps(venue.address)}>
-                    <Text style={styles.mapsLink}>Open in Maps</Text>
-                  </TouchableOpacity>
-                )}
+            <Animated.View key={i} entering={SlideInUp.delay(300).springify()}>
+              <View style={styles.venueCard}>
+                <Text style={styles.venueName}>{venue.name}</Text>
+                <View style={styles.venueAddressRow}>
+                  <Text style={styles.venueAddress}>{venue.address}</Text>
+                  {venue.address && (
+                    <TouchableOpacity onPress={() => handleOpenMaps(venue.address)}>
+                      <Text style={styles.mapsLink}>Open in Maps</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+                <Text style={styles.venuePrice}>{venue.price_range}</Text>
               </View>
-              <Text style={styles.venuePrice}>{venue.price_range}</Text>
-            </View>
+            </Animated.View>
           ))}
         </>
       )}
@@ -143,7 +148,7 @@ export default function GroupRevealScreen() {
 
       <View style={styles.actions}>
         {group.chat_room_id && (
-          <TouchableOpacity
+          <PressableScale
             testID="open-chat-button"
             style={styles.primaryButton}
             onPress={() =>
@@ -151,11 +156,11 @@ export default function GroupRevealScreen() {
             }
           >
             <Text style={styles.primaryButtonText}>Open Group Chat</Text>
-          </TouchableOpacity>
+          </PressableScale>
         )}
 
         {group.status === 'completed' && (
-          <TouchableOpacity
+          <PressableScale
             testID="post-date-button"
             style={[styles.primaryButton, { backgroundColor: '#9C27B0' }]}
             onPress={() =>
@@ -163,16 +168,16 @@ export default function GroupRevealScreen() {
             }
           >
             <Text style={styles.primaryButtonText}>Leave Feedback</Text>
-          </TouchableOpacity>
+          </PressableScale>
         )}
 
-        <TouchableOpacity
+        <PressableScale
           testID="share-plans-button"
           style={styles.shareButton}
           onPress={handleShare}
         >
           <Text style={styles.shareButtonText}>Share My Plans</Text>
-        </TouchableOpacity>
+        </PressableScale>
       </View>
     </ScrollView>
   );

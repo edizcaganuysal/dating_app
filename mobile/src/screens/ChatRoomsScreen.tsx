@@ -4,14 +4,14 @@ import {
   Text,
   StyleSheet,
   FlatList,
-  Pressable,
   RefreshControl,
 } from 'react-native';
+import Animated, { FadeInRight } from 'react-native-reanimated';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { getChatRooms } from '../api/chat';
 import { ChatRoom } from '../types';
 import { colors, typography, spacing, radii } from '../theme';
-import { UserAvatar, RelativeTimestamp, LoadingState, EmptyState } from '../components';
+import { UserAvatar, RelativeTimestamp, EmptyState, PressableScale, SkeletonRow } from '../components';
 import { useAuth } from '../context/AuthContext';
 import { markRoomRead } from '../hooks/useUnreadCount';
 
@@ -63,7 +63,14 @@ export default function ChatRoomsScreen() {
     navigation.navigate('ChatDetail', { roomId: room.id });
   };
 
-  if (loading) return <LoadingState />;
+  if (loading) return (
+    <View style={styles.container}>
+      <SkeletonRow />
+      <SkeletonRow />
+      <SkeletonRow />
+      <SkeletonRow />
+    </View>
+  );
 
   return (
     <FlatList
@@ -80,50 +87,51 @@ export default function ChatRoomsScreen() {
           description="Get matched with a group to start chatting!"
         />
       }
-      renderItem={({ item }) => (
-        <Pressable
-          style={({ pressed }) => [styles.roomItem, pressed && styles.roomPressed]}
-          onPress={() => handleOpenRoom(item)}
-          testID={`room-${item.id}`}
-        >
-          {/* Avatar */}
-          {item.room_type === '1v1' ? (
-            <UserAvatar
-              firstName={getOtherName(item)}
-              size="md"
-            />
-          ) : (
-            <View style={styles.groupAvatarStack}>
-              {item.participants.slice(0, 3).map((p, i) => (
-                <View key={p.user_id} style={[styles.miniAvatar, { left: i * 12, zIndex: 3 - i }]}>
-                  <UserAvatar firstName={p.first_name} size="xs" borderColor={colors.surfaceElevated} borderWidth={1.5} />
-                </View>
-              ))}
+      renderItem={({ item, index }) => (
+        <Animated.View entering={FadeInRight.delay(index * 50).springify()}>
+          <PressableScale
+            style={styles.roomItem}
+            onPress={() => handleOpenRoom(item)}
+          >
+            {/* Avatar */}
+            {item.room_type === '1v1' ? (
+              <UserAvatar
+                firstName={getOtherName(item)}
+                size="md"
+              />
+            ) : (
+              <View style={styles.groupAvatarStack}>
+                {item.participants.slice(0, 3).map((p, i) => (
+                  <View key={p.user_id} style={[styles.miniAvatar, { left: i * 12, zIndex: 3 - i }]}>
+                    <UserAvatar firstName={p.first_name} size="xs" borderColor={colors.surfaceElevated} borderWidth={1.5} />
+                  </View>
+                ))}
+              </View>
+            )}
+
+            {/* Info */}
+            <View style={styles.roomInfo}>
+              <Text style={styles.roomTitle} numberOfLines={1}>
+                {getRoomTitle(item)}
+              </Text>
+              {item.room_type === 'group' && (
+                <Text style={styles.roomSubtitle} numberOfLines={1}>
+                  {item.participants.map(p => p.first_name).join(', ')}
+                </Text>
+              )}
+              {item.last_message && (
+                <Text style={styles.lastMessage} numberOfLines={1}>
+                  {item.last_message.content}
+                </Text>
+              )}
             </View>
-          )}
 
-          {/* Info */}
-          <View style={styles.roomInfo}>
-            <Text style={styles.roomTitle} numberOfLines={1}>
-              {getRoomTitle(item)}
-            </Text>
-            {item.room_type === 'group' && (
-              <Text style={styles.roomSubtitle} numberOfLines={1}>
-                {item.participants.map(p => p.first_name).join(', ')}
-              </Text>
-            )}
+            {/* Timestamp */}
             {item.last_message && (
-              <Text style={styles.lastMessage} numberOfLines={1}>
-                {item.last_message.content}
-              </Text>
+              <RelativeTimestamp dateString={item.last_message.created_at} variant="short" />
             )}
-          </View>
-
-          {/* Timestamp */}
-          {item.last_message && (
-            <RelativeTimestamp dateString={item.last_message.created_at} variant="short" />
-          )}
-        </Pressable>
+          </PressableScale>
+        </Animated.View>
       )}
     />
   );
@@ -139,9 +147,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: colors.surfaceElevated,
     gap: spacing.md,
-  },
-  roomPressed: {
-    backgroundColor: colors.surfacePressed,
   },
   groupAvatarStack: {
     width: 48,

@@ -10,11 +10,12 @@ import {
   Platform,
 } from "react-native";
 import Animated, {
+  FadeInRight,
+  FadeOutLeft,
   useSharedValue,
   useAnimatedStyle,
   withSpring,
-  FadeInRight,
-  FadeOutLeft,
+  interpolate,
 } from "react-native-reanimated";
 import { Ionicons } from "@expo/vector-icons";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
@@ -65,17 +66,17 @@ function ProgressBar({ step }: { step: number }) {
   const progress = useSharedValue(step / TOTAL_STEPS);
 
   React.useEffect(() => {
-    progress.value = withSpring(step / TOTAL_STEPS, animations.gentle);
+    progress.value = withSpring(step / TOTAL_STEPS, { damping: 15, stiffness: 120 });
   }, [step]);
 
-  const barStyle = useAnimatedStyle(() => ({
-    width: `${progress.value * 100}%`,
+  const fillStyle = useAnimatedStyle(() => ({
+    width: `${interpolate(progress.value, [0, 1], [0, 100])}%`,
   }));
 
   return (
     <View style={progressStyles.container}>
       <View style={progressStyles.track}>
-        <Animated.View style={[progressStyles.fill, barStyle]} />
+        <Animated.View style={[progressStyles.fill, fillStyle]} />
       </View>
       <Text style={progressStyles.stepText}>Step {step} of {TOTAL_STEPS}</Text>
     </View>
@@ -327,8 +328,8 @@ export default function RegisterScreen({ navigation }: Props) {
   const renderStep1 = () => (
     <Animated.View
       key="step1"
-      entering={FadeInRight.duration(animations.duration.normal)}
-      exiting={FadeOutLeft.duration(animations.duration.fast)}
+      entering={FadeInRight.duration(300)}
+      exiting={FadeOutLeft.duration(150)}
     >
       <Text style={styles.stepTitle}>What's your name?</Text>
       <Text style={styles.stepSubtitle}>
@@ -409,8 +410,8 @@ export default function RegisterScreen({ navigation }: Props) {
     return (
       <Animated.View
         key="step2"
-        entering={FadeInRight.duration(animations.duration.normal)}
-        exiting={FadeOutLeft.duration(animations.duration.fast)}
+        entering={FadeInRight.duration(300)}
+        exiting={FadeOutLeft.duration(150)}
       >
         <Text style={styles.stepTitle}>Secure your account</Text>
         <Text style={styles.stepSubtitle}>
@@ -490,8 +491,8 @@ export default function RegisterScreen({ navigation }: Props) {
   const renderStep3 = () => (
     <Animated.View
       key="step3"
-      entering={FadeInRight.duration(animations.duration.normal)}
-      exiting={FadeOutLeft.duration(animations.duration.fast)}
+      entering={FadeInRight.duration(300)}
+      exiting={FadeOutLeft.duration(150)}
     >
       <Text style={styles.stepTitle}>Almost there!</Text>
       <Text style={styles.stepSubtitle}>

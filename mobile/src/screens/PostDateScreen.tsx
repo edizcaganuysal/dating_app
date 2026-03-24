@@ -17,8 +17,9 @@ import { getGroupDetail } from '../api/chat';
 import { submitFeedback } from '../api/feedback';
 import { getMyMatches } from '../api/dates';
 import { GroupDetail, GroupMember, RomanticInterestInput } from '../types';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 import { colors } from '../theme';
-import { UserAvatar, LoadingState } from '../components';
+import { UserAvatar, LoadingState, PressableScale } from '../components';
 import { haptic } from '../utils/haptics';
 
 const REPORT_CATEGORIES = [
@@ -167,36 +168,38 @@ export default function PostDateScreen() {
 
       {/* Romantic Interest */}
       <Text style={styles.sectionTitle}>Romantic Interest</Text>
-      {otherMembers.map((member) => (
-        <View key={member.user_id} style={styles.memberRow} testID={`interest-${member.user_id}`}>
-          <View style={styles.memberInfo}>
-            <UserAvatar
-              photoUrl={member.profile.photo_urls.length > 0 ? member.profile.photo_urls[0] : null}
-              firstName={member.profile.first_name}
-              size="md"
-              style={{ marginRight: 12 }}
-            />
-            <Text style={styles.memberName}>{member.profile.first_name}</Text>
+      {otherMembers.map((member, index) => (
+        <Animated.View key={member.user_id} entering={FadeInDown.delay(index * 60).springify()}>
+          <View style={styles.memberRow} testID={`interest-${member.user_id}`}>
+            <View style={styles.memberInfo}>
+              <UserAvatar
+                photoUrl={member.profile.photo_urls.length > 0 ? member.profile.photo_urls[0] : null}
+                firstName={member.profile.first_name}
+                size="md"
+                style={{ marginRight: 12 }}
+              />
+              <Text style={styles.memberName}>{member.profile.first_name}</Text>
+            </View>
+            <View style={styles.memberActions}>
+              <TouchableOpacity
+                testID={`heart-${member.user_id}`}
+                style={[styles.heartButton, interests[member.user_id] && styles.heartActive]}
+                onPress={() => toggleInterest(member.user_id)}
+              >
+                <Text style={[styles.heartIcon, interests[member.user_id] && styles.heartIconActive]}>
+                  {interests[member.user_id] ? '\u2764' : '\u2661'}
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                testID={`block-${member.user_id}`}
+                style={[styles.blockButton, blockIds.includes(member.user_id) && styles.blockActive]}
+                onPress={() => toggleBlock(member.user_id)}
+              >
+                <Text style={styles.blockText}>Block</Text>
+              </TouchableOpacity>
+            </View>
           </View>
-          <View style={styles.memberActions}>
-            <TouchableOpacity
-              testID={`heart-${member.user_id}`}
-              style={[styles.heartButton, interests[member.user_id] && styles.heartActive]}
-              onPress={() => toggleInterest(member.user_id)}
-            >
-              <Text style={[styles.heartIcon, interests[member.user_id] && styles.heartIconActive]}>
-                {interests[member.user_id] ? '\u2764' : '\u2661'}
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              testID={`block-${member.user_id}`}
-              style={[styles.blockButton, blockIds.includes(member.user_id) && styles.blockActive]}
-              onPress={() => toggleBlock(member.user_id)}
-            >
-              <Text style={styles.blockText}>Block</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
+        </Animated.View>
       ))}
 
       {/* Report */}
@@ -209,7 +212,7 @@ export default function PostDateScreen() {
       </TouchableOpacity>
 
       {/* Submit */}
-      <TouchableOpacity
+      <PressableScale
         testID="submit-button"
         style={[styles.submitButton, submitting && styles.submitButtonDisabled]}
         onPress={handleSubmit}
@@ -218,7 +221,7 @@ export default function PostDateScreen() {
         <Text style={styles.submitButtonText}>
           {submitting ? 'Submitting...' : 'Submit Feedback'}
         </Text>
-      </TouchableOpacity>
+      </PressableScale>
 
       {/* Report Modal */}
       <Modal visible={reportModalVisible} animationType="slide" transparent>

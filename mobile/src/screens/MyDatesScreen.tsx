@@ -12,8 +12,9 @@ import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { getMyDateRequests, getMyGroups, cancelDateRequest } from '../api/dates';
 import { DateRequest, DateGroup, ActivityType } from '../types';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 import { colors } from '../theme';
-import { LoadingState, EmptyState } from '../components';
+import { LoadingState, EmptyState, PressableScale, SkeletonCard } from '../components';
 
 const ACTIVITY_EMOJI: Record<string, string> = {
   dinner: '\u{1F37D}',
@@ -105,7 +106,13 @@ export default function MyDatesScreen() {
   const pastGroups = groups.filter(g => g.status === 'completed' || g.status === 'past');
 
   if (loading) {
-    return <LoadingState />;
+    return (
+      <View style={[styles.container, styles.content]}>
+        <SkeletonCard />
+        <SkeletonCard />
+        <SkeletonCard />
+      </View>
+    );
   }
 
   const isEmpty = activeRequests.length === 0 && upcomingGroups.length === 0 && pastGroups.length === 0;
@@ -128,42 +135,44 @@ export default function MyDatesScreen() {
       {activeRequests.length > 0 && (
         <>
           <Text style={styles.sectionTitle}>Active Requests</Text>
-          {activeRequests.map(req => (
-            <View key={req.id} style={styles.card}>
-              <View style={styles.cardRow}>
-                <Text style={styles.activityEmoji}>
-                  {ACTIVITY_EMOJI[req.activity] || ''}
-                </Text>
-                <View style={styles.cardInfo}>
-                  <Text style={styles.activityLabel}>
-                    {ACTIVITY_LABEL[req.activity] || req.activity}
+          {activeRequests.map((req, index) => (
+            <Animated.View key={req.id} entering={FadeInDown.delay(index * 60).springify()}>
+              <View style={styles.card}>
+                <View style={styles.cardRow}>
+                  <Text style={styles.activityEmoji}>
+                    {ACTIVITY_EMOJI[req.activity] || ''}
                   </Text>
-                  <Text style={styles.detailText}>
-                    Group of {req.group_size} {req.pre_group_friend_ids?.length > 0 ? `(+${req.pre_group_friend_ids.length} friend${req.pre_group_friend_ids.length > 1 ? 's' : ''})` : ''}
-                  </Text>
-                  <Text style={styles.metaText}>
-                    {req.availability_slots.length} time slot{req.availability_slots.length !== 1 ? 's' : ''}
-                  </Text>
-                </View>
-                <View style={styles.actionRow}>
-                  <TouchableOpacity
-                    style={styles.editButton}
-                    onPress={() => navigation.navigate('Home', {
-                      screen: 'DateRequest',
-                      params: { editRequestId: req.id },
-                    })}
-                  >
-                    <Text style={styles.editText}>Edit</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={styles.cancelButton}
-                    onPress={() => handleCancel(req.id)}
-                  >
-                    <Text style={styles.cancelText}>Cancel</Text>
-                  </TouchableOpacity>
+                  <View style={styles.cardInfo}>
+                    <Text style={styles.activityLabel}>
+                      {ACTIVITY_LABEL[req.activity] || req.activity}
+                    </Text>
+                    <Text style={styles.detailText}>
+                      Group of {req.group_size} {req.pre_group_friend_ids?.length > 0 ? `(+${req.pre_group_friend_ids.length} friend${req.pre_group_friend_ids.length > 1 ? 's' : ''})` : ''}
+                    </Text>
+                    <Text style={styles.metaText}>
+                      {req.availability_slots.length} time slot{req.availability_slots.length !== 1 ? 's' : ''}
+                    </Text>
+                  </View>
+                  <View style={styles.actionRow}>
+                    <PressableScale
+                      style={styles.editButton}
+                      onPress={() => navigation.navigate('Home', {
+                        screen: 'DateRequest',
+                        params: { editRequestId: req.id },
+                      })}
+                    >
+                      <Text style={styles.editText}>Edit</Text>
+                    </PressableScale>
+                    <PressableScale
+                      style={styles.cancelButton}
+                      onPress={() => handleCancel(req.id)}
+                    >
+                      <Text style={styles.cancelText}>Cancel</Text>
+                    </PressableScale>
+                  </View>
                 </View>
               </View>
-            </View>
+            </Animated.View>
           ))}
         </>
       )}
@@ -172,34 +181,35 @@ export default function MyDatesScreen() {
       {upcomingGroups.length > 0 && (
         <>
           <Text style={styles.sectionTitle}>Upcoming Dates</Text>
-          {upcomingGroups.map(group => (
-            <TouchableOpacity
-              key={group.id}
-              style={styles.card}
-              onPress={() => navigation.navigate('Home', {
-                screen: 'GroupReveal',
-                params: { groupId: group.id },
-              })}
-            >
-              <View style={styles.cardRow}>
-                <Text style={styles.activityEmoji}>
-                  {ACTIVITY_EMOJI[group.activity] || ''}
-                </Text>
-                <View style={styles.cardInfo}>
-                  <Text style={styles.activityLabel}>
-                    {ACTIVITY_LABEL[group.activity] || group.activity}
+          {upcomingGroups.map((group, index) => (
+            <Animated.View key={group.id} entering={FadeInDown.delay(index * 60).springify()}>
+              <PressableScale
+                style={styles.card}
+                onPress={() => navigation.navigate('Home', {
+                  screen: 'GroupReveal',
+                  params: { groupId: group.id },
+                })}
+              >
+                <View style={styles.cardRow}>
+                  <Text style={styles.activityEmoji}>
+                    {ACTIVITY_EMOJI[group.activity] || ''}
                   </Text>
-                  <Text style={styles.detailText}>
-                    {formatDate(group.scheduled_date)} at {group.scheduled_time}
-                  </Text>
-                  <Text style={styles.metaText}>
-                    {group.members.length} members
-                    {group.venue_name ? ` \u00B7 ${group.venue_name}` : ''}
-                  </Text>
+                  <View style={styles.cardInfo}>
+                    <Text style={styles.activityLabel}>
+                      {ACTIVITY_LABEL[group.activity] || group.activity}
+                    </Text>
+                    <Text style={styles.detailText}>
+                      {formatDate(group.scheduled_date)} at {group.scheduled_time}
+                    </Text>
+                    <Text style={styles.metaText}>
+                      {group.members.length} members
+                      {group.venue_name ? ` \u00B7 ${group.venue_name}` : ''}
+                    </Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={20} color={colors.gray} />
                 </View>
-                <Ionicons name="chevron-forward" size={20} color={colors.gray} />
-              </View>
-            </TouchableOpacity>
+              </PressableScale>
+            </Animated.View>
           ))}
         </>
       )}
@@ -208,28 +218,30 @@ export default function MyDatesScreen() {
       {pastGroups.length > 0 && (
         <>
           <Text style={styles.sectionTitle}>Past Dates</Text>
-          {pastGroups.map(group => (
-            <View key={group.id} style={styles.card}>
-              <View style={styles.cardRow}>
-                <Text style={styles.activityEmoji}>
-                  {ACTIVITY_EMOJI[group.activity] || ''}
-                </Text>
-                <View style={styles.cardInfo}>
-                  <Text style={styles.activityLabel}>
-                    {ACTIVITY_LABEL[group.activity] || group.activity}
+          {pastGroups.map((group, index) => (
+            <Animated.View key={group.id} entering={FadeInDown.delay(index * 60).springify()}>
+              <View style={styles.card}>
+                <View style={styles.cardRow}>
+                  <Text style={styles.activityEmoji}>
+                    {ACTIVITY_EMOJI[group.activity] || ''}
                   </Text>
-                  <Text style={styles.detailText}>
-                    {formatDate(group.scheduled_date)}
-                  </Text>
-                  <Text style={styles.metaText}>
-                    {group.members.length} members
-                  </Text>
-                </View>
-                <View style={styles.statusBadge}>
-                  <Text style={styles.statusText}>Completed</Text>
+                  <View style={styles.cardInfo}>
+                    <Text style={styles.activityLabel}>
+                      {ACTIVITY_LABEL[group.activity] || group.activity}
+                    </Text>
+                    <Text style={styles.detailText}>
+                      {formatDate(group.scheduled_date)}
+                    </Text>
+                    <Text style={styles.metaText}>
+                      {group.members.length} members
+                    </Text>
+                  </View>
+                  <View style={styles.statusBadge}>
+                    <Text style={styles.statusText}>Completed</Text>
+                  </View>
                 </View>
               </View>
-            </View>
+            </Animated.View>
           ))}
         </>
       )}

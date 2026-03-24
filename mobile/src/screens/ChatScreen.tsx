@@ -9,15 +9,16 @@ import {
   KeyboardAvoidingView,
   Platform,
   Modal,
-  ActivityIndicator,
 } from 'react-native';
+import Animated, { FadeInDown } from 'react-native-reanimated';
+import { Ionicons } from '@expo/vector-icons';
 import { useRoute } from '@react-navigation/native';
 import { useAuth } from '../context/AuthContext';
 import useChat from '../hooks/useChat';
 import { askGenie } from '../api/chat';
 import { ChatMessage, GENIE_USER_ID } from '../types';
 import { colors, spacing, typography, radii } from '../theme';
-import { UserAvatar, RelativeTimestamp } from '../components';
+import { UserAvatar, RelativeTimestamp, PressableScale, BouncingDots } from '../components';
 import { markRoomRead } from '../hooks/useUnreadCount';
 
 const GENIE_PRESETS = [
@@ -45,6 +46,20 @@ export default function ChatScreen() {
   const [genieMenuVisible, setGenieMenuVisible] = useState(false);
   const [genieLoading, setGenieLoading] = useState(false);
   const flatListRef = useRef<FlatList>(null);
+  const initialRenderDone = useRef(false);
+  const seenMessageIds = useRef(new Set<string>());
+
+  // Mark initial render complete after first batch of messages arrives
+  React.useEffect(() => {
+    if (messages.length > 0 && !initialRenderDone.current) {
+      // Allow animations for the first batch, then mark done
+      const timer = setTimeout(() => {
+        initialRenderDone.current = true;
+        messages.forEach(m => seenMessageIds.current.add(m.id));
+      }, 600);
+      return () => clearTimeout(timer);
+    }
+  }, [messages]);
 
   const handleSend = () => {
     const content = text.trim();
@@ -86,8 +101,23 @@ export default function ChatScreen() {
     const isOwn = item.sender_id === user?.id;
     const isGenie = item.sender_id === GENIE_USER_ID;
 
+    // Only animate new messages, not previously seen or history-loaded ones
+    const shouldAnimate = !seenMessageIds.current.has(item.id) && !initialRenderDone.current;
+    seenMessageIds.current.add(item.id);
+
+    const wrapWithAnimation = (content: React.ReactNode) => {
+      if (shouldAnimate) {
+        return (
+          <Animated.View entering={FadeInDown.duration(200).springify()}>
+            {content}
+          </Animated.View>
+        );
+      }
+      return <>{content}</>;
+    };
+
     if (isGenie) {
-      return (
+      return wrapWithAnimation(
         <View style={styles.genieBubble} testID={`message-${item.id}`}>
           <View style={styles.genieHeader}>
             <Text style={styles.genieEmoji}>🧞</Text>
@@ -101,7 +131,7 @@ export default function ChatScreen() {
       );
     }
 
-    return (
+    return wrapWithAnimation(
       <View style={[styles.messageRow, isOwn && styles.messageRowOwn]} testID={`message-${item.id}`}>
         {!isOwn && (
           <UserAvatar firstName={item.sender_name || '?'} size="xs" style={{ marginRight: spacing.sm, marginTop: 2 }} />
@@ -150,24 +180,27 @@ export default function ChatScreen() {
           {isGenieTyping || genieLoading ? (
             <View style={styles.genieTypingRow}>
               <Text style={styles.genieTypingEmoji}>🧞</Text>
-              <Text style={styles.genieTypingText}>Genie is thinking...</Text>
-              <ActivityIndicator size="small" color="#7B1FA2" />
+              <Text style={styles.genieTypingText}>Genie</Text>
+              <BouncingDots color="#7B1FA2" />
             </View>
           ) : (
-            <Text style={styles.typingText}>{typingUser} is typing...</Text>
+            <View style={styles.typingRow}>
+              <Text style={styles.typingText}>{typingUser}</Text>
+              <BouncingDots color={colors.gray} />
+            </View>
           )}
         </View>
       )}
 
       <View style={styles.inputContainer}>
         {/* Genie Button */}
-        <TouchableOpacity
+        <PressableScale
           style={styles.genieButton}
           onPress={() => setGenieMenuVisible(true)}
           disabled={genieLoading}
         >
           <Text style={styles.genieButtonText}>🧞</Text>
-        </TouchableOpacity>
+        </PressableScale>
 
         <TextInput
           testID="message-input"
@@ -182,9 +215,16 @@ export default function ChatScreen() {
           testID="send-button"
           style={[styles.sendButton, !text.trim() && styles.sendButtonDisabled]}
           onPress={handleSend}
-          disabled={!text.trim()}
+          activeOpacity={0.7}
         >
-          <Text style={styles.sendButtonText}>Send</Text>
+          <View style={styles.sendIconContainer}>
+            <Animated.View style={{ opacity: text.trim() ? 1 : 0, position: 'absolute' }}>
+              <Ionicons name="send" size={20} color="#fff" />
+            </Animated.View>
+            <Animated.View style={{ opacity: text.trim() ? 0 : 1 }}>
+              <Ionicons name="mic-outline" size={20} color={colors.gray} />
+            </Animated.View>
+          </View>
         </TouchableOpacity>
       </View>
 
@@ -249,7 +289,8 @@ const styles = StyleSheet.create({
   typingText: { fontSize: 12, color: colors.gray, fontStyle: 'italic' },
   genieTypingRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   genieTypingEmoji: { fontSize: 14 },
-  genieTypingText: { fontSize: 12, color: '#7B1FA2', fontStyle: 'italic' },
+  genieTypingText: { fontSize: 12, color: '#7B1FA2', fontStyle: 'italic', marginRight: 4 },
+  typingRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
 
   // Input bar
   inputContainer: {
@@ -271,6 +312,7 @@ const styles = StyleSheet.create({
   },
   sendButtonDisabled: { backgroundColor: colors.grayLight },
   sendButtonText: { color: '#fff', fontWeight: '600' },
+  sendIconContainer: { width: 20, height: 20, alignItems: 'center', justifyContent: 'center' },
 
   // Genie bottom sheet
   genieOverlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.4)' },

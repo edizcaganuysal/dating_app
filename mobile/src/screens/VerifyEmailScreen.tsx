@@ -10,6 +10,10 @@ import {
   Platform,
   Pressable,
 } from "react-native";
+import Animated, {
+  useAnimatedStyle,
+  withSpring,
+} from "react-native-reanimated";
 import { Ionicons } from "@expo/vector-icons";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useAuth } from "../context/AuthContext";
@@ -22,6 +26,28 @@ const OTP_LENGTH = 6;
 const RESEND_COOLDOWN = 60;
 
 type Props = NativeStackScreenProps<AuthStackParamList, "VerifyEmail">;
+
+// Animated OTP box with spring scale when focused
+function OtpBox({ digit, isFocused, isFilled }: { digit: string; isFocused: boolean; isFilled: boolean }) {
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: withSpring(isFocused ? 1.05 : 1, { damping: 15, stiffness: 200 }) }],
+  }));
+
+  return (
+    <Animated.View
+      style={[
+        styles.otpBox,
+        isFocused && styles.otpBoxFocused,
+        isFilled && styles.otpBoxFilled,
+        animatedStyle,
+      ]}
+    >
+      <Text style={[styles.otpDigit, isFilled && styles.otpDigitFilled]}>
+        {digit}
+      </Text>
+    </Animated.View>
+  );
+}
 
 export default function VerifyEmailScreen({ navigation, route }: Props) {
   const { verifyEmail, login } = useAuth();
@@ -178,18 +204,12 @@ export default function VerifyEmailScreen({ navigation, route }: Props) {
             const isFilled = digit !== "";
 
             return (
-              <View
+              <OtpBox
                 key={index}
-                style={[
-                  styles.otpBox,
-                  isFocused && styles.otpBoxFocused,
-                  isFilled && styles.otpBoxFilled,
-                ]}
-              >
-                <Text style={[styles.otpDigit, isFilled && styles.otpDigitFilled]}>
-                  {digit}
-                </Text>
-              </View>
+                digit={digit}
+                isFocused={isFocused}
+                isFilled={isFilled}
+              />
             );
           })}
         </Pressable>

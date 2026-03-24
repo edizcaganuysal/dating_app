@@ -1,19 +1,36 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   FlatList,
   RefreshControl,
-  Pressable,
 } from 'react-native';
+import Animated, {
+  FadeInDown,
+  useSharedValue,
+  useAnimatedStyle,
+  withSpring,
+  withDelay,
+  withRepeat,
+  withSequence,
+  withTiming,
+} from 'react-native-reanimated';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { useAuth } from '../context/AuthContext';
 import { getMyGroups, getMyMatches } from '../api/dates';
 import { DateGroup, Match } from '../types';
-import { colors, typography, spacing, radii, shadows } from '../theme';
-import { UserAvatar, LoadingState, ErrorState, EmptyState, AnimatedButton } from '../components';
-import { GradientCard } from '../components';
+import { colors, typography, spacing, shadows } from '../theme';
+import {
+  UserAvatar,
+  ErrorState,
+  EmptyState,
+  AnimatedButton,
+  GradientCard,
+  PressableScale,
+  SkeletonCard,
+} from '../components';
+import { haptic } from '../utils/haptics';
 import { Ionicons } from '@expo/vector-icons';
 
 const ACTIVITY_LABELS: Record<string, string> = {
@@ -46,6 +63,164 @@ function formatTime(timeStr: string): string {
   } catch { return timeStr; }
 }
 
+// ─── Countdown hook ────────────────────────────────────────────────
+
+function useCountdown(scheduledDate: string, scheduledTime: string): string {
+  const [label, setLabel] = useState('');
+
+  useEffect(() => {
+    function compute() {
+      const timePart = scheduledTime || '18:00';
+      const target = new Date(`${scheduledDate}T${timePart}`);
+      const now = new Date();
+      const diff = target.getTime() - now.getTime();
+
+      if (diff <= 0) {
+        setLabel('Starting now');
+        return;
+      }
+
+      const totalSeconds = Math.floor(diff / 1000);
+      const days = Math.floor(totalSeconds / 86400);
+      const hours = Math.floor((totalSeconds % 86400) / 3600);
+      const minutes = Math.floor((totalSeconds % 3600) / 60);
+      const seconds = totalSeconds % 60;
+
+      if (days > 0) {
+        setLabel(`in ${days}d ${hours}h`);
+      } else if (hours > 0) {
+        setLabel(`in ${hours}h ${minutes}m`);
+      } else {
+        setLabel(`in ${minutes}m ${seconds}s`);
+      }
+    }
+
+    compute();
+    const interval = setInterval(compute, 1000);
+    return () => clearInterval(interval);
+  }, [scheduledDate, scheduledTime]);
+
+  return label;
+}
+
+// ─── Group Card sub-component (uses the countdown hook) ─────────
+
+function GroupCard({
+  group,
+  index,
+  onPress,
+}: {
+  group: DateGroup;
+  index: number;
+  onPress: () => void;
+}) {
+  const countdown = useCountdown(group.scheduled_date, group.scheduled_time);
+  const label = ACTIVITY_LABELS[group.activity] || group.activity.replace(/_/g, ' ');
+  const emoji = ACTIVITY_EMOJI[group.activity] || '📅';
+
+  return (
+    <Animated.View entering={FadeInDown.delay(index * 80).springify().damping(14)}>
+      <PressableScale onPress={onPress}>
+        <GradientCard
+          gradientColors={[colors.surfaceElevated, '#FFF8F5']}
+          style={styles.groupCard}
+        >
+          <View style={styles.cardHeader}>
+            <Text style={styles.emoji}>{emoji}</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.cardTitle}>{label}</Text>
+              <Text style={styles.cardDate}>
+                {formatDate(group.scheduled_date)}
+                {group.scheduled_time ? ` at ${formatTime(group.scheduled_time)}` : ''}
+              </Text>
+            </View>
+            <View style={styles.countdownBadge}>
+              <Ionicons name="time-outline" size={12} color={colors.primary} />
+              <Text style={styles.countdownText}>{countdown}</Text>
+            </View>
+          </View>
+          {group.members.length > 0 && (
+            <View style={styles.avatarRow}>
+              {group.members.slice(0, 4).map((member, i) => (
+                <View key={member.id || i} style={[styles.avatarOverlap, { marginLeft: i > 0 ? -10 : 0, zIndex: 4 - i }]}>
+                  <UserAvatar
+                    photoUrl={member.photo_urls?.[0]}
+                    firstName={member.first_name}
+                    size="sm"
+                    borderColor={colors.surfaceElevated}
+                    borderWidth={2}
+                  />
+                </View>
+              ))}
+              <Text style={styles.memberCount}>
+                {group.members.length} members
+              </Text>
+            </View>
+          )}
+        </GradientCard>
+      </PressableScale>
+    </Animated.View>
+  );
+}
+
+// ─── Match Card sub-component ───────────────────────────────────
+
+function MatchCard({
+  match,
+  index,
+  onPress,
+}: {
+  match: Match;
+  index: number;
+  onPress: () => void;
+}) {
+  return (
+    <Animated.View entering={FadeInDown.delay(index * 80).springify().damping(14)}>
+      <PressableScale onPress={onPress}>
+        <GradientCard
+          gradientColors={[colors.surfaceElevated, colors.surfaceSelected]}
+          style={styles.matchCard}
+        >
+          <UserAvatar
+            photoUrl={match.partner.photo_urls?.[0]}
+            firstName={match.partner.first_name}
+            size="md"
+          />
+          <View style={styles.matchInfo}>
+            <Text style={styles.matchName}>{match.partner.first_name}</Text>
+            <Text style={styles.matchProgram}>
+              {match.partner.program || 'Student'}
+            </Text>
+          </View>
+          <Ionicons name="heart" size={20} color={colors.primary} />
+        </GradientCard>
+      </PressableScale>
+    </Animated.View>
+  );
+}
+
+// ─── Loading skeleton ───────────────────────────────────────────
+
+function SkeletonLoading() {
+  return (
+    <View style={styles.container}>
+      <View style={styles.skeletonContainer}>
+        <Animated.View entering={FadeInDown.delay(0).springify().damping(14)}>
+          <SkeletonCard />
+        </Animated.View>
+        <Animated.View entering={FadeInDown.delay(80).springify().damping(14)}>
+          <SkeletonCard />
+        </Animated.View>
+        <Animated.View entering={FadeInDown.delay(160).springify().damping(14)}>
+          <SkeletonCard />
+        </Animated.View>
+      </View>
+    </View>
+  );
+}
+
+// ─── Main screen ────────────────────────────────────────────────
+
 export default function HomeScreen() {
   const navigation = useNavigation<any>();
   const { user } = useAuth();
@@ -55,6 +230,11 @@ export default function HomeScreen() {
   const [error, setError] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
+  // FAB spring pop-in
+  const fabScale = useSharedValue(0);
+  const fabPulse = useSharedValue(1);
+  const hasContentRef = useRef(false);
+
   const loadData = async () => {
     setError(false);
     try {
@@ -62,8 +242,10 @@ export default function HomeScreen() {
         getMyGroups(),
         getMyMatches(),
       ]);
-      setGroups(groupsData.filter(g => g.status === 'upcoming'));
+      const upcoming = groupsData.filter(g => g.status === 'upcoming');
+      setGroups(upcoming);
       setMatches(matchesData);
+      hasContentRef.current = upcoming.length > 0 || matchesData.length > 0;
     } catch {
       setError(true);
     } finally {
@@ -78,12 +260,41 @@ export default function HomeScreen() {
     }, [])
   );
 
-  const onRefresh = () => {
-    setRefreshing(true);
-    loadData();
-  };
+  // FAB animation: spring in after 500ms delay, pulse when no content
+  useEffect(() => {
+    if (!loading) {
+      fabScale.value = withDelay(
+        500,
+        withSpring(1, { damping: 12, stiffness: 150, mass: 0.8 })
+      );
 
-  if (loading) return <LoadingState />;
+      if (!hasContentRef.current) {
+        // Start subtle pulse after the pop-in completes (~800ms after mount)
+        const pulseDelay = 1300;
+        fabPulse.value = withDelay(
+          pulseDelay,
+          withRepeat(
+            withSequence(
+              withTiming(1.05, { duration: 800 }),
+              withTiming(1.0, { duration: 800 })
+            ),
+            -1,
+            true
+          )
+        );
+      } else {
+        fabPulse.value = 1;
+      }
+    }
+  }, [loading]);
+
+  const fabAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [
+      { scale: fabScale.value * fabPulse.value },
+    ],
+  }));
+
+  if (loading) return <SkeletonLoading />;
   if (error) return <ErrorState message="Couldn't load your dates" onRetry={loadData} />;
 
   const hasContent = groups.length > 0 || matches.length > 0;
@@ -99,99 +310,52 @@ export default function HomeScreen() {
         }
         ListHeaderComponent={
           <View>
-            <Text style={styles.welcome}>
-              Welcome, {user?.first_name || 'there'}! 👋
-            </Text>
+            <Animated.View entering={FadeInDown.delay(0).springify().damping(14)}>
+              <Text style={styles.welcome}>
+                Welcome, {user?.first_name || 'there'}! 👋
+              </Text>
+            </Animated.View>
 
             {!hasContent && (
-              <EmptyState
-                icon="heart-outline"
-                title="No dates yet!"
-                description="Create your first date request to get matched with a group of awesome people."
-                actionLabel="Create Date Request"
-                onAction={() => navigation.navigate('DateRequest')}
-              />
+              <Animated.View entering={FadeInDown.delay(80).springify().damping(14)}>
+                <EmptyState
+                  icon="heart-outline"
+                  title="No dates yet!"
+                  description="Create your first date request to get matched with a group of awesome people."
+                  actionLabel="Create Date Request"
+                  onAction={() => navigation.navigate('DateRequest')}
+                />
+              </Animated.View>
             )}
 
             {groups.length > 0 && (
               <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Upcoming Groups</Text>
-                {groups.map(group => {
-                  const label = ACTIVITY_LABELS[group.activity] || group.activity.replace(/_/g, ' ');
-                  const emoji = ACTIVITY_EMOJI[group.activity] || '📅';
-                  return (
-                    <Pressable
-                      key={group.id}
-                      onPress={() => navigation.navigate('GroupReveal', { groupId: group.id })}
-                      testID={`group-${group.id}`}
-                    >
-                      <GradientCard
-                        gradientColors={[colors.surfaceElevated, '#FFF8F5']}
-                        style={styles.groupCard}
-                      >
-                        <View style={styles.cardHeader}>
-                          <Text style={styles.emoji}>{emoji}</Text>
-                          <View style={{ flex: 1 }}>
-                            <Text style={styles.cardTitle}>{label}</Text>
-                            <Text style={styles.cardDate}>
-                              {formatDate(group.scheduled_date)}
-                              {group.scheduled_time ? ` at ${formatTime(group.scheduled_time)}` : ''}
-                            </Text>
-                          </View>
-                          <Ionicons name="chevron-forward" size={20} color={colors.grayLight} />
-                        </View>
-                        {group.members.length > 0 && (
-                          <View style={styles.avatarRow}>
-                            {group.members.slice(0, 4).map((member, i) => (
-                              <View key={member.id || i} style={[styles.avatarOverlap, { marginLeft: i > 0 ? -10 : 0, zIndex: 4 - i }]}>
-                                <UserAvatar
-                                  photoUrl={member.photo_urls?.[0]}
-                                  firstName={member.first_name}
-                                  size="sm"
-                                  borderColor={colors.surfaceElevated}
-                                  borderWidth={2}
-                                />
-                              </View>
-                            ))}
-                            <Text style={styles.memberCount}>
-                              {group.members.length} members
-                            </Text>
-                          </View>
-                        )}
-                      </GradientCard>
-                    </Pressable>
-                  );
-                })}
+                <Animated.View entering={FadeInDown.delay(80).springify().damping(14)}>
+                  <Text style={styles.sectionTitle}>Upcoming Groups</Text>
+                </Animated.View>
+                {groups.map((group, index) => (
+                  <GroupCard
+                    key={group.id}
+                    group={group}
+                    index={index + 1}
+                    onPress={() => navigation.navigate('GroupReveal', { groupId: group.id })}
+                  />
+                ))}
               </View>
             )}
 
             {matches.length > 0 && (
               <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Recent Matches</Text>
-                {matches.map(match => (
-                  <Pressable
+                <Animated.View entering={FadeInDown.delay((groups.length + 1) * 80 + 80).springify().damping(14)}>
+                  <Text style={styles.sectionTitle}>Recent Matches</Text>
+                </Animated.View>
+                {matches.map((match, index) => (
+                  <MatchCard
                     key={match.id}
+                    match={match}
+                    index={groups.length + index + 2}
                     onPress={() => navigation.navigate('ChatDetail', { roomId: match.chat_room_id })}
-                    testID={`match-${match.id}`}
-                  >
-                    <GradientCard
-                      gradientColors={[colors.surfaceElevated, colors.surfaceSelected]}
-                      style={styles.matchCard}
-                    >
-                      <UserAvatar
-                        photoUrl={match.partner.photo_urls?.[0]}
-                        firstName={match.partner.first_name}
-                        size="md"
-                      />
-                      <View style={styles.matchInfo}>
-                        <Text style={styles.matchName}>{match.partner.first_name}</Text>
-                        <Text style={styles.matchProgram}>
-                          {match.partner.program || 'Student'}
-                        </Text>
-                      </View>
-                      <Ionicons name="heart" size={20} color={colors.primary} />
-                    </GradientCard>
-                  </Pressable>
+                  />
                 ))}
               </View>
             )}
@@ -199,24 +363,36 @@ export default function HomeScreen() {
         }
       />
 
-      {/* FAB */}
-      <View style={styles.fabContainer}>
+      {/* FAB with spring pop-in + optional pulse */}
+      <Animated.View style={[styles.fabContainer, fabAnimatedStyle]}>
         <AnimatedButton
           label="Create Date Request"
-          onPress={() => navigation.navigate('DateRequest')}
+          onPress={() => {
+            haptic.light();
+            navigation.navigate('DateRequest');
+          }}
           variant="primary"
           size="lg"
           fullWidth
           icon="add-circle-outline"
         />
-      </View>
+      </Animated.View>
     </View>
   );
+
+  function onRefresh() {
+    setRefreshing(true);
+    loadData();
+  }
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.surface },
-  listContent: { paddingBottom: 100 }, // Space for FAB
+  listContent: { paddingBottom: 100 },
+  skeletonContainer: {
+    padding: spacing.xl,
+    paddingTop: spacing.xxxxl,
+  },
   welcome: {
     ...typography.headlineLarge,
     color: colors.dark,
@@ -250,6 +426,20 @@ const styles = StyleSheet.create({
     ...typography.bodySmall,
     color: colors.darkSecondary,
     marginTop: spacing.xxs,
+  },
+  countdownBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: colors.surfacePressed,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    borderRadius: 999,
+  },
+  countdownText: {
+    ...typography.captionSmall,
+    color: colors.primary,
+    fontWeight: '600',
   },
   avatarRow: {
     flexDirection: 'row',
