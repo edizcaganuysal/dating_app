@@ -7,7 +7,8 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import * as ImagePicker from 'expo-image-picker';
 import * as Location from 'expo-location';
-// MapView removed — requires dev build, not available in Expo Go
+import MapView, { Marker, Circle } from 'react-native-maps';
+import Slider from '@react-native-community/slider';
 import { createProfile, uploadPhoto, selfieVerify, verifyPhotosBatch } from '../api/profiles';
 import { VibeAnswer } from '../types';
 import { colors } from '../theme';
@@ -1162,19 +1163,14 @@ export default function ProfileSetupScreen() {
   );
 
   const renderLocation = () => {
-
     const handleGetLocation = async () => {
       setLocationLoading(true);
       try {
         const { status } = await Location.requestForegroundPermissionsAsync();
-        if (status !== 'granted') {
-          Alert.alert('Permission Required', 'Location access is needed to find groups near you.');
-          return;
-        }
+        if (status !== 'granted') { Alert.alert('Permission Required', 'Location access is needed to find groups near you.'); return; }
         const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
         setLocationLat(loc.coords.latitude);
         setLocationLng(loc.coords.longitude);
-        // Reverse geocode to get address
         try {
           const addrs = await Location.reverseGeocodeAsync({ latitude: loc.coords.latitude, longitude: loc.coords.longitude });
           if (addrs.length > 0) {
@@ -1183,10 +1179,8 @@ export default function ProfileSetupScreen() {
           }
         } catch {}
       } catch {
-        Alert.alert('Location Error', 'Could not determine your location. Make sure GPS is enabled, or type your address manually below.');
-      } finally {
-        setLocationLoading(false);
-      }
+        Alert.alert('Location Error', 'Could not determine your location. Make sure GPS is enabled, or tap the map to set it manually.');
+      } finally { setLocationLoading(false); }
     };
 
     const handleAddressSearch = (text: string) => {
@@ -1197,17 +1191,13 @@ export default function ProfileSetupScreen() {
         setSearchingAddr(true);
         try {
           const results = await Location.geocodeAsync(text.trim());
-          const mapped = await Promise.all(
-            results.slice(0, 5).map(async (r) => {
-              try {
-                const addrs = await Location.reverseGeocodeAsync({ latitude: r.latitude, longitude: r.longitude });
-                const a = addrs[0];
-                return { name: [a?.name, a?.street, a?.city, a?.region].filter(Boolean).join(', ') || text, lat: r.latitude, lng: r.longitude };
-              } catch {
-                return { name: `${r.latitude.toFixed(4)}, ${r.longitude.toFixed(4)}`, lat: r.latitude, lng: r.longitude };
-              }
-            })
-          );
+          const mapped = await Promise.all(results.slice(0, 5).map(async (r) => {
+            try {
+              const addrs = await Location.reverseGeocodeAsync({ latitude: r.latitude, longitude: r.longitude });
+              const a = addrs[0];
+              return { name: [a?.name, a?.street, a?.city, a?.region].filter(Boolean).join(', ') || text, lat: r.latitude, lng: r.longitude };
+            } catch { return { name: `${r.latitude.toFixed(4)}, ${r.longitude.toFixed(4)}`, lat: r.latitude, lng: r.longitude }; }
+          }));
           setSuggestions(mapped);
         } catch { setSuggestions([]); }
         finally { setSearchingAddr(false); }
@@ -1215,42 +1205,46 @@ export default function ProfileSetupScreen() {
     };
 
     const selectSuggestion = (s: { name: string; lat: number; lng: number }) => {
-      setLocationLat(s.lat);
-      setLocationLng(s.lng);
-      setLocationAddress(s.name);
-      setAddressQuery('');
-      setSuggestions([]);
+      setLocationLat(s.lat); setLocationLng(s.lng); setLocationAddress(s.name);
+      setAddressQuery(''); setSuggestions([]);
     };
+
+    const handleMapPress = async (e: any) => {
+      const { latitude, longitude } = e.nativeEvent.coordinate;
+      setLocationLat(latitude); setLocationLng(longitude);
+      try {
+        const addrs = await Location.reverseGeocodeAsync({ latitude, longitude });
+        if (addrs.length > 0) {
+          const a = addrs[0];
+          setLocationAddress([a.name, a.street, a.city, a.region].filter(Boolean).join(', '));
+        } else { setLocationAddress(`${latitude.toFixed(4)}, ${longitude.toFixed(4)}`); }
+      } catch { setLocationAddress(`${latitude.toFixed(4)}, ${longitude.toFixed(4)}`); }
+    };
+
+    const mapCenter = locationLat && locationLng
+      ? { latitude: locationLat, longitude: locationLng }
+      : { latitude: 43.6532, longitude: -79.3832 }; // Default: Toronto
 
     return (
       <View>
         <Text style={styles.stepTitle}>Set Your Location</Text>
         <Text style={styles.stepSub}>
-          We use your location to find groups near you. Your exact location is never shared with other users.
+          Tap the map, use GPS, or search an address. Your exact location is never shared.
         </Text>
 
         {/* GPS button */}
         <TouchableOpacity style={styles.locationGpsBtn} onPress={handleGetLocation} disabled={locationLoading}>
-          {locationLoading ? (
-            <ActivityIndicator color="#fff" size="small" />
-          ) : (
-            <Text style={styles.locationGpsBtnText}>📍 Use My Current Location</Text>
-          )}
+          {locationLoading ? <ActivityIndicator color="#fff" size="small" /> :
+            <Text style={styles.locationGpsBtnText}>📍 Use My Current Location</Text>}
         </TouchableOpacity>
 
-        {/* Address search with autocomplete */}
+        {/* Address search */}
         <View style={styles.addressSearchContainer}>
-          <TextInput
-            style={styles.addressInput}
-            placeholder="Search for an address..."
-            placeholderTextColor={colors.grayLight}
-            value={addressQuery}
-            onChangeText={handleAddressSearch}
-            returnKeyType="search"
-          />
+          <TextInput style={styles.addressInput} placeholder="Search for an address..."
+            placeholderTextColor={colors.grayLight} value={addressQuery}
+            onChangeText={handleAddressSearch} returnKeyType="search" />
           {searchingAddr && <ActivityIndicator size="small" color={colors.primary} style={{ position: 'absolute', right: 12, top: 14 }} />}
         </View>
-
         {suggestions.length > 0 && (
           <View style={styles.suggestionsContainer}>
             {suggestions.map((s, i) => (
@@ -1262,15 +1256,34 @@ export default function ProfileSetupScreen() {
           </View>
         )}
 
-        {/* Location visual */}
-        {locationLat && locationLng && !locationAddress && (
-          <View style={styles.locationPinVisual}>
-            <Text style={{ fontSize: 36 }}>📍</Text>
-            <Text style={styles.locationPinCoords}>
-              {locationLat.toFixed(4)}, {locationLng.toFixed(4)}
-            </Text>
-          </View>
-        )}
+        {/* MAP */}
+        <View style={styles.mapContainer}>
+          <MapView
+            style={styles.map}
+            region={{ ...mapCenter, latitudeDelta: 0.06, longitudeDelta: 0.06 }}
+            onPress={handleMapPress}
+            showsUserLocation
+            showsMyLocationButton={false}
+          >
+            {locationLat && locationLng && (
+              <>
+                <Marker coordinate={{ latitude: locationLat, longitude: locationLng }} />
+                <Circle
+                  center={{ latitude: locationLat, longitude: locationLng }}
+                  radius={maxDistanceKm * 1000}
+                  fillColor="rgba(255, 107, 107, 0.12)"
+                  strokeColor="rgba(255, 107, 107, 0.4)"
+                  strokeWidth={1.5}
+                />
+              </>
+            )}
+          </MapView>
+          {!locationLat && (
+            <View style={styles.mapOverlayHint}>
+              <Text style={styles.mapOverlayText}>Tap the map to set your location</Text>
+            </View>
+          )}
+        </View>
 
         {/* Location confirmation */}
         {locationLat && locationLng && locationAddress ? (
@@ -1288,29 +1301,21 @@ export default function ProfileSetupScreen() {
 
         {/* Distance slider */}
         <Text style={[styles.label, { marginTop: 20 }]}>Maximum distance: {maxDistanceKm} km</Text>
-        <View style={styles.sliderContainer}>
-          <Text style={styles.sliderLabel}>5 km</Text>
-          <View style={styles.sliderTrack}>
-            <View style={[styles.sliderFill, { width: `${((maxDistanceKm - 5) / 195) * 100}%` }]} />
-            <View
-              style={[styles.sliderThumb, { left: `${((maxDistanceKm - 5) / 195) * 100}%` }]}
-              {...(() => {
-                // Use a simple touchable approach for the slider
-                return {};
-              })()}
-            />
-          </View>
-          <Text style={styles.sliderLabel}>200 km</Text>
+        <Slider
+          style={{ width: '100%', height: 40 }}
+          minimumValue={5}
+          maximumValue={200}
+          step={5}
+          value={maxDistanceKm}
+          onValueChange={(v: number) => setMaxDistanceKm(Math.round(v))}
+          minimumTrackTintColor={colors.primary}
+          maximumTrackTintColor={colors.border}
+          thumbTintColor={colors.primary}
+        />
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+          <Text style={{ fontSize: 12, color: colors.gray }}>5 km</Text>
+          <Text style={{ fontSize: 12, color: colors.gray }}>200 km</Text>
         </View>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 8 }}>
-          {[5, 10, 15, 25, 50, 75, 100, 200].map(km => (
-            <TouchableOpacity key={km}
-              style={[styles.chip, { marginRight: 8 }, maxDistanceKm === km && styles.chipSelected]}
-              onPress={() => setMaxDistanceKm(km)}>
-              <Text style={[styles.chipText, maxDistanceKm === km && styles.chipTextSelected]}>{km} km</Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
       </View>
     );
   };
@@ -1509,6 +1514,7 @@ const styles = StyleSheet.create({
   sliderDotText: { fontSize: 16, fontWeight: '600', color: colors.darkSecondary },
   sliderDotTextActive: { color: '#fff' },
   sliderLabels: { flexDirection: 'row', justifyContent: 'space-between' },
+  sliderLabel: { fontSize: 12, color: colors.gray },
 
   // Intent
   intentCard: { borderWidth: 1, borderColor: colors.border, borderRadius: 12, padding: 14, marginBottom: 10 },
@@ -1605,15 +1611,13 @@ const styles = StyleSheet.create({
   suggestionItem: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12, paddingHorizontal: 14, borderBottomWidth: 1, borderBottomColor: colors.borderLight },
   suggestionIcon: { fontSize: 16, marginRight: 10 },
   suggestionText: { fontSize: 14, color: colors.dark, flex: 1 },
-  locationPinVisual: { alignItems: 'center', paddingVertical: 16, backgroundColor: colors.surfaceSelected, borderRadius: 12, marginVertical: 12 },
-  locationPinCoords: { fontSize: 12, color: colors.gray, marginTop: 4 },
+  mapContainer: { height: 220, borderRadius: 16, overflow: 'hidden', marginVertical: 12, borderWidth: 1, borderColor: colors.border },
+  map: { flex: 1 },
+  mapOverlayHint: { position: 'absolute', bottom: 12, left: 0, right: 0, alignItems: 'center' },
+  mapOverlayText: { fontSize: 13, color: '#fff', backgroundColor: 'rgba(0,0,0,0.5)', paddingHorizontal: 16, paddingVertical: 6, borderRadius: 20, overflow: 'hidden' },
   locationConfirmed: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: '#E8F5E9', padding: 16, borderRadius: 12, marginBottom: 12 },
   locationIcon: { fontSize: 24 },
   locationText: { fontSize: 16, fontWeight: '600', color: '#2E7D32', flex: 1 },
-  sliderContainer: { flexDirection: 'row', alignItems: 'center', gap: 8, marginVertical: 8 },
-  sliderLabel: { fontSize: 12, color: colors.gray, width: 40 },
-  sliderTrack: { flex: 1, height: 6, backgroundColor: colors.border, borderRadius: 3, position: 'relative' },
-  sliderFill: { height: '100%', backgroundColor: colors.primary, borderRadius: 3 },
   sliderThumb: { position: 'absolute', top: -8, width: 22, height: 22, borderRadius: 11, backgroundColor: colors.primary, borderWidth: 3, borderColor: '#fff', marginLeft: -11, elevation: 3, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.2, shadowRadius: 3 },
   editText: { fontSize: 14, color: colors.primary, fontWeight: '600' },
   distanceRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, alignItems: 'center' },
