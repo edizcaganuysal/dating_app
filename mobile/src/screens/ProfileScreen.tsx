@@ -25,7 +25,7 @@ import { PrivateProfile } from '../types';
 import { colors } from '../theme';
 
 const { width } = Dimensions.get('window');
-const PHOTO_SIZE = (width - 56) / 3;
+const PHOTO_SIZE = (width - 48) / 2;
 
 const INTENT_OPTIONS = ['casual', 'serious', 'open'];
 const INTENT_LABELS: Record<string, string> = {
@@ -434,12 +434,18 @@ export default function ProfileScreen() {
         </View>
         <View style={styles.photoGrid}>
           {photoSlots.map((url: string | null, i: number) => (
-            <TouchableOpacity key={i} style={styles.photoSlot} onPress={() => showPhotoOptions(i)}>
+            <TouchableOpacity key={i} style={styles.photoSlot} onPress={() => showPhotoOptions(i)} activeOpacity={0.7}>
               {url ? (
-                <Image source={{ uri: resolvePhotoUrl(url) }} style={styles.photo} />
+                <View>
+                  <Image source={{ uri: resolvePhotoUrl(url) }} style={styles.photo} />
+                  <View style={styles.photoEditBadge}>
+                    <Ionicons name="pencil" size={12} color="#fff" />
+                  </View>
+                </View>
               ) : (
                 <View style={styles.emptyPhotoSlot}>
                   <Ionicons name="add" size={28} color={colors.grayLight} />
+                  <Text style={{ fontSize: 10, color: colors.grayLight, marginTop: 4 }}>Add</Text>
                 </View>
               )}
             </TouchableOpacity>
@@ -706,6 +712,24 @@ export default function ProfileScreen() {
         </View>
       </TouchableOpacity>
 
+      {/* Redo Onboarding */}
+      <TouchableOpacity style={styles.redoOnboardingButton} onPress={() => {
+        Alert.alert('Redo Profile Setup', 'This will take you through the onboarding steps again to update your profile.', [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Continue', onPress: async () => {
+            // Clear profile so AppNavigator shows ProfileSetup
+            await updateProfile({ bio: null as any });
+            // Force re-check
+            navigation.reset({ index: 0, routes: [{ name: 'ProfileMain' }] });
+            // Reload to trigger profile check
+            logout();
+          }},
+        ]);
+      }}>
+        <Ionicons name="refresh-outline" size={18} color={colors.primary} />
+        <Text style={styles.redoOnboardingText}>Redo Profile Setup</Text>
+      </TouchableOpacity>
+
       {/* Logout */}
       <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
         <Ionicons name="log-out-outline" size={20} color="#fff" />
@@ -751,10 +775,11 @@ const styles = StyleSheet.create({
   badgeText: { fontSize: 12, color: colors.success, fontWeight: '600' },
 
   // Photos
-  photoGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  photoSlot: { width: PHOTO_SIZE, height: PHOTO_SIZE * 1.25, borderRadius: 10, overflow: 'hidden' },
+  photoGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, justifyContent: 'center' },
+  photoSlot: { width: PHOTO_SIZE, height: PHOTO_SIZE * 1.25, borderRadius: 12, overflow: 'hidden' },
   photo: { width: '100%', height: '100%', borderRadius: 10 },
-  emptyPhotoSlot: { flex: 1, borderWidth: 2, borderColor: colors.border, borderStyle: 'dashed', borderRadius: 10, alignItems: 'center', justifyContent: 'center', backgroundColor: '#fafafa' },
+  emptyPhotoSlot: { flex: 1, borderWidth: 2, borderColor: colors.border, borderStyle: 'dashed', borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: '#fafafa' },
+  photoEditBadge: { position: 'absolute', bottom: 6, right: 6, width: 24, height: 24, borderRadius: 12, backgroundColor: 'rgba(0,0,0,0.6)', alignItems: 'center', justifyContent: 'center' },
 
   // Chips
   chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
@@ -780,7 +805,9 @@ const styles = StyleSheet.create({
   // Friends & Logout
   friendsRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   friendsText: { fontSize: 16, fontWeight: '600', color: colors.dark, flex: 1 },
-  logoutButton: { backgroundColor: colors.error, paddingVertical: 14, borderRadius: 12, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 8, marginTop: 4 },
+  redoOnboardingButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 14, borderRadius: 12, borderWidth: 1.5, borderColor: colors.primary, marginTop: 4 },
+  redoOnboardingText: { fontSize: 15, fontWeight: '600', color: colors.primary },
+  logoutButton: { backgroundColor: colors.error, paddingVertical: 14, borderRadius: 12, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 8, marginTop: 12 },
   logoutText: { color: '#fff', fontSize: 16, fontWeight: '600' },
 
   // Modals

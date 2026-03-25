@@ -210,6 +210,27 @@ export default function HomeScreen() {
 
   const hasContent = groups.length > 0 || matches.length > 0;
 
+  if (!hasContent) {
+    return (
+      <View style={styles.container}>
+        <EmptyState
+          icon="heart-outline"
+          title="No dates yet!"
+          description="Create your first date request to get matched with a group of awesome people."
+          actionLabel="Create Date Request"
+          onAction={() => navigation.navigate('DateRequest')}
+        />
+        <Animated.View style={[styles.fabContainer, fabPulseStyle]}>
+          <AnimatedButton
+            label="Create Date Request"
+            onPress={() => { haptic.light(); navigation.navigate('DateRequest'); }}
+            variant="primary" size="lg" fullWidth icon="add-circle-outline"
+          />
+        </Animated.View>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
       <FlatList
@@ -219,19 +240,6 @@ export default function HomeScreen() {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); loadData(); }} tintColor={colors.primary} />}
         ListHeaderComponent={
           <View>
-            <Animated.View style={welcomeFade}>
-              <Text style={styles.welcome}>Welcome, {user?.first_name || 'there'}! 👋</Text>
-            </Animated.View>
-
-            {!hasContent && (
-              <EmptyState
-                icon="heart-outline"
-                title="No dates yet!"
-                description="Create your first date request to get matched with a group of awesome people."
-                actionLabel="Create Date Request"
-                onAction={() => navigation.navigate('DateRequest')}
-              />
-            )}
 
             {groups.length > 0 && (
               <View style={styles.section}>
@@ -265,7 +273,7 @@ export default function HomeScreen() {
       />
 
       {/* FAB */}
-      <Animated.View style={[styles.fabContainer, hasContent ? fabSpring : fabPulseStyle]}>
+      <Animated.View style={[styles.fabContainer, fabSpring]}>
         <AnimatedButton
           label="Create Date Request"
           onPress={() => { haptic.light(); navigation.navigate('DateRequest'); }}
@@ -281,7 +289,7 @@ export default function HomeScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.surface },
-  listContent: { paddingBottom: 100 },
+  listContent: { paddingBottom: 100, flexGrow: 1 },
   skeletonContainer: { padding: spacing.xl, paddingTop: spacing.xxxxl },
   welcome: {
     ...typography.headlineLarge,
