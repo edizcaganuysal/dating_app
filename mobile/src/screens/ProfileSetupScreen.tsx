@@ -5,6 +5,7 @@ import {
   KeyboardAvoidingView,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import { useAuth } from '../context/AuthContext';
 import * as ImagePicker from 'expo-image-picker';
 import * as Location from 'expo-location';
 import MapView, { Marker, Circle } from 'react-native-maps';
@@ -345,6 +346,7 @@ function SliderSelect({ value, onChange, labels }: { value: number; onChange: (v
 
 export default function ProfileSetupScreen() {
   const navigation = useNavigation<any>();
+  const { logout } = useAuth();
   const [path, setPath] = useState<'quick' | 'thorough' | null>(null);
   const [step, setStep] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -797,6 +799,10 @@ export default function ProfileSetupScreen() {
           <Text style={styles.pathTime}>~4 minutes</Text>
           <Text style={styles.pathDesc}>More questions = better group chemistry. Tell us your personality, lifestyle, and what you're looking for.</Text>
           <View style={[styles.pathBadge, styles.pathBadgePurple]}><Text style={styles.pathBadgeText}>12 steps</Text></View>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.logoutLink} onPress={() => { logout(); }}>
+          <Text style={styles.logoutLinkText}>Log out / switch account</Text>
         </TouchableOpacity>
       </ScrollView>
     );
@@ -1496,6 +1502,8 @@ const styles = StyleSheet.create({
   content: { padding: 20, paddingBottom: 60 },
   pathContent: { paddingHorizontal: 24, paddingVertical: 40, flexGrow: 1, justifyContent: 'center', alignItems: 'center' },
   input: { borderWidth: 1, borderColor: colors.border, borderRadius: 10, padding: 14, fontSize: 16, backgroundColor: colors.surfaceElevated },
+  logoutLink: { marginTop: 24, paddingVertical: 12, alignItems: 'center' },
+  logoutLinkText: { fontSize: 14, color: colors.gray, textDecorationLine: 'underline' },
   header: { fontSize: 28, fontWeight: 'bold', color: colors.primary, marginBottom: 8, textAlign: 'center' },
   subtitle: { fontSize: 15, color: colors.darkSecondary, marginBottom: 24 },
   stepIndicator: { fontSize: 13, color: colors.gray, marginBottom: 16 },
