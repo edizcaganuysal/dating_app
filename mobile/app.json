@@ -1,10 +1,10 @@
 {
   "expo": {
-    "name": "LoveGenie",
-    "slug": "lovegenie",
+    "name": "Yuni",
+    "slug": "yuni",
     "version": "1.0.0",
     "orientation": "portrait",
-    "scheme": "lovegenie",
+    "scheme": "yuni",
     "platforms": [
       "ios",
       "android"
@@ -14,10 +14,14 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "LoveGenie needs access to your photos to add them to your profile.",
-          "cameraPermission": "LoveGenie needs access to your camera to take profile photos and verify your identity."
+          "photosPermission": "Yuni needs access to your photos to add them to your profile.",
+          "cameraPermission": "Yuni needs access to your camera to take profile photos and verify your identity."
         }
       ]
-    ]
+    ],
+    "newArchEnabled": true,
+    "android": {
+      "package": "com.yuni.app"
+    }
   }
 }

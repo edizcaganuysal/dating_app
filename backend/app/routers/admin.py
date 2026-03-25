@@ -815,7 +815,7 @@ async def approve_batch_groups(
                 if user:
                     member_names.append(user.first_name)
 
-            # Send Genie welcome message
+            # Send Yuni AI welcome message
             from app.services.chat_ai_service import send_welcome_message
             await send_welcome_message(
                 room_id=chat_room.id,

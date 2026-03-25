@@ -41,7 +41,7 @@ export function AdminAuthGuard({ children }: { children: React.ReactNode }) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-950">
         <div className="w-full max-w-sm">
-          <h1 className="text-2xl font-bold text-pink-400 text-center mb-2">LoveGenie</h1>
+          <h1 className="text-2xl font-bold text-pink-400 text-center mb-2">Yuni</h1>
           <p className="text-gray-500 text-center mb-8 text-sm">Admin Dashboard</p>
 
           <form onSubmit={handleSubmit} className="bg-gray-900 rounded-xl p-6 border border-gray-800 space-y-4">

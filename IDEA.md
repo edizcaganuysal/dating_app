@@ -1,8 +1,8 @@
-# LoveGenie — Product Document
+# Yuni — Product Document
 
 ## Mission
 
-Dating through natural interaction is the healthiest way to form relationships, and it's disappearing. Apps turned dating into a shopping experience — swipe, judge, discard. We're reversing that. LoveGenie gets you off your phone and into a room with real people, doing something fun, where chemistry happens the way it's supposed to.
+Dating through natural interaction is the healthiest way to form relationships, and it's disappearing. Apps turned dating into a shopping experience — swipe, judge, discard. We're reversing that. Yuni gets you off your phone and into a room with real people, doing something fun, where chemistry happens the way it's supposed to.
 
 We don't want you on this app forever. We want you to find someone and leave. That's the opposite of how dating apps make money, and that's the point.
 
@@ -180,7 +180,7 @@ For launch, **admins manually match users** through the admin dashboard. This le
 
 ## Activity System
 
-Activities are central to LoveGenie — they're not an afterthought, they're the reason the date feels natural instead of forced.
+Activities are central to Yuni — they're not an afterthought, they're the reason the date feels natural instead of forced.
 
 **Curated list per campus:**
 Maintained by admins. Examples: dinner, bar hopping, bowling, karaoke, board game cafe, ice skating, hiking, cooking class, trivia night, mini golf, escape room, art gallery, campus event.
@@ -202,7 +202,7 @@ As a final option, the group can override and choose their own activity/venue in
 
 We are not a dating app that wants your money. We're a group of university students who saw that dating is broken and built something to fix it. We want to run this as cheaply as possible, but we have server costs, and we also need to eat. Every dollar we charge goes toward making the experience better, not toward trapping you in a subscription.
 
-Dating apps are greedy capitalists that intentionally design their product to keep you single and paying. We want you to find someone and delete LoveGenie. That's success for us.
+Dating apps are greedy capitalists that intentionally design their product to keep you single and paying. We want you to find someone and delete Yuni. That's success for us.
 
 ### How It Works
 

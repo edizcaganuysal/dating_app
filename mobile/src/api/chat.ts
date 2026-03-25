@@ -33,7 +33,7 @@ export const getVenueSuggestions = async (groupId: string): Promise<VenuesRespon
   return response.data;
 };
 
-export const askGenie = async (roomId: string, question: string): Promise<ChatMessage> => {
-  const response = await apiClient.post(`/api/chat/rooms/${roomId}/ask-genie`, { question });
+export const askYuniAi = async (roomId: string, question: string): Promise<ChatMessage> => {
+  const response = await apiClient.post(`/api/chat/rooms/${roomId}/ask-yuni`, { question });
   return response.data;
 };

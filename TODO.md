@@ -1,3 +1,3 @@
 # TODO — Future Improvements
 - Find and go to events (some agentic system to find in-campus events)
-- 
+- I want to modify the matching algorithm. Because its reasonable to expect more men to use to app compared to woman, we need to consider the fact that some men will have to wait for a time. For this reason, consider wait time when matching. If a user waited more, they should be more likely to get into a batch and then get matched. But adjust it so that it doesnt mess up the match quality. I'm thinking that up to 2-3 days of wait is fine for a man. Also evaluate our current algorithm and detect its flaws and analyze how it can be improved (for mvp we dont need a crazy algorithm, so make basic changes only)

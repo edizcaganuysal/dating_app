@@ -9,8 +9,8 @@ _ENV_FILE = _PROJECT_ROOT / ".env"
 
 
 class Settings(BaseSettings):
-    DATABASE_URL: str = "postgresql+asyncpg://lovegenie:lovegenie@localhost:5433/lovegenie_dev"
-    DATABASE_TEST_URL: str = "postgresql+asyncpg://lovegenie:lovegenie@localhost:5433/lovegenie_test"
+    DATABASE_URL: str = "postgresql+asyncpg://yuni:yuni@localhost:5433/yuni_dev"
+    DATABASE_TEST_URL: str = "postgresql+asyncpg://yuni:yuni@localhost:5433/yuni_test"
     SECRET_KEY: str = "dev-secret-key-change-in-production"
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 1440

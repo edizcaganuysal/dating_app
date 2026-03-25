@@ -26,8 +26,8 @@ def upgrade() -> None:
         INSERT INTO users (id, email, first_name, last_name, gender, age, password_hash,
                           is_email_verified, is_selfie_verified, is_admin, is_suspended,
                           university_domain, friend_code)
-        VALUES ('{GENIE_USER_ID}', 'genie@lovegenie.app', 'Genie', '', 'other', 0, 'disabled',
-                true, true, true, false, 'lovegenie.app', 'GENIE0')
+        VALUES ('{GENIE_USER_ID}', 'genie@yuni.app', 'Genie', '', 'other', 0, 'disabled',
+                true, true, true, false, 'yuni.app', 'GENIE0')
         ON CONFLICT (id) DO NOTHING
         """
     )

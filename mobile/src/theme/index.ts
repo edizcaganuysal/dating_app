@@ -37,9 +37,9 @@ export const colors = {
   // Chat
   ownMessage: '#FF6B6B',
   otherMessage: '#F5F0EB',
-  genieBubble: '#F3E5F5',
-  genieBorder: '#E1BEE7',
-  geniePrimary: '#7B1FA2',
+  yuniAiBubble: '#F3E5F5',
+  yuniAiBorder: '#E1BEE7',
+  yuniAiPrimary: '#7B1FA2',
 
   // Gender
   male: '#2196F3',

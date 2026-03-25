@@ -15,14 +15,14 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRoute } from '@react-navigation/native';
 import { useAuth } from '../context/AuthContext';
 import useChat from '../hooks/useChat';
-import { askGenie } from '../api/chat';
-import { ChatMessage, GENIE_USER_ID } from '../types';
+import { askYuniAi } from '../api/chat';
+import { ChatMessage, YUNI_AI_USER_ID } from '../types';
 import { colors, spacing, typography, radii } from '../theme';
 import { UserAvatar, RelativeTimestamp, PressableScale, BouncingDots } from '../components';
 import { markRoomRead } from '../hooks/useUnreadCount';
 import { useFadeIn } from '../utils/animations';
 
-const GENIE_PRESETS = [
+const YUNI_PRESETS = [
   { label: 'Suggest a venue', question: 'Can you suggest some good venues for our date?' },
   { label: 'What should we wear?', question: 'What should we wear to this date?' },
   { label: 'Conversation starter', question: 'Give us a fun conversation starter!' },
@@ -43,8 +43,8 @@ export default function ChatScreen() {
 
   const [text, setText] = useState('');
   const [loadingHistory, setLoadingHistory] = useState(false);
-  const [genieMenuVisible, setGenieMenuVisible] = useState(false);
-  const [genieLoading, setGenieLoading] = useState(false);
+  const [yuniMenuVisible, setYuniMenuVisible] = useState(false);
+  const [yuniLoading, setYuniLoading] = useState(false);
   const flatListRef = useRef<FlatList>(null);
 
   const handleSend = () => {
@@ -59,10 +59,10 @@ export default function ChatScreen() {
     sendTyping();
   };
 
-  const handleAskGenie = async (question: string) => {
-    setGenieMenuVisible(false);
-    setGenieLoading(true);
-    try { await askGenie(roomId, question); } catch {} finally { setGenieLoading(false); }
+  const handleAskYuni = async (question: string) => {
+    setYuniMenuVisible(false);
+    setYuniLoading(true);
+    try { await askYuniAi(roomId, question); } catch {} finally { setYuniLoading(false); }
   };
 
   const handleLoadMore = useCallback(async () => {
@@ -73,17 +73,17 @@ export default function ChatScreen() {
 
   const renderMessage = ({ item }: { item: ChatMessage }) => {
     const isOwn = item.sender_id === user?.id;
-    const isGenie = item.sender_id === GENIE_USER_ID;
+    const isYuniAi = item.sender_id === YUNI_AI_USER_ID;
 
-    if (isGenie) {
+    if (isYuniAi) {
       return (
-        <View style={styles.genieBubble} testID={`message-${item.id}`}>
-          <View style={styles.genieHeader}>
-            <Text style={styles.genieEmoji}>🧞</Text>
-            <Text style={styles.genieName}>Genie</Text>
+        <View style={styles.yuniAiBubble} testID={`message-${item.id}`}>
+          <View style={styles.yuniAiHeader}>
+            <Text style={styles.yuniAiEmoji}>✨</Text>
+            <Text style={styles.yuniAiName}>Yuni AI</Text>
           </View>
-          <Text style={styles.genieText}>{item.content}</Text>
-          <Text style={styles.genieTimestamp}>
+          <Text style={styles.yuniAiText}>{item.content}</Text>
+          <Text style={styles.yuniAiTimestamp}>
             {new Date(item.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
           </Text>
         </View>
@@ -108,7 +108,7 @@ export default function ChatScreen() {
     );
   };
 
-  const isGenieTyping = typingUser === 'Genie';
+  const isYuniTyping = typingUser === 'Yuni AI';
 
   return (
     <KeyboardAvoidingView
@@ -134,12 +134,12 @@ export default function ChatScreen() {
         testID="message-list"
       />
 
-      {(typingUser || genieLoading) && (
+      {(typingUser || yuniLoading) && (
         <View style={styles.typingContainer}>
-          {isGenieTyping || genieLoading ? (
-            <View style={styles.genieTypingRow}>
-              <Text style={styles.genieTypingEmoji}>🧞</Text>
-              <Text style={styles.genieTypingText}>Genie</Text>
+          {isYuniTyping || yuniLoading ? (
+            <View style={styles.yuniAiTypingRow}>
+              <Text style={styles.yuniAiTypingEmoji}>✨</Text>
+              <Text style={styles.yuniAiTypingText}>Yuni AI</Text>
               <BouncingDots color="#7B1FA2" />
             </View>
           ) : (
@@ -153,11 +153,11 @@ export default function ChatScreen() {
 
       <View style={styles.inputContainer}>
         <PressableScale
-          style={styles.genieButton}
-          onPress={() => setGenieMenuVisible(true)}
-          disabled={genieLoading}
+          style={styles.yuniAiButton}
+          onPress={() => setYuniMenuVisible(true)}
+          disabled={yuniLoading}
         >
-          <Text style={styles.genieButtonText}>🧞</Text>
+          <Text style={styles.yuniAiButtonText}>✨</Text>
         </PressableScale>
 
         <TextInput
@@ -183,24 +183,24 @@ export default function ChatScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* Genie Menu */}
-      <Modal visible={genieMenuVisible} transparent animationType="slide">
-        <TouchableOpacity style={styles.genieOverlay} activeOpacity={1} onPress={() => setGenieMenuVisible(false)}>
-          <View style={styles.genieSheet}>
-            <View style={styles.genieSheetHandle} />
-            <Text style={styles.genieSheetTitle}>🧞 Ask Genie</Text>
-            <Text style={styles.genieSheetSub}>Your AI date planning assistant</Text>
-            {GENIE_PRESETS.map((preset) => (
+      {/* Yuni AI Menu */}
+      <Modal visible={yuniMenuVisible} transparent animationType="slide">
+        <TouchableOpacity style={styles.yuniAiOverlay} activeOpacity={1} onPress={() => setYuniMenuVisible(false)}>
+          <View style={styles.yuniAiSheet}>
+            <View style={styles.yuniAiSheetHandle} />
+            <Text style={styles.yuniAiSheetTitle}>✨ Ask Yuni AI</Text>
+            <Text style={styles.yuniAiSheetSub}>Your AI date planning assistant</Text>
+            {YUNI_PRESETS.map((preset) => (
               <TouchableOpacity
                 key={preset.label}
-                style={styles.geniePreset}
-                onPress={() => handleAskGenie(preset.question)}
+                style={styles.yuniAiPreset}
+                onPress={() => handleAskYuni(preset.question)}
               >
-                <Text style={styles.geniePresetText}>{preset.label}</Text>
+                <Text style={styles.yuniAiPresetText}>{preset.label}</Text>
               </TouchableOpacity>
             ))}
-            <TouchableOpacity style={styles.genieCancel} onPress={() => setGenieMenuVisible(false)}>
-              <Text style={styles.genieCancelText}>Cancel</Text>
+            <TouchableOpacity style={styles.yuniAiCancel} onPress={() => setYuniMenuVisible(false)}>
+              <Text style={styles.yuniAiCancelText}>Cancel</Text>
             </TouchableOpacity>
           </View>
         </TouchableOpacity>
@@ -224,31 +224,31 @@ const styles = StyleSheet.create({
   ownMessageText: { color: '#fff' },
   timestamp: { fontSize: 10, color: colors.gray, marginTop: 4, alignSelf: 'flex-end' },
   ownTimestamp: { color: 'rgba(255,255,255,0.7)' },
-  genieBubble: {
+  yuniAiBubble: {
     maxWidth: '85%', alignSelf: 'center', marginVertical: 6,
-    backgroundColor: '#F3E5F5', borderRadius: 16, padding: 12,
-    borderWidth: 1, borderColor: '#E1BEE7',
+    backgroundColor: colors.yuniAiBubble, borderRadius: 16, padding: 12,
+    borderWidth: 1, borderColor: colors.yuniAiBorder,
   },
-  genieHeader: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 },
-  genieEmoji: { fontSize: 16 },
-  genieName: { fontSize: 12, fontWeight: '700', color: '#7B1FA2' },
-  genieText: { fontSize: 14, color: colors.dark, lineHeight: 20 },
-  genieTimestamp: { fontSize: 10, color: '#9E9E9E', marginTop: 6, alignSelf: 'flex-end' },
+  yuniAiHeader: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 },
+  yuniAiEmoji: { fontSize: 16 },
+  yuniAiName: { fontSize: 12, fontWeight: '700', color: colors.yuniAiPrimary },
+  yuniAiText: { fontSize: 14, color: colors.dark, lineHeight: 20 },
+  yuniAiTimestamp: { fontSize: 10, color: '#9E9E9E', marginTop: 6, alignSelf: 'flex-end' },
   typingContainer: { paddingHorizontal: 16, paddingVertical: 4 },
   typingText: { fontSize: 12, color: colors.gray, fontStyle: 'italic' },
-  genieTypingRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  genieTypingEmoji: { fontSize: 14 },
-  genieTypingText: { fontSize: 12, color: '#7B1FA2', fontStyle: 'italic', marginRight: 4 },
+  yuniAiTypingRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  yuniAiTypingEmoji: { fontSize: 14 },
+  yuniAiTypingText: { fontSize: 12, color: colors.yuniAiPrimary, fontStyle: 'italic', marginRight: 4 },
   typingRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   inputContainer: {
     flexDirection: 'row', padding: 8, borderTopWidth: 1, borderTopColor: colors.border,
     alignItems: 'flex-end',
   },
-  genieButton: {
-    width: 40, height: 40, borderRadius: 20, backgroundColor: '#F3E5F5',
+  yuniAiButton: {
+    width: 40, height: 40, borderRadius: 20, backgroundColor: colors.yuniAiBubble,
     alignItems: 'center', justifyContent: 'center', marginRight: 6,
   },
-  genieButtonText: { fontSize: 20 },
+  yuniAiButtonText: { fontSize: 20 },
   input: {
     flex: 1, borderWidth: 1, borderColor: colors.border, borderRadius: 20,
     paddingHorizontal: 14, paddingVertical: 8, maxHeight: 100, fontSize: 15,
@@ -259,22 +259,22 @@ const styles = StyleSheet.create({
   },
   sendButtonDisabled: { backgroundColor: colors.grayLight },
   sendIconContainer: { width: 20, height: 20, alignItems: 'center', justifyContent: 'center' },
-  genieOverlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.4)' },
-  genieSheet: {
+  yuniAiOverlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.4)' },
+  yuniAiSheet: {
     backgroundColor: colors.surfaceElevated, borderTopLeftRadius: 20, borderTopRightRadius: 20,
     padding: 20, paddingBottom: 36,
   },
-  genieSheetHandle: {
+  yuniAiSheetHandle: {
     width: 40, height: 4, borderRadius: 2, backgroundColor: colors.border,
     alignSelf: 'center', marginBottom: 16,
   },
-  genieSheetTitle: { fontSize: 20, fontWeight: '700', color: colors.dark, marginBottom: 4 },
-  genieSheetSub: { fontSize: 14, color: colors.darkSecondary, marginBottom: 16 },
-  geniePreset: {
-    backgroundColor: '#F3E5F5', paddingVertical: 14, paddingHorizontal: 16,
+  yuniAiSheetTitle: { fontSize: 20, fontWeight: '700', color: colors.dark, marginBottom: 4 },
+  yuniAiSheetSub: { fontSize: 14, color: colors.darkSecondary, marginBottom: 16 },
+  yuniAiPreset: {
+    backgroundColor: colors.yuniAiBubble, paddingVertical: 14, paddingHorizontal: 16,
     borderRadius: 12, marginBottom: 8,
   },
-  geniePresetText: { fontSize: 15, color: '#4A148C', fontWeight: '600' },
-  genieCancel: { paddingVertical: 14, alignItems: 'center', marginTop: 4 },
-  genieCancelText: { fontSize: 15, color: colors.gray },
+  yuniAiPresetText: { fontSize: 15, color: '#4A148C', fontWeight: '600' },
+  yuniAiCancel: { paddingVertical: 14, alignItems: 'center', marginTop: 4 },
+  yuniAiCancelText: { fontSize: 15, color: colors.gray },
 });

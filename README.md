@@ -1,11 +1,11 @@
-# LoveGenie
+# Yuni
 
 Group dating app for university students. Get matched into a group of 4-6,
 go on a group date, connect with whoever you vibe with.
 
 ## Matching Algorithm
 
-LoveGenie uses a 3-stage AI-powered matching pipeline designed to scale to 1M+ users.
+Yuni uses a 3-stage AI-powered matching pipeline designed to scale to 1M+ users.
 
 ### Stage 1: Batch Formation (Every 15 minutes)
 
@@ -126,8 +126,8 @@ Photos are scored by OpenAI Vision on upload and during selfie verification:
 Copy `.env.example` to `.env` at the project root:
 
 ```
-DATABASE_URL=postgresql+asyncpg://lovegenie:lovegenie@localhost:5433/lovegenie_dev
-DATABASE_TEST_URL=postgresql+asyncpg://lovegenie:lovegenie@localhost:5433/lovegenie_test
+DATABASE_URL=postgresql+asyncpg://yuni:yuni@localhost:5433/yuni_dev
+DATABASE_TEST_URL=postgresql+asyncpg://yuni:yuni@localhost:5433/yuni_test
 SECRET_KEY=your-secret-key-change-in-production
 ALGORITHM=HS256
 ACCESS_TOKEN_EXPIRE_MINUTES=1440

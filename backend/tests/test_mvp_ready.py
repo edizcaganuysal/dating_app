@@ -1,6 +1,6 @@
 """
 Comprehensive MVP readiness test suite.
-Tests 14 scenarios covering the full LoveGenie flow to ensure the app is ship-ready.
+Tests 14 scenarios covering the full Yuni flow to ensure the app is ship-ready.
 """
 import uuid
 from datetime import date, timedelta

@@ -92,7 +92,7 @@ async def lifespan(app: FastAPI):
 
 # ── App Setup ──
 
-app = FastAPI(title="LoveGenie API", lifespan=lifespan)
+app = FastAPI(title="Yuni API", lifespan=lifespan)
 
 app.mount("/uploads", StaticFiles(directory=UPLOADS_DIR), name="uploads")
 

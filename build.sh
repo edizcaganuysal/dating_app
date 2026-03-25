@@ -3,7 +3,7 @@ set -euo pipefail
 trap 'stop_heartbeat 2>/dev/null; echo ""; echo "Pipeline interrupted. Resume with: ./build.sh --start-from <phase>"' EXIT INT TERM
 
 ##############################################################################
-# LoveGenie Autonomous Build Pipeline
+# Yuni Autonomous Build Pipeline
 #
 # Usage:
 #   ./build.sh                    # Run all phases from the beginning
@@ -85,7 +85,7 @@ ensure_postgres() {
 
     local retries=0
     while ! docker compose -f "$PROJECT_DIR/docker-compose.yml" exec -T postgres \
-          pg_isready -U lovegenie -d lovegenie_dev > /dev/null 2>&1; do
+          pg_isready -U yuni -d yuni_dev > /dev/null 2>&1; do
         retries=$((retries + 1))
         if [ $retries -gt 30 ]; then
             log "FATAL: PostgreSQL did not become ready in 60 seconds"
@@ -277,7 +277,7 @@ Read CLAUDE.md for project context. Check that all imports are correct, all depe
 # MAIN EXECUTION
 ##############################################################################
 
-log_section "LoveGenie Autonomous Build Pipeline Started"
+log_section "Yuni Autonomous Build Pipeline Started"
 log "Project directory: $PROJECT_DIR"
 log "Start from phase: $START_FROM"
 

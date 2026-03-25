@@ -1,3 +1,3 @@
 -- Create test database for pytest
-CREATE DATABASE lovegenie_test;
-GRANT ALL PRIVILEGES ON DATABASE lovegenie_test TO lovegenie;
+CREATE DATABASE yuni_test;
+GRANT ALL PRIVILEGES ON DATABASE yuni_test TO yuni;

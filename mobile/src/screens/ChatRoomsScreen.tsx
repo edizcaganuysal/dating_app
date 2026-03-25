@@ -98,6 +98,7 @@ export default function ChatRoomsScreen() {
       keyExtractor={(item) => item.id}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); loadRooms(); }} tintColor={colors.primary} />}
       style={styles.container}
+      contentContainerStyle={{ flexGrow: 1 }}
       ListEmptyComponent={
         <EmptyState icon="chatbubbles-outline" title="No chats yet" description="Get matched with a group to start chatting!" />
       }

@@ -185,7 +185,7 @@ export default function HomeScreen() {
   const fabSpring = useSpringIn(500);
   const hasContentRef = useRef(false);
   const fabPulseStyle = usePulse(1, 1.05, 800, 1300);
-  const welcomeFade = useFadeIn({ delay: 0 });
+  // welcomeFade removed
 
   const loadData = async () => {
     setError(false);
@@ -212,7 +212,7 @@ export default function HomeScreen() {
 
   if (!hasContent) {
     return (
-      <View style={styles.container}>
+      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
         <EmptyState
           icon="heart-outline"
           title="No dates yet!"
@@ -291,12 +291,7 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.surface },
   listContent: { paddingBottom: 100, flexGrow: 1 },
   skeletonContainer: { padding: spacing.xl, paddingTop: spacing.xxxxl },
-  welcome: {
-    ...typography.headlineLarge,
-    color: colors.dark,
-    padding: spacing.xl,
-    paddingBottom: spacing.md,
-  },
+  // welcome style removed
   section: { paddingHorizontal: spacing.xl, marginBottom: spacing.xxl },
   sectionTitle: { ...typography.headlineSmall, color: colors.dark, marginBottom: spacing.md },
   groupCard: { marginBottom: spacing.md, padding: spacing.lg },

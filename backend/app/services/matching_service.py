@@ -1,6 +1,7 @@
 import uuid
 from collections import defaultdict
 from itertools import combinations
+from math import radians, cos, sin, asin, sqrt
 from statistics import stdev
 from typing import Optional
 
@@ -73,9 +74,8 @@ def _compute_intent_bonus(a: User, b: User) -> float:
 def _compute_personality_score(a: User, b: User) -> float:
     """Score personality compatibility (thorough users only)."""
     score = 0.0
-    # Social energy similarity (both must have it)
-    if a.social_energy is not None and b.social_energy is not None:
-        score += 5.0 - abs(a.social_energy - b.social_energy)
+    # Social energy complementarity (replaces simple similarity)
+    score += _compute_energy_complementarity(a, b)
     # Humor style overlap
     a_humor = set(a.humor_styles or [])
     b_humor = set(b.humor_styles or [])
@@ -95,13 +95,162 @@ def _compute_lifestyle_score(a: User, b: User) -> float:
     return score
 
 
-def compute_group_score(males: list[User], females: list[User]) -> float:
+def _haversine_km(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
+    """Compute the great-circle distance between two points on Earth (km)."""
+    lat1, lon1, lat2, lon2 = map(radians, [lat1, lon1, lat2, lon2])
+    dlat = lat2 - lat1
+    dlon = lon2 - lon1
+    a = sin(dlat / 2) ** 2 + cos(lat1) * cos(lat2) * sin(dlon / 2) ** 2
+    return 6371.0 * 2 * asin(sqrt(a))
+
+
+def _compute_communication_compat(a: User, b: User) -> float:
+    """Score communication preference compatibility between two users."""
+    ca = a.communication_pref
+    cb = b.communication_pref
+    if ca is None or cb is None:
+        return 0.0
+
+    # Normalise ordering so we only need to specify each pair once
+    pair = tuple(sorted([ca, cb]))
+
+    lookup = {
+        ("caller", "caller"): 2.0,
+        ("in_person", "in_person"): 2.0,
+        ("texter", "texter"): 2.0,
+        ("voice_notes", "voice_notes"): 1.5,
+        ("texter", "voice_notes"): 1.0,
+        ("caller", "in_person"): 1.5,
+        ("caller", "voice_notes"): 1.0,
+        ("in_person", "voice_notes"): 1.0,
+        ("caller", "texter"): -0.5,
+        ("in_person", "texter"): 0.5,
+    }
+    return lookup.get(pair, 0.0)
+
+
+def _compute_energy_complementarity(a: User, b: User) -> float:
+    """Score social energy complementarity — slight differences create dynamic groups."""
+    if a.social_energy is None or b.social_energy is None:
+        return 0.0
+    diff = abs(a.social_energy - b.social_energy)
+    if diff == 0:
+        return 1.5
+    elif diff == 1:
+        return 2.5  # Sweet spot — dynamic groups
+    elif diff == 2:
+        return 1.0
+    else:
+        return -0.5
+
+
+def _compute_role_diversity(users: list[User]) -> float:
+    """Score group role diversity — diverse roles make better group dynamics."""
+    role_to_category = {
+        "starts_conversations": "connector",
+        "tells_jokes": "entertainer",
+        "listens_quietly": "listener",
+        "plans_everything": "planner",
+        "goes_with_the_flow": "flexible",
+        "gets_everyone_hyped": "energizer",
+        "the_photographer": "creative",
+        "the_dj": "creative",
+    }
+
+    categories: set[str] = set()
+    for u in users:
+        for role in (u.group_role or []):
+            cat = role_to_category.get(role)
+            if cat:
+                categories.add(cat)
+
+    score = len(categories) * 1.5
+
+    # Bonus for having the trifecta: planner + entertainer + connector
+    if {"planner", "entertainer", "connector"} <= categories:
+        score += 3.0
+
+    return score
+
+
+def _compute_location_bonus(a: User, b: User) -> float:
+    """Score location proximity. Returns -100.0 as hard filter if too far."""
+    if a.latitude is None or a.longitude is None:
+        return 0.0
+    if b.latitude is None or b.longitude is None:
+        return 0.0
+
+    dist = _haversine_km(a.latitude, a.longitude, b.latitude, b.longitude)
+
+    max_dist = min(
+        a.preferred_max_distance_km or 25,
+        b.preferred_max_distance_km or 25,
+    )
+    if dist > max_dist:
+        return -100.0
+
+    # Soft bonus
+    if dist <= 5:
+        return 3.0
+    elif dist <= 10:
+        return 2.0
+    elif dist <= 15:
+        return 1.0
+    return 0.0
+
+
+def _compute_diet_friction(a: User, b: User) -> float:
+    """Return penalty for diet incompatibility on group dates."""
+    da = a.diet
+    db_ = b.diet
+    if da is None or db_ is None:
+        return 0.0
+
+    # Normalise ordering so we only need to specify each pair once
+    pair = tuple(sorted([da, db_]))
+
+    lookup = {
+        ("no_restrictions", "vegan"): 1.5,
+        ("no_restrictions", "vegetarian"): 0.5,
+        ("halal", "no_restrictions"): 0.5,
+        ("kosher", "no_restrictions"): 0.5,
+        ("halal", "vegan"): 1.0,
+        ("kosher", "vegan"): 1.0,
+    }
+    return lookup.get(pair, 0.0)
+
+
+def _compute_activity_energy_fit(users: list[User], activity: str) -> float:
+    """Score how well the group's energy matches the activity type."""
+    activity_ideal_energy = {
+        "board_games": 2,
+        "dinner": 3,
+        "cooking_class": 3,
+        "trivia": 3,
+        "mini_golf": 3,
+        "escape_room": 3,
+        "bowling": 3,
+        "bar": 4,
+        "karaoke": 4,
+        "arcade": 4,
+    }
+
+    ideal = activity_ideal_energy.get(activity, 3)
+    energies = [u.social_energy if u.social_energy is not None else 3 for u in users]
+    avg_energy = sum(energies) / len(energies) if energies else 3
+    return max(3.0 - abs(avg_energy - ideal), 0)
+
+
+def compute_group_score(males: list[User], females: list[User], activity: str = "") -> float:
     """Score a candidate group based on multiple compatibility dimensions."""
     interest_score = 0.0
     vibe_score = 0.0
     personality_score = 0.0
     lifestyle_score = 0.0
     intent_score = 0.0
+    communication_score = 0.0
+    location_score = 0.0
+    diet_penalty = 0.0
 
     for m in males:
         m_interests = set(m.interests or [])
@@ -118,8 +267,15 @@ def compute_group_score(males: list[User], females: list[User]) -> float:
             personality_score += _compute_personality_score(m, f)
             lifestyle_score += _compute_lifestyle_score(m, f)
             intent_score += _compute_intent_bonus(m, f)
+            communication_score += _compute_communication_compat(m, f)
+            location_score += _compute_location_bonus(m, f)
+            diet_penalty += _compute_diet_friction(m, f)
 
+    # Group-level scores
     all_users = males + females
+    role_diversity = _compute_role_diversity(all_users)
+    activity_fit = _compute_activity_energy_fit(all_users, activity)
+
     scores = [u.attractiveness_score for u in all_users]
     attractiveness_variance = stdev(scores) if len(scores) > 1 else 0.0
 
@@ -137,10 +293,15 @@ def compute_group_score(males: list[User], females: list[User]) -> float:
         interest_score * 1.0
         + vibe_score * 1.5
         + personality_score * 2.0
-        + lifestyle_score * 1.0
+        + lifestyle_score * 1.5
+        + communication_score * 1.5
         + intent_score
+        + location_score
         + program_bonus
-        - (attractiveness_variance * 10)
+        + role_diversity * 2.0
+        + activity_fit * 1.5
+        - diet_penalty
+        - (attractiveness_variance * 5)
     )
 
 
@@ -340,7 +501,7 @@ async def run_batch_matching(db: AsyncSession) -> list[DateGroup]:
                     if not pregroup_ok:
                         continue
 
-                    score = compute_group_score(m_users, f_users)
+                    score = compute_group_score(m_users, f_users, activity=activity)
                     scored_candidates.append(
                         (score, m_reqs, f_reqs, (slot_date, slot_time))
                     )
@@ -398,7 +559,7 @@ async def run_batch_matching(db: AsyncSession) -> list[DateGroup]:
                 )
                 db.add(participant)
 
-            # Send Genie welcome message
+            # Send Yuni AI welcome message
             member_names = []
             for req in all_reqs:
                 result = await db.execute(select(User).where(User.id == req.user_id))

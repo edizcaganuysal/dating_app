@@ -1,4 +1,4 @@
-You are building Phase 0 of the LoveGenie dating app. Read CLAUDE.md for full project context.
+You are building Phase 0 of the Yuni dating app. Read CLAUDE.md for full project context.
 
 Create the project scaffolding for all three components. Do NOT implement any business logic yet — just the skeleton.
 
@@ -24,7 +24,7 @@ pytest-asyncio==0.24.0
 
 2. Create `backend/app/__init__.py` (empty)
 3. Create `backend/app/main.py` with a minimal FastAPI app:
-   - Title: "LoveGenie API"
+   - Title: "Yuni API"
    - CORS middleware allowing all origins (dev only)
    - A single `GET /api/health` endpoint returning `{"status": "ok"}`
 4. Create `backend/app/config.py`:
@@ -38,8 +38,8 @@ pytest-asyncio==0.24.0
    - Create `mobile/package.json` with dependencies: expo (^52.0.0), react, react-native, typescript, @types/react, @react-navigation/native, @react-navigation/native-stack, @react-navigation/bottom-tabs, react-native-screens, react-native-safe-area-context, axios, @react-native-async-storage/async-storage
    - Dev dependencies: jest, @testing-library/react-native, @types/jest, react-test-renderer, typescript
 2. Create `mobile/tsconfig.json` with strict TypeScript config extending expo's base
-3. Create `mobile/app.json` with name "LoveGenie", slug "lovegenie"
-4. Create `mobile/App.tsx` — minimal component that renders a Text element saying "LoveGenie"
+3. Create `mobile/app.json` with name "Yuni", slug "yuni"
+4. Create `mobile/App.tsx` — minimal component that renders a Text element saying "Yuni"
 5. Create `mobile/src/types/index.ts` — empty file with a comment "// TypeScript interfaces will be added here"
 6. Create `mobile/jest.config.js` with preset "jest-expo" or a basic react-native jest config
 
@@ -52,7 +52,7 @@ pytest-asyncio==0.24.0
 4. Create `dashboard/postcss.config.mjs` with tailwindcss plugin
 5. Create `dashboard/src/app/layout.tsx` — root layout with html/body, import globals.css
 6. Create `dashboard/src/app/globals.css` — just `@import "tailwindcss";`
-7. Create `dashboard/src/app/page.tsx` — simple page saying "LoveGenie Admin Dashboard"
+7. Create `dashboard/src/app/page.tsx` — simple page saying "Yuni Admin Dashboard"
 8. Create `dashboard/jest.config.ts` with ts-jest preset for Next.js
 
 IMPORTANT:

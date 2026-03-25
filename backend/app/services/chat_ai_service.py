@@ -1,5 +1,5 @@
 """
-AI Chat Assistant ("Genie") for group date planning.
+AI Chat Assistant ("Yuni AI") for group date planning.
 Uses OpenAI to generate welcome messages, conversation starters,
 venue recommendations, and planning help.
 """
@@ -19,9 +19,9 @@ from app.models.group import DateGroup
 
 logger = logging.getLogger(__name__)
 
-GENIE_USER_ID = uuid_mod.UUID("00000000-0000-0000-0000-000000000001")
+YUNI_AI_USER_ID = uuid_mod.UUID("00000000-0000-0000-0000-000000000001")
 
-# Rate limiting: track last Genie response time per room
+# Rate limiting: track last Yuni AI response time per room
 _room_cooldowns: dict[str, float] = {}
 COOLDOWN_SECONDS = 30
 
@@ -162,11 +162,11 @@ ACTIVITY_CONTEXT = {
 
 # Fallback templates when OpenAI is unavailable
 WELCOME_FALLBACK = (
-    "Hey everyone! I'm Genie, your date planning assistant. "
+    "Hey everyone! I'm Yuni AI, your date planning assistant. "
     "You're all set for {activity} — exciting! "
     "Here are some conversation starters to get things going:\n\n"
     "{starters}\n\n"
-    "Need help planning? Tap the Genie button or type @genie anytime!"
+    "Need help planning? Tap the Yuni button or type @yuni anytime!"
 )
 
 
@@ -195,7 +195,7 @@ async def generate_welcome_message(
                 {
                     "role": "system",
                     "content": (
-                        "You are Genie, a friendly and fun AI assistant in a group dating app called LoveGenie. "
+                        "You are Yuni AI, a friendly and fun AI assistant in a group dating app called Yuni. "
                         "You help university students plan their group dates and break the ice. "
                         "Keep messages under 400 characters. Be warm, casual, and encouraging. Use 1-2 emojis max. "
                         "Never be creepy or overly romantic. You're the group's helpful buddy."
@@ -209,7 +209,7 @@ async def generate_welcome_message(
                         f"{f' on {scheduled_date}' if scheduled_date else ''}"
                         f"{f' at {scheduled_time}' if scheduled_time else ''}. "
                         f"Include 2-3 fun conversation starters specific to {ctx.get('label', activity)}. "
-                        f"End with a hint that they can ask you for help anytime by tapping the Genie button."
+                        f"End with a hint that they can ask you for help anytime by tapping the Yuni button."
                     ),
                 },
             ],
@@ -231,7 +231,7 @@ async def generate_assistant_response(
     recent_messages: list[dict],
     user_query: str,
 ) -> str:
-    """Generate an AI response to a user's @genie query."""
+    """Generate an AI response to a user's @yuni query."""
     ctx = ACTIVITY_CONTEXT.get(activity, {})
 
     if not settings.OPENAI_API_KEY:
@@ -254,7 +254,7 @@ async def generate_assistant_response(
                 {
                     "role": "system",
                     "content": (
-                        "You are Genie, a helpful AI assistant in a group dating app for university students. "
+                        "You are Yuni AI, a helpful AI assistant in a group dating app for university students. "
                         "You help groups plan their dates. Be concise (under 300 chars), fun, and specific. "
                         "Use 1-2 emojis max. When suggesting venues, give 2-3 specific-sounding options with prices. "
                         "When giving tips, be practical. Never reveal private user data.\n\n"
@@ -282,7 +282,7 @@ async def generate_assistant_response(
 
 
 def check_rate_limit(room_id: str) -> bool:
-    """Return True if Genie can respond (not rate-limited)."""
+    """Return True if Yuni AI can respond (not rate-limited)."""
     now = time.time()
     last = _room_cooldowns.get(room_id, 0)
     if now - last < COOLDOWN_SECONDS:
@@ -304,7 +304,7 @@ async def send_welcome_message(
 
     msg = ChatMessage(
         room_id=room_id,
-        sender_id=GENIE_USER_ID,
+        sender_id=YUNI_AI_USER_ID,
         content=content,
         message_type="ai",
     )

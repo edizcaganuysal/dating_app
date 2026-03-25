@@ -55,7 +55,7 @@ export type ActivityType =
   | "escape_room"
   | "arcade";
 
-export const GENIE_USER_ID = "00000000-0000-0000-0000-000000000001";
+export const YUNI_AI_USER_ID = "00000000-0000-0000-0000-000000000001";
 
 export interface VibeAnswer {
   question: string;

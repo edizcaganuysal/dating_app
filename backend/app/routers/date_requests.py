@@ -109,17 +109,18 @@ async def create_date_request(
 
 
 async def _create_companion_test_requests(main_user: User, data, db: AsyncSession):
-    """When the main test user creates a request, auto-create matching requests
-    for the 3 companion test users and trigger instant matching."""
+    """When the main test user creates a request, directly create a group + chat
+    with all 4 test users. Bypasses matching algorithm entirely."""
     from app.routers.auth import TEST_USERS, _setup_test_user
+    from app.models.group import DateGroup, GroupMember
+    from app.models.chat import ChatRoom, ChatParticipant
+    import datetime as dt
 
     companion_emails = [e for e in TEST_USERS if e != "tester@mail.utoronto.ca"]
-    companion_users = []
+    all_users = [main_user]
+    all_requests = []
 
-    # Force group_size=4 since we only have 4 test users
-    effective_group_size = 4
-
-    # Also update the main user's request to group_size=4
+    # Get the main user's request
     main_req = await db.execute(
         select(DateRequest).where(
             DateRequest.user_id == main_user.id,
@@ -129,18 +130,19 @@ async def _create_companion_test_requests(main_user: User, data, db: AsyncSessio
     )
     main_dr = main_req.scalar_one_or_none()
     if main_dr:
-        main_dr.group_size = effective_group_size
+        main_dr.group_size = 4
+        all_requests.append(main_dr)
 
+    # Create companion users + requests
     for email in companion_emails:
         result = await db.execute(select(User).where(User.email == email))
         user = result.scalar_one_or_none()
         if not user:
             continue
-        # Ensure profile is set up
         if not user.bio:
             await _setup_test_user(user, TEST_USERS[email], db)
 
-        # Cancel ALL existing pending requests for this user
+        # Cancel existing pending requests
         existing = await db.execute(
             select(DateRequest).where(
                 DateRequest.user_id == user.id,
@@ -150,12 +152,11 @@ async def _create_companion_test_requests(main_user: User, data, db: AsyncSessio
         for old_req in existing.scalars().all():
             old_req.status = "cancelled"
 
-        # Create matching request with same activity and group_size=4
         dr = DateRequest(
             user_id=user.id,
-            group_size=effective_group_size,
+            group_size=4,
             activity=data.activity.value,
-            status="pending",
+            status="matched",
         )
         db.add(dr)
         await db.flush()
@@ -168,25 +169,68 @@ async def _create_companion_test_requests(main_user: User, data, db: AsyncSessio
                 time_hours=slot.get_hours(),
             ))
 
-        companion_users.append(user)
+        all_users.append(user)
+        all_requests.append(dr)
+
+    # Mark main request as matched too
+    if main_dr:
+        main_dr.status = "matched"
+
+    # Get scheduled date/time from first availability slot
+    scheduled_date = dt.date.today() + dt.timedelta(days=2)
+    scheduled_time = "19:00"
+    if data.availability_slots:
+        slot = data.availability_slots[0]
+        scheduled_date = slot.date
+        if slot.time_hours:
+            scheduled_time = f"{slot.time_hours[0]:02d}:00"
+
+    # Create the group directly
+    group = DateGroup(
+        activity=data.activity.value,
+        scheduled_date=scheduled_date,
+        scheduled_time=scheduled_time,
+        venue_name="TBD - Group decides in chat",
+        status="upcoming",
+    )
+    db.add(group)
+    await db.flush()
+
+    # Add all users as group members
+    for i, user in enumerate(all_users):
+        dr = all_requests[i] if i < len(all_requests) else None
+        member = GroupMember(
+            group_id=group.id,
+            user_id=user.id,
+            date_request_id=dr.id if dr else None,
+        )
+        db.add(member)
+
+    # Create group chat room
+    chat_room = ChatRoom(
+        room_type="group",
+        group_id=group.id,
+    )
+    db.add(chat_room)
+    await db.flush()
+
+    # Add all users as chat participants
+    for user in all_users:
+        db.add(ChatParticipant(
+            room_id=chat_room.id,
+            user_id=user.id,
+        ))
 
     await db.commit()
-    print(f"[TEST] Created companion requests for {len(companion_users)} users, activity={data.activity.value}, group_size={effective_group_size}")
+    print(f"[TEST] Direct group created: {group.id}, activity={group.activity}, {len(all_users)} members, chat={chat_room.id}")
 
-    # Trigger instant matching
+    # Send Yuni AI welcome message (non-fatal)
     try:
-        from app.services.matching_service import run_batch_matching
-        groups = await run_batch_matching(db)
-        if groups:
-            print(f"[TEST] Auto-matched {len(groups)} groups for test users")
-            for g in groups:
-                print(f"[TEST]   Group {g.id}: {g.activity}, {len(g.members)} members, chat_room={g.chat_room_id}")
-        else:
-            print(f"[TEST] WARNING: No groups formed. Check gender balance and availability overlap.")
+        from app.services.chat_ai_service import send_genie_welcome
+        await send_genie_welcome(chat_room.id, group.activity, db)
+        print(f"[TEST] Yuni welcome message sent to chat {chat_room.id}")
     except Exception as e:
-        import traceback
-        print(f"[TEST] Auto-matching failed: {e}")
-        traceback.print_exc()
+        print(f"[TEST] Yuni welcome failed (non-fatal): {e}")
 
 
 @router.get("", response_model=list[DateRequestResponse])

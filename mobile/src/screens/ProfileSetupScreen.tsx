@@ -11,6 +11,7 @@ import * as Location from 'expo-location';
 import MapView, { Marker, Circle } from 'react-native-maps';
 import Slider from '@react-native-community/slider';
 import { createProfile, uploadPhoto, selfieVerify, verifyPhotosBatch } from '../api/profiles';
+import { PhaseTransitionScreen } from '../components';
 import { VibeAnswer } from '../types';
 import { colors } from '../theme';
 
@@ -348,7 +349,9 @@ export default function ProfileSetupScreen() {
   const navigation = useNavigation<any>();
   const { logout } = useAuth();
   const [path, setPath] = useState<'quick' | 'thorough' | null>(null);
+  const [phase, setPhase] = useState(0);
   const [step, setStep] = useState(0);
+  const [showTransition, setShowTransition] = useState(false);
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [uploadingSlots, setUploadingSlots] = useState<Record<number, boolean>>({});
@@ -419,13 +422,37 @@ export default function ProfileSetupScreen() {
 
   const photoCount = photos.filter(p => p !== null).length;
 
-  // ── Steps definition ──
+  // ── 3-Phase structure ──
 
-  const quickSteps = ['photos', 'location', 'basics', 'interests', 'prompts', 'vibes', 'preferences'];
-  const thoroughSteps = ['photos', 'location', 'basics', 'personality', 'lifestyle', 'social', 'about_you', 'your_prefs', 'interests', 'dealbreakers', 'prompts', 'vibes_prefs'];
-  const steps = path === 'thorough' ? thoroughSteps : quickSteps;
+  const PHASES: Record<string, Array<{ name: string; steps: string[] }>> = {
+    quick: [
+      { name: 'Photo Upload & Verification', steps: ['photos'] },
+      { name: 'Personality Analysis', steps: ['basics', 'vibes'] },
+      { name: 'Preference Analysis', steps: ['location', 'interests', 'prompts', 'preferences'] },
+    ],
+    thorough: [
+      { name: 'Photo Upload & Verification', steps: ['photos'] },
+      { name: 'Personality Analysis', steps: ['basics', 'personality', 'lifestyle', 'social'] },
+      { name: 'Preference Analysis', steps: ['location', 'about_you', 'your_prefs', 'interests', 'dealbreakers', 'prompts', 'vibes_prefs'] },
+    ],
+  };
+
+  const TRANSITION_MESSAGES = [
+    ['Scanning your photos...', 'Verifying identity...', 'Photos confirmed'],
+    ['Analyzing personality...', 'Building your profile...', 'Complete'],
+    ['Setting preferences...', 'Optimizing matches...', 'All set'],
+  ];
+
+  const phases = PHASES[path || 'quick'];
+  const currentPhase = phases[phase] || phases[0];
+  const currentPhaseSteps = currentPhase.steps;
+  const currentStepName = currentPhaseSteps[step] || '';
+  const totalStepsAll = phases.reduce((sum, p) => sum + p.steps.length, 0);
+  const stepsBeforePhase = phases.slice(0, phase).reduce((sum, p) => sum + p.steps.length, 0);
+  const globalStepIndex = stepsBeforePhase + step;
+  // Flat step list for legacy compatibility
+  const steps = phases.flatMap(p => p.steps);
   const totalSteps = steps.length;
-  const currentStepName = steps[step] || '';
 
   // ── Interest recommendations ──
 
@@ -549,11 +576,11 @@ export default function ProfileSetupScreen() {
 
           if (response.status === 'verified') {
             setSelfieStatus('verified');
-            setSelfieMessage('Identity confirmed');
+            setSelfieMessage('Identity verified!');
             setSelfieServerUrl(response.selfie_url || null);
           } else {
             setSelfieStatus('failed');
-            setSelfieMessage(response.message || 'Your selfie could not be verified. Make sure your face is clearly visible, well-lit, and without filters.');
+            setSelfieMessage(response.message || "Your selfie doesn't match your profile photos. Make sure your face is clearly visible, well-lit, and without filters.");
           }
         } catch (e: any) {
           setSelfieStatus('failed');
@@ -722,46 +749,37 @@ export default function ProfileSetupScreen() {
   const handleBack = () => {
     if (step > 0) {
       setStep(step - 1);
+    } else if (phase > 0) {
+      // Go to previous phase's last step
+      const prevPhaseSteps = phases[phase - 1].steps;
+      setPhase(phase - 1);
+      setStep(prevPhaseSteps.length - 1);
     } else {
       // Go back to path selection
       setPath(null);
+      setPhase(0);
+      setStep(0);
     }
   };
 
   const handleNext = async () => {
-    // When leaving photos step, full verification with loading screen
+    // Photo step special validation
     if (currentStepName === 'photos') {
       const completedPhotos = photos.filter(p => p !== null && p.serverUrl !== '');
       const anyUploading = Object.keys(uploadingSlots).length > 0;
-      if (anyUploading) {
-        Alert.alert('Please wait', 'Some photos are still being verified.');
-        return;
-      }
-      if (completedPhotos.length < 3) {
-        Alert.alert('More photos needed', 'Please upload at least 3 photos of yourself.');
-        return;
-      }
-      if (selfieStatus !== 'verified') {
-        Alert.alert('Selfie required', 'Please complete selfie verification before continuing.');
-        return;
-      }
+      if (anyUploading) { Alert.alert('Please wait', 'Some photos are still being verified.'); return; }
+      if (completedPhotos.length < 3) { Alert.alert('More photos needed', 'Please upload at least 3 photos of yourself.'); return; }
+      if (selfieStatus !== 'verified') { Alert.alert('Selfie required', 'Please complete selfie verification before continuing.'); return; }
 
-      // Show full-screen analyzing overlay
+      // Batch verify all photos + selfie
       setAnalyzingPhotos(true);
-      setAnalyzingMessage('Analyzing your photos...');
-
+      setAnalyzingMessage('Checking all photos match...');
       try {
-        // Step 1: Batch verify all photos are same person
-        setAnalyzingMessage('Checking all photos match...');
         const photoUrls = completedPhotos.map(p => p!.serverUrl);
-        // Include selfie in the batch check
         if (selfieServerUrl) photoUrls.push(selfieServerUrl);
         await verifyPhotosBatch(photoUrls);
-
-        // Step 2: Brief pause for UX (users expect analysis to take a moment)
-        setAnalyzingMessage('Finalizing your profile photos...');
-        await new Promise(r => setTimeout(r, 800));
-
+        setAnalyzingMessage('Photos verified!');
+        await new Promise(r => setTimeout(r, 500));
         setAnalyzingPhotos(false);
       } catch (e: any) {
         setAnalyzingPhotos(false);
@@ -771,11 +789,25 @@ export default function ProfileSetupScreen() {
       }
     }
 
-    if (step === totalSteps - 1) {
+    const isLastStepInPhase = step >= currentPhaseSteps.length - 1;
+    const isLastPhase = phase >= phases.length - 1;
+
+    if (isLastStepInPhase && isLastPhase) {
+      // Last step of last phase → submit
       handleSubmit();
+    } else if (isLastStepInPhase && !isLastPhase) {
+      // Last step of current phase → show transition, then advance to next phase
+      setShowTransition(true);
     } else {
+      // Normal step advance within current phase
       setStep(step + 1);
     }
+  };
+
+  const handlePhaseTransitionComplete = () => {
+    setShowTransition(false);
+    setPhase(phase + 1);
+    setStep(0);
   };
 
   // ── Path Selection ──
@@ -836,7 +868,7 @@ export default function ProfileSetupScreen() {
                 {p.serverUrl === '' && (
                   <View style={styles.analyzingOverlay}>
                     <ActivityIndicator size="small" color="#fff" />
-                    <Text style={styles.analyzingText}>Verifying...</Text>
+                    <Text style={styles.analyzingText}>Scanning...</Text>
                   </View>
                 )}
                 {p.serverUrl !== '' && (
@@ -890,7 +922,7 @@ export default function ProfileSetupScreen() {
             {selfieUri && <Image source={{ uri: selfieUri }} style={styles.selfieThumbLarge} />}
             <View style={styles.verifiedContent}>
               <Text style={styles.verifiedIcon}>✓</Text>
-              <Text style={styles.verifiedText}>Identity confirmed</Text>
+              <Text style={styles.verifiedText}>Identity verified!</Text>
               <Text style={styles.verifiedSubtext}>Your photos match your selfie</Text>
             </View>
           </View>
@@ -1344,12 +1376,13 @@ export default function ProfileSetupScreen() {
         ) : null}
 
         {/* Distance slider */}
-        <Text style={[styles.label, { marginTop: 20 }]}>Maximum distance: {maxDistanceKm} km</Text>
+        <Text style={[styles.label, { marginTop: 20 }]}>Maximum distance</Text>
+        <Text style={styles.distanceValue}>{maxDistanceKm} km</Text>
         <Slider
           style={{ width: '100%', height: 40 }}
-          minimumValue={5}
-          maximumValue={200}
-          step={5}
+          minimumValue={1}
+          maximumValue={100}
+          step={1}
           value={maxDistanceKm}
           onValueChange={(v: number) => setMaxDistanceKm(Math.round(v))}
           minimumTrackTintColor={colors.primary}
@@ -1357,8 +1390,8 @@ export default function ProfileSetupScreen() {
           thumbTintColor={colors.primary}
         />
         <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-          <Text style={{ fontSize: 12, color: colors.gray }}>5 km</Text>
-          <Text style={{ fontSize: 12, color: colors.gray }}>200 km</Text>
+          <Text style={{ fontSize: 12, color: colors.gray }}>1 km</Text>
+          <Text style={{ fontSize: 12, color: colors.gray }}>100 km</Text>
         </View>
       </View>
     );
@@ -1464,30 +1497,55 @@ export default function ProfileSetupScreen() {
     }
   };
 
-  const isLastStep = step === totalSteps - 1;
+  const isLastStep = phase >= phases.length - 1 && step >= currentPhaseSteps.length - 1;
 
   return (
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      {/* Phase transition overlay */}
+      {showTransition && (
+        <PhaseTransitionScreen
+          messages={TRANSITION_MESSAGES[phase] || TRANSITION_MESSAGES[0]}
+          onComplete={handlePhaseTransitionComplete}
+          phaseNumber={(phase + 1) as 1 | 2 | 3}
+          phaseName={currentPhase.name}
+        />
+      )}
+
       <ScrollView style={styles.container} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-        <Text style={styles.header}>Set Up Your Profile</Text>
-        <View style={styles.progressRow}>
-          {steps.map((_, i) => (
-            <View key={i} style={[styles.progressDot, i <= step && styles.progressDotActive]} />
-          ))}
+        {/* Phase progress bar */}
+        <View style={styles.phaseProgressRow}>
+          {phases.map((p, i) => {
+            const shortNames = ['Photos', 'Personality', 'Preferences'];
+            return (
+              <View key={i} style={styles.phaseSegmentContainer}>
+                <View style={[styles.phaseSegment, i < phase && styles.phaseSegmentDone, i === phase && styles.phaseSegmentActive]}>
+                  {i === phase && (
+                    <View style={[styles.phaseSegmentFill, { width: `${((step + 1) / currentPhaseSteps.length) * 100}%` }]} />
+                  )}
+                </View>
+                <Text style={[styles.phaseSegmentLabel, i === phase && styles.phaseSegmentLabelActive]}>
+                  {shortNames[i]}
+                </Text>
+              </View>
+            );
+          })}
         </View>
-        <Text style={styles.stepIndicator}>Step {step + 1} of {totalSteps}</Text>
+
+        <Text style={styles.stepIndicator}>
+          Phase {phase + 1} of 3 — Step {step + 1} of {currentPhaseSteps.length}
+        </Text>
 
         {renderStep()}
 
         <View style={styles.navRow}>
           <TouchableOpacity style={styles.secondaryBtn} onPress={handleBack}>
-            <Text style={styles.secondaryBtnText}>{step === 0 ? 'Change Path' : 'Back'}</Text>
+            <Text style={styles.secondaryBtnText}>{step === 0 && phase === 0 ? 'Change Path' : 'Back'}</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.primaryBtn, !canProceed() && styles.btnDisabled]}
             onPress={handleNext} disabled={!canProceed() || loading}>
             {loading ? <ActivityIndicator color="#fff" /> :
-              <Text style={styles.primaryBtnText}>{isLastStep ? 'Complete Setup' : 'Next'}</Text>}
+              <Text style={styles.primaryBtnText}>{isLastStep ? 'Complete Setup' : step >= currentPhaseSteps.length - 1 ? `Next Phase →` : 'Next'}</Text>}
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -1499,8 +1557,8 @@ export default function ProfileSetupScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.surfaceElevated },
-  content: { padding: 20, paddingBottom: 60 },
-  pathContent: { paddingHorizontal: 24, paddingVertical: 40, flexGrow: 1, justifyContent: 'center', alignItems: 'center' },
+  content: { padding: 20, paddingTop: 60, paddingBottom: 60 },
+  pathContent: { paddingHorizontal: 24, paddingTop: 60, paddingBottom: 40, flexGrow: 1, justifyContent: 'center', alignItems: 'center' },
   input: { borderWidth: 1, borderColor: colors.border, borderRadius: 10, padding: 14, fontSize: 16, backgroundColor: colors.surfaceElevated },
   logoutLink: { marginTop: 24, paddingVertical: 12, alignItems: 'center' },
   logoutLinkText: { fontSize: 14, color: colors.gray, textDecorationLine: 'underline' },
@@ -1516,6 +1574,14 @@ const styles = StyleSheet.create({
   // Progress
   progressRow: { flexDirection: 'row', gap: 4, marginBottom: 4, marginTop: 8 },
   progressDot: { flex: 1, height: 4, borderRadius: 2, backgroundColor: colors.border },
+  phaseProgressRow: { flexDirection: 'row', gap: 8, marginTop: 8, marginBottom: 4 },
+  phaseSegmentContainer: { flex: 1, alignItems: 'center' },
+  phaseSegment: { width: '100%', height: 6, borderRadius: 3, backgroundColor: colors.border, overflow: 'hidden' },
+  phaseSegmentDone: { backgroundColor: colors.primary },
+  phaseSegmentActive: { backgroundColor: colors.borderLight },
+  phaseSegmentFill: { height: '100%', backgroundColor: colors.primary, borderRadius: 3 },
+  phaseSegmentLabel: { fontSize: 10, color: colors.grayLight, marginTop: 4 },
+  phaseSegmentLabelActive: { color: colors.primary, fontWeight: '600' },
   progressDotActive: { backgroundColor: colors.primary },
 
   // Path selection
@@ -1668,5 +1734,6 @@ const styles = StyleSheet.create({
   locationText: { fontSize: 16, fontWeight: '600', color: '#2E7D32', flex: 1 },
   sliderThumb: { position: 'absolute', top: -8, width: 22, height: 22, borderRadius: 11, backgroundColor: colors.primary, borderWidth: 3, borderColor: '#fff', marginLeft: -11, elevation: 3, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.2, shadowRadius: 3 },
   editText: { fontSize: 14, color: colors.primary, fontWeight: '600' },
+  distanceValue: { fontSize: 28, fontWeight: '700', color: colors.primary, textAlign: 'center', marginBottom: 4 },
   distanceRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, alignItems: 'center' },
 });

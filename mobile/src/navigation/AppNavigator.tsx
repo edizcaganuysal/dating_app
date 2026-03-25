@@ -92,7 +92,7 @@ function HomeStackNavigator() {
       <HomeStack.Screen
         name="HomeMain"
         component={HomeScreen}
-        options={{ title: "LoveGenie" }}
+        options={{ title: "Yuni" }}
       />
       <HomeStack.Screen
         name="DateRequest"

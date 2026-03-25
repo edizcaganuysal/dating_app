@@ -1,4 +1,4 @@
-You are building Phase 2 of the LoveGenie dating app. Read CLAUDE.md for full project context. Phases 0-1 are complete — the project is scaffolded and database models exist.
+You are building Phase 2 of the Yuni dating app. Read CLAUDE.md for full project context. Phases 0-1 are complete — the project is scaffolded and database models exist.
 
 Build the authentication system: registration, email verification, login, and auth middleware.
 

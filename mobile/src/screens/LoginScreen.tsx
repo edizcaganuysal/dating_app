@@ -68,7 +68,7 @@ export default function LoginScreen({ navigation, route }: Props) {
     >
       <View style={styles.inner}>
         <Animated.View style={titleFade}>
-          <Text style={styles.title}>LoveGenie</Text>
+          <Text style={styles.title}>Yuni</Text>
         </Animated.View>
         <Animated.View style={subtitleFade}>
           <Text style={styles.subtitle}>Group dating for university students</Text>

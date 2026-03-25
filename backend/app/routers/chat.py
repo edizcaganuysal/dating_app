@@ -14,7 +14,7 @@ from app.models.group import DateGroup, GroupMember
 from app.models.user import User
 from app.schemas.chat import ChatMessageResponse, ChatRoomResponse, LastMessage, ParticipantInfo
 from app.services.chat_ai_service import (
-    GENIE_USER_ID,
+    YUNI_AI_USER_ID,
     check_rate_limit,
     generate_assistant_response,
 )
@@ -22,7 +22,7 @@ from app.websocket.handlers import authenticate_ws, handle_chat_message, handle_
 from app.websocket.manager import manager
 
 
-class AskGenieRequest(BaseModel):
+class AskYuniRequest(BaseModel):
     question: str
 
 router = APIRouter(tags=["chat"])
@@ -169,20 +169,21 @@ async def get_messages(
     ]
 
 
-@router.post("/api/chat/rooms/{room_id}/ask-genie", response_model=ChatMessageResponse)
-async def ask_genie(
+@router.post("/api/chat/rooms/{room_id}/ask-yuni", response_model=ChatMessageResponse)
+@router.post("/api/chat/rooms/{room_id}/ask-genie", response_model=ChatMessageResponse, include_in_schema=False)
+async def ask_yuni(
     room_id: uuid.UUID,
-    body: AskGenieRequest,
+    body: AskYuniRequest,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Ask Genie a question via REST (used by the Genie button in chat UI)."""
+    """Ask Yuni AI a question via REST (used by the Yuni button in chat UI)."""
     is_participant = await verify_participant(current_user.id, room_id, db)
     if not is_participant:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not a participant of this room")
 
     if not check_rate_limit(str(room_id)):
-        raise HTTPException(status_code=429, detail="Genie is thinking... try again in a moment.")
+        raise HTTPException(status_code=429, detail="Yuni AI is thinking... try again in a moment.")
 
     # Get room and group
     result = await db.execute(select(ChatRoom).where(ChatRoom.id == room_id))
@@ -222,34 +223,34 @@ async def ask_genie(
         user_query=body.question,
     )
 
-    # Save Genie message
-    genie_msg = ChatMessage(
+    # Save Yuni AI message
+    yuni_msg = ChatMessage(
         room_id=room_id,
-        sender_id=GENIE_USER_ID,
+        sender_id=YUNI_AI_USER_ID,
         content=response_text,
         message_type="ai",
     )
-    db.add(genie_msg)
+    db.add(yuni_msg)
     await db.commit()
-    await db.refresh(genie_msg)
+    await db.refresh(yuni_msg)
 
     # Broadcast via WebSocket
     await manager.broadcast(str(room_id), {
         "type": "message",
-        "id": str(genie_msg.id),
-        "sender_id": str(GENIE_USER_ID),
-        "sender_name": "Genie",
+        "id": str(yuni_msg.id),
+        "sender_id": str(YUNI_AI_USER_ID),
+        "sender_name": "Yuni AI",
         "content": response_text,
         "message_type": "ai",
-        "created_at": genie_msg.created_at.isoformat(),
+        "created_at": yuni_msg.created_at.isoformat(),
     })
 
     return ChatMessageResponse(
-        id=genie_msg.id,
-        room_id=genie_msg.room_id,
-        sender_id=genie_msg.sender_id,
-        sender_name="Genie",
-        content=genie_msg.content,
-        message_type=genie_msg.message_type,
-        created_at=genie_msg.created_at,
+        id=yuni_msg.id,
+        room_id=yuni_msg.room_id,
+        sender_id=yuni_msg.sender_id,
+        sender_name="Yuni AI",
+        content=yuni_msg.content,
+        message_type=yuni_msg.message_type,
+        created_at=yuni_msg.created_at,
     )

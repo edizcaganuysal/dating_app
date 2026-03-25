@@ -1,4 +1,4 @@
-# LoveGenie — Pitch Document
+# Yuni — Pitch Document
 
 ---
 
@@ -21,7 +21,7 @@ Meanwhile, the healthiest relationships still start the old-fashioned way: throu
 
 ## The Solution
 
-**LoveGenie: Get matched into a group of 4-6 with other students. Go on a group date. Connect with whoever you vibe with.**
+**Yuni: Get matched into a group of 4-6 with other students. Go on a group date. Connect with whoever you vibe with.**
 
 We skip the broken parts of dating apps entirely:
 - No infinite swiping → you get one curated group
@@ -39,7 +39,7 @@ After the date, you privately tell the app who you liked. If it's mutual, you're
 
 **2. The loneliness epidemic.** The U.S. Surgeon General declared loneliness a public health crisis. Universities are investing millions in student wellness. An app that genuinely creates social connection — not just the illusion of it — has institutional tailwinds.
 
-**3. Cultural shift toward authenticity.** Gen Z values real experiences over digital ones. Group dates, activity-based socializing, and "touching grass" are trending cultural themes. LoveGenie rides this wave.
+**3. Cultural shift toward authenticity.** Gen Z values real experiences over digital ones. Group dates, activity-based socializing, and "touching grass" are trending cultural themes. Yuni rides this wave.
 
 **4. University infrastructure.** .edu email verification gives us a trust layer that no other dating app has. Shared campus geography makes group logistics easy. Dense, age-similar populations are ideal for matching.
 
@@ -157,7 +157,7 @@ Vibe-check Q&A                                    group is set!"
 
 ## Team Needs
 
-To build and launch LoveGenie, we need:
+To build and launch Yuni, we need:
 
 - **Mobile Developer** — React Native (Expo) for iOS + Android
 - **Backend Developer** — Python/FastAPI, PostgreSQL, WebSocket real-time infrastructure
@@ -173,6 +173,6 @@ Founding team handles: product decisions, manual matching, admin operations, use
 
 Dating apps promised to make finding love easier. Instead, they made it lonelier, more transactional, and more profitable — for everyone except the people using them.
 
-LoveGenie is a return to how dating actually works: you go out, you meet people, you see who you click with. We just make it easier to get into that room.
+Yuni is a return to how dating actually works: you go out, you meet people, you see who you click with. We just make it easier to get into that room.
 
 We're not building the next Tinder. We're building the thing that makes Tinder unnecessary.

@@ -1,4 +1,4 @@
-You are building Phase 16 of the LoveGenie dating app. Read CLAUDE.md for full project context. Phases 0-15 are complete.
+You are building Phase 16 of the Yuni dating app. Read CLAUDE.md for full project context. Phases 0-15 are complete.
 
 Build the admin dashboard as a Next.js web application.
 
@@ -34,7 +34,7 @@ Create a fetch wrapper for the admin API:
   - Users
   - Reports
   - Analytics
-- LoveGenie logo/text at top
+- Yuni logo/text at top
 - Active link highlighting
 - Logout button at bottom
 

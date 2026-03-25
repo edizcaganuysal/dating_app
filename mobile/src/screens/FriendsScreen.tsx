@@ -73,7 +73,7 @@ export default function FriendsScreen() {
   const handleShareCode = async () => {
     try {
       await Share.share({
-        message: `Add me on LoveGenie! My friend code: ${myCode}`,
+        message: `Add me on Yuni! My friend code: ${myCode}`,
       });
     } catch {
       // User cancelled

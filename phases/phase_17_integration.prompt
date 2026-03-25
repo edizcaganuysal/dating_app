@@ -1,4 +1,4 @@
-You are building Phase 17 (final phase) of the LoveGenie dating app. Read CLAUDE.md for full project context. Phases 0-16 are complete.
+You are building Phase 17 (final phase) of the Yuni dating app. Read CLAUDE.md for full project context. Phases 0-16 are complete.
 
 Write integration tests and create a README. This phase validates the entire app works end-to-end.
 
@@ -67,7 +67,7 @@ Fix any regressions if found.
 Create a comprehensive README at the project root:
 
 ```markdown
-# LoveGenie
+# Yuni
 
 Group dating app for university students. Get matched into a group of 4-6,
 go on a group date, connect with whoever you vibe with.

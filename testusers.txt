@@ -1,4 +1,4 @@
-LoveGenie Test Accounts
+Yuni Test Accounts
 =======================
 
 1. Admin Account

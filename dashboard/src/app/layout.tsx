@@ -7,8 +7,8 @@ import { AdminAuthGuard } from "@/components/AdminAuthGuard";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "LoveGenie Admin Dashboard",
-  description: "Admin dashboard for LoveGenie",
+  title: "Yuni Admin Dashboard",
+  description: "Admin dashboard for Yuni",
 };
 
 export default function RootLayout({

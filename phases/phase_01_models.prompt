@@ -1,4 +1,4 @@
-You are building Phase 1 of the LoveGenie dating app. Read CLAUDE.md for full project context. Phase 0 (scaffolding) is complete.
+You are building Phase 1 of the Yuni dating app. Read CLAUDE.md for full project context. Phase 0 (scaffolding) is complete.
 
 Create the database layer: models, connection setup, and Alembic migrations.
 

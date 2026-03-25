@@ -110,12 +110,18 @@ RULES (MUST follow):
 7. A user can only appear in ONE group
 
 OPTIMIZE FOR:
-- Personality compatibility (similar social energy, matching humor styles)
+- Personality compatibility (matching humor styles)
+- Communication preference compatibility (texter+texter great, texter+caller bad)
+- Social energy complementarity (slight differences create dynamic groups — diff of 1 is the sweet spot, identical is good, diff 3+ is bad)
+- Group role diversity (planner + joker + connector > 3 planners — diverse roles make better group dynamics)
 - Shared interests (more overlap = better)
 - Relationship intent alignment (serious with serious, casual with casual)
 - Attractiveness tier similarity within each group
 - Mutual preference satisfaction (body type, height preferences)
 - Lifestyle compatibility (drinking, exercise, sleep patterns)
+- Location proximity (closer users = easier logistics, beyond max preferred distance is a hard filter)
+- Diet compatibility (vegan+no_restrictions creates friction for venue choice, similar diets = easier planning)
+- Activity-energy fit (high-energy users for karaoke/bar, calmer users for board games/dinner)
 
 OUTPUT: Return ONLY valid JSON (no markdown):
 {

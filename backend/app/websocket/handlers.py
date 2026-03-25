@@ -11,7 +11,7 @@ from app.models.chat import ChatMessage, ChatParticipant, ChatRoom
 from app.models.group import DateGroup, GroupMember
 from app.models.user import User
 from app.services.chat_ai_service import (
-    GENIE_USER_ID,
+    YUNI_AI_USER_ID,
     check_rate_limit,
     generate_assistant_response,
 )
@@ -72,21 +72,22 @@ async def handle_chat_message(data: dict, user: User, room_id: str, db: AsyncSes
         "created_at": msg.created_at.isoformat(),
     })
 
-    # Check for @genie trigger
-    if "@genie" in content.lower():
-        await _handle_genie_response(room_id, content, db)
+    # Check for @yuni or @genie trigger (backward compatible)
+    content_lower = content.lower()
+    if "@yuni" in content_lower or "@genie" in content_lower:
+        await _handle_yuni_response(room_id, content, db)
 
 
-async def _handle_genie_response(room_id: str, user_query: str, db: AsyncSession):
-    """Handle an @genie mention by generating and broadcasting an AI response."""
+async def _handle_yuni_response(room_id: str, user_query: str, db: AsyncSession):
+    """Handle an @yuni or @genie mention by generating and broadcasting an AI response."""
     if not check_rate_limit(room_id):
         return
 
-    # Broadcast Genie typing indicator
+    # Broadcast Yuni AI typing indicator
     await manager.broadcast(room_id, {
         "type": "typing",
-        "user_id": str(GENIE_USER_ID),
-        "user_name": "Genie",
+        "user_id": str(YUNI_AI_USER_ID),
+        "user_name": "Yuni AI",
     })
 
     # Load room's group to get activity and members
@@ -128,8 +129,8 @@ async def _handle_genie_response(room_id: str, user_query: str, db: AsyncSession
         for m in reversed(recent)
     ]
 
-    # Strip @genie from the query
-    query = user_query.lower().replace("@genie", "").strip()
+    # Strip @yuni and @genie from the query
+    query = user_query.lower().replace("@yuni", "").replace("@genie", "").strip()
     if not query:
         query = "Give us some helpful tips for our date!"
 
@@ -141,26 +142,26 @@ async def _handle_genie_response(room_id: str, user_query: str, db: AsyncSession
         user_query=query,
     )
 
-    # Save Genie's message
-    genie_msg = ChatMessage(
+    # Save Yuni AI's message
+    yuni_msg = ChatMessage(
         room_id=room_uuid,
-        sender_id=GENIE_USER_ID,
+        sender_id=YUNI_AI_USER_ID,
         content=response_text,
         message_type="ai",
     )
-    db.add(genie_msg)
+    db.add(yuni_msg)
     await db.commit()
-    await db.refresh(genie_msg)
+    await db.refresh(yuni_msg)
 
-    # Broadcast Genie's response
+    # Broadcast Yuni AI's response
     await manager.broadcast(room_id, {
         "type": "message",
-        "id": str(genie_msg.id),
-        "sender_id": str(GENIE_USER_ID),
-        "sender_name": "Genie",
+        "id": str(yuni_msg.id),
+        "sender_id": str(YUNI_AI_USER_ID),
+        "sender_name": "Yuni AI",
         "content": response_text,
         "message_type": "ai",
-        "created_at": genie_msg.created_at.isoformat(),
+        "created_at": yuni_msg.created_at.isoformat(),
     })
 
 

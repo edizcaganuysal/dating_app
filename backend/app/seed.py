@@ -1,4 +1,4 @@
-"""Database seeding script with realistic demo data for LoveGenie."""
+"""Database seeding script with realistic demo data for Yuni."""
 
 import asyncio
 import random

@@ -1,8 +1,8 @@
-# LoveGenie — Project Context
+# Yuni — Project Context
 
 ## What This Is
 
-LoveGenie is a group dating app for university students. Users are matched into groups of 4-6, go on activity-based group dates, then privately indicate mutual romantic interest afterward. Mutual matches get a 1-on-1 chat. Read IDEA.md for the full product spec.
+Yuni is a group dating app for university students. Users are matched into groups of 4-6, go on activity-based group dates, then privately indicate mutual romantic interest afterward. Mutual matches get a 1-on-1 chat. Read IDEA.md for the full product spec.
 
 ## Tech Stack
 
@@ -104,7 +104,7 @@ dating_app/
 ### Backend
 - **Every router must have tests** in `tests/test_<router_name>.py`
 - **Use `httpx.AsyncClient`** with `ASGITransport` for async test client
-- **Test database**: separate PostgreSQL database `lovegenie_test` (same Docker container, different DB)
+- **Test database**: separate PostgreSQL database `yuni_test` (same Docker container, different DB)
 - **conftest.py**: async fixtures for test client, test DB session, auto-migrate before session, clean tables between tests
 - **Run with**: `cd backend && python -m pytest tests/ -v`
 
@@ -122,8 +122,8 @@ dating_app/
 
 ## Database Connection
 
-- **Dev**: `postgresql+asyncpg://lovegenie:lovegenie@localhost:5433/lovegenie_dev`
-- **Test**: `postgresql+asyncpg://lovegenie:lovegenie@localhost:5433/lovegenie_test`
+- **Dev**: `postgresql+asyncpg://yuni:yuni@localhost:5433/yuni_dev`
+- **Test**: `postgresql+asyncpg://yuni:yuni@localhost:5433/yuni_test`
 - Defined in `docker-compose.yml`, port 5433 to avoid conflicts with local PostgreSQL
 
 ## Critical Business Rules
