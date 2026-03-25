@@ -42,12 +42,13 @@ const ACTIVITIES: { value: ActivityType; label: string; emoji: string; desc: str
   { value: 'arcade', label: 'Arcade', emoji: '\u{1F579}', desc: 'Games, prizes & good times' },
 ];
 
-const TIME_OPTIONS: { value: TimeWindow; label: string }[] = [
-  { value: 'morning', label: 'Morning' },
-  { value: 'afternoon', label: 'Afternoon' },
-  { value: 'evening', label: 'Evening' },
-  { value: 'night', label: 'Night' },
-];
+// Hour slots for time picker (8 AM to 1 AM)
+const HOUR_SLOTS = [8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 0, 1];
+function formatHour(h: number): string {
+  if (h === 0) return '12a';
+  if (h === 12) return '12p';
+  return h < 12 ? `${h}a` : `${h - 12}p`;
+}
 
 const DAY_NAMES = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
@@ -121,6 +122,7 @@ export default function DateRequestScreen() {
   // Step 3: Availability
   const [selectedDates, setSelectedDates] = useState<Set<string>>(new Set());
   const [dateTimeWindows, setDateTimeWindows] = useState<Record<string, Set<TimeWindow>>>({});
+  const [dateHours, setDateHours] = useState<Record<string, Set<number>>>({});
 
   // Step 4: Confirm + Template
   const [saveAsTemplate, setSaveAsTemplate] = useState(false);
@@ -225,18 +227,13 @@ export default function DateRequestScreen() {
       const next = new Set(prev);
       if (next.has(dateKey)) {
         next.delete(dateKey);
-        setDateTimeWindows(tw => {
-          const copy = { ...tw };
-          delete copy[dateKey];
-          return copy;
-        });
+        setDateTimeWindows(tw => { const c = { ...tw }; delete c[dateKey]; return c; });
+        setDateHours(h => { const c = { ...h }; delete c[dateKey]; return c; });
       } else {
         next.add(dateKey);
-        // Default to evening
-        setDateTimeWindows(tw => ({
-          ...tw,
-          [dateKey]: new Set(['evening'] as TimeWindow[]),
-        }));
+        setDateTimeWindows(tw => ({ ...tw, [dateKey]: new Set(['evening'] as TimeWindow[]) }));
+        // Default: 6pm-9pm
+        setDateHours(h => ({ ...h, [dateKey]: new Set([18, 19, 20, 21]) }));
       }
       return next;
     });
@@ -254,21 +251,33 @@ export default function DateRequestScreen() {
     });
   };
 
-  const toggleAllDay = (dateKey: string) => {
-    const current = dateTimeWindows[dateKey];
-    const allSelected = current && current.size === 4;
-    if (allSelected) {
-      setDateTimeWindows(prev => ({
-        ...prev,
-        [dateKey]: new Set(['evening'] as TimeWindow[]),
-      }));
-    } else {
-      setDateTimeWindows(prev => ({
-        ...prev,
-        [dateKey]: new Set(TIME_OPTIONS.map(t => t.value)),
-      }));
-    }
+  const toggleHour = (dateKey: string, hour: number) => {
+    setDateHours(prev => {
+      const current = new Set(prev[dateKey] || []);
+      if (current.has(hour)) current.delete(hour);
+      else current.add(hour);
+      return { ...prev, [dateKey]: current };
+    });
   };
+
+  const selectHourRange = (dateKey: string, preset: 'morning' | 'afternoon' | 'evening' | 'night' | 'all') => {
+    const ranges: Record<string, number[]> = {
+      morning: [8, 9, 10, 11],
+      afternoon: [12, 13, 14, 15, 16, 17],
+      evening: [18, 19, 20, 21],
+      night: [22, 23, 0, 1],
+      all: HOUR_SLOTS,
+    };
+    setDateHours(prev => {
+      const current = new Set(prev[dateKey] || []);
+      const target = ranges[preset];
+      const allIn = target.every(h => current.has(h));
+      if (allIn) { target.forEach(h => current.delete(h)); }
+      else { target.forEach(h => current.add(h)); }
+      return { ...prev, [dateKey]: current };
+    });
+  };
+
 
   const loadTemplate = (template: DateTemplate) => {
     setSelectedActivities(
@@ -285,13 +294,12 @@ export default function DateRequestScreen() {
   const buildSlots = (): AvailabilitySlot[] => {
     const slots: AvailabilitySlot[] = [];
     for (const dateKey of Array.from(selectedDates).sort()) {
-      const windows = dateTimeWindows[dateKey];
-      if (windows && windows.size > 0) {
-        for (const tw of Array.from(windows)) {
-          slots.push({ date: dateKey, time_window: tw, time_hours: TIME_WINDOW_HOURS[tw] });
-        }
+      const hours = dateHours[dateKey];
+      if (hours && hours.size > 0) {
+        slots.push({ date: dateKey, time_hours: Array.from(hours).sort((a, b) => a - b) });
       } else {
-        slots.push({ date: dateKey, time_window: 'evening', time_hours: TIME_WINDOW_HOURS.evening });
+        // Default to evening
+        slots.push({ date: dateKey, time_hours: [18, 19, 20, 21] });
       }
     }
     return slots;
@@ -535,10 +543,9 @@ export default function DateRequestScreen() {
               </View>
             ))}
 
-            {/* Time windows per selected date */}
+            {/* Time picker per selected date */}
             {Array.from(selectedDates).sort().map(dateKey => {
-              const windows = dateTimeWindows[dateKey] || new Set();
-              const allSelected = windows.size === 4;
+              const hours = dateHours[dateKey] || new Set();
               return (
                 <View key={dateKey} style={styles.timeSection}>
                   <View style={styles.timeSectionHeader}>
@@ -547,28 +554,33 @@ export default function DateRequestScreen() {
                         weekday: 'short', month: 'short', day: 'numeric',
                       })}
                     </Text>
-                    <TouchableOpacity onPress={() => toggleAllDay(dateKey)}>
-                      <Text style={[styles.allDayText, allSelected && styles.allDayTextActive]}>
-                        All Day
-                      </Text>
-                    </TouchableOpacity>
+                    <Text style={styles.hoursSelectedText}>
+                      {hours.size > 0 ? `${hours.size}h selected` : 'No times'}
+                    </Text>
                   </View>
-                  <View style={styles.timeChipRow}>
-                    {TIME_OPTIONS.map(t => {
-                      const isActive = windows.has(t.value);
+                  {/* Quick presets */}
+                  <View style={styles.presetRow}>
+                    {(['morning', 'afternoon', 'evening', 'night'] as const).map(p => {
+                      const labels = { morning: '☀️ AM', afternoon: '🌤 Afternoon', evening: '🌆 Evening', night: '🌙 Night' };
                       return (
-                        <TouchableOpacity
-                          key={t.value}
-                          style={[styles.timeChip, isActive && styles.timeChipActive]}
-                          onPress={() => toggleTimeWindow(dateKey, t.value)}
-                        >
-                          <Text style={[styles.timeChipText, isActive && styles.timeChipTextActive]}>
-                            {t.label}
-                          </Text>
+                        <TouchableOpacity key={p} style={styles.presetChip} onPress={() => selectHourRange(dateKey, p)}>
+                          <Text style={styles.presetChipText}>{labels[p]}</Text>
                         </TouchableOpacity>
                       );
                     })}
                   </View>
+                  {/* Hour grid */}
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.hourScroll}>
+                    {HOUR_SLOTS.map(h => {
+                      const active = hours.has(h);
+                      return (
+                        <TouchableOpacity key={h} style={[styles.hourBlock, active && styles.hourBlockActive]}
+                          onPress={() => toggleHour(dateKey, h)}>
+                          <Text style={[styles.hourText, active && styles.hourTextActive]}>{formatHour(h)}</Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </ScrollView>
                 </View>
               );
             })}
@@ -636,9 +648,10 @@ export default function DateRequestScreen() {
 
               <Text style={styles.summaryLabel}>Dates & Times</Text>
               {Array.from(selectedDates).sort().map(dateKey => {
-                const windows = dateTimeWindows[dateKey];
-                const timeStr = windows && windows.size > 0
-                  ? Array.from(windows).map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(', ')
+                const hours = dateHours[dateKey];
+                const sortedHours = hours ? Array.from(hours).sort((a, b) => a - b) : [18, 19, 20, 21];
+                const timeStr = sortedHours.length > 0
+                  ? `${formatHour(sortedHours[0])} - ${formatHour((sortedHours[sortedHours.length - 1] + 1) % 24)}`
                   : 'Evening';
                 return (
                   <Text key={dateKey} style={styles.summaryValue}>
@@ -814,14 +827,15 @@ const styles = StyleSheet.create({
   timeSectionDate: { fontSize: 14, fontWeight: '600', color: colors.dark },
   allDayText: { fontSize: 13, color: colors.gray, fontWeight: '600' },
   allDayTextActive: { color: colors.primary },
-  timeChipRow: { flexDirection: 'row', gap: 8 },
-  timeChip: {
-    flex: 1, paddingVertical: 8, borderRadius: 16,
-    borderWidth: 1, borderColor: colors.border, alignItems: 'center', backgroundColor: colors.surfaceElevated,
-  },
-  timeChipActive: { backgroundColor: colors.primary, borderColor: colors.primary },
-  timeChipText: { fontSize: 12, color: colors.dark, fontWeight: '500' },
-  timeChipTextActive: { color: '#fff' },
+  hoursSelectedText: { fontSize: 12, color: colors.gray },
+  presetRow: { flexDirection: 'row', gap: 6, marginBottom: 8 },
+  presetChip: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 12, backgroundColor: colors.surfaceSelected, borderWidth: 1, borderColor: colors.borderLight },
+  presetChipText: { fontSize: 11, color: colors.dark },
+  hourScroll: { marginBottom: 4 },
+  hourBlock: { width: 38, height: 36, borderRadius: 8, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center', marginRight: 4, backgroundColor: colors.surfaceElevated },
+  hourBlockActive: { backgroundColor: colors.primary, borderColor: colors.primary },
+  hourText: { fontSize: 11, color: colors.dark, fontWeight: '500' },
+  hourTextActive: { color: '#fff', fontWeight: '600' },
 
   // Templates
   templateSection: { marginBottom: 16 },
