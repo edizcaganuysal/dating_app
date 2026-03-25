@@ -350,6 +350,9 @@ export default function ProfileSetupScreen() {
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [uploadingSlots, setUploadingSlots] = useState<Record<number, boolean>>({});
+  const [analyzingPhotos, setAnalyzingPhotos] = useState(false);
+  const [analyzingMessage, setAnalyzingMessage] = useState('');
+  const [selfieServerUrl, setSelfieServerUrl] = useState<string | null>(null);
 
   // Shared state
   const [photos, setPhotos] = useState<(PhotoSlot | null)[]>([null, null, null, null, null, null]);
@@ -464,10 +467,14 @@ export default function ProfileSetupScreen() {
         // Show photo immediately with analyzing overlay
         setPhotos(prev => { const u = [...prev]; u[index] = { localUri, serverUrl: '' }; return u; });
         setUploadingSlots(prev => ({ ...prev, [index]: true }));
-        // Collect existing uploaded URLs for cross-checking
+        // Collect existing uploaded URLs + selfie for cross-checking
         const existingUrls = photos
           .filter((p, idx) => p !== null && p.serverUrl !== '' && idx !== index)
           .map(p => p!.serverUrl);
+        // Include selfie URL if verified — ensures new photos match the selfie
+        if (selfieServerUrl) {
+          existingUrls.push(selfieServerUrl);
+        }
         // Upload + AI verify in background — doesn't block other slots
         uploadPhoto(localUri, existingUrls)
           .then(response => {
@@ -541,6 +548,7 @@ export default function ProfileSetupScreen() {
           if (response.status === 'verified') {
             setSelfieStatus('verified');
             setSelfieMessage('Identity confirmed');
+            setSelfieServerUrl(response.selfie_url || null);
           } else {
             setSelfieStatus('failed');
             setSelfieMessage(response.message || 'Your selfie could not be verified. Make sure your face is clearly visible, well-lit, and without filters.');
@@ -585,7 +593,7 @@ export default function ProfileSetupScreen() {
 
   const canProceed = (): boolean => {
     switch (currentStepName) {
-      case 'photos': return photoCount >= 3 && Object.keys(uploadingSlots).length === 0;
+      case 'photos': return photoCount >= 3 && selfieStatus === 'verified' && Object.keys(uploadingSlots).length === 0;
       case 'location': return true; // Location is optional, user can skip
       case 'about_you': return true; // Self-description is optional
       case 'your_prefs': return true; // Preferences about others are optional
@@ -719,25 +727,45 @@ export default function ProfileSetupScreen() {
   };
 
   const handleNext = async () => {
-    // When leaving photos step, do a final cross-check of ALL photos
+    // When leaving photos step, full verification with loading screen
     if (currentStepName === 'photos') {
       const completedPhotos = photos.filter(p => p !== null && p.serverUrl !== '');
       const anyUploading = Object.keys(uploadingSlots).length > 0;
       if (anyUploading) {
-        Alert.alert('Please wait', 'Some photos are still being verified. Wait for all photos to finish before continuing.');
+        Alert.alert('Please wait', 'Some photos are still being verified.');
         return;
       }
-      if (completedPhotos.length >= 2) {
-        setLoading(true);
-        try {
-          await verifyPhotosBatch(completedPhotos.map(p => p!.serverUrl));
-        } catch (e: any) {
-          const detail = e?.response?.data?.detail || 'Could not verify your photos match. Please check that all photos are of you.';
-          Alert.alert('Photo Verification Failed', detail);
-          setLoading(false);
-          return;
-        }
-        setLoading(false);
+      if (completedPhotos.length < 3) {
+        Alert.alert('More photos needed', 'Please upload at least 3 photos of yourself.');
+        return;
+      }
+      if (selfieStatus !== 'verified') {
+        Alert.alert('Selfie required', 'Please complete selfie verification before continuing.');
+        return;
+      }
+
+      // Show full-screen analyzing overlay
+      setAnalyzingPhotos(true);
+      setAnalyzingMessage('Analyzing your photos...');
+
+      try {
+        // Step 1: Batch verify all photos are same person
+        setAnalyzingMessage('Checking all photos match...');
+        const photoUrls = completedPhotos.map(p => p!.serverUrl);
+        // Include selfie in the batch check
+        if (selfieServerUrl) photoUrls.push(selfieServerUrl);
+        await verifyPhotosBatch(photoUrls);
+
+        // Step 2: Brief pause for UX (users expect analysis to take a moment)
+        setAnalyzingMessage('Finalizing your profile photos...');
+        await new Promise(r => setTimeout(r, 800));
+
+        setAnalyzingPhotos(false);
+      } catch (e: any) {
+        setAnalyzingPhotos(false);
+        const detail = e?.response?.data?.detail || 'Your photos could not be verified. Make sure all photos and your selfie show the same person.';
+        Alert.alert('Photo Verification Failed', detail);
+        return;
       }
     }
 
@@ -817,7 +845,8 @@ export default function ProfileSetupScreen() {
         })}
       </View>
 
-      {/* Video Selfie Verification */}
+      {/* Selfie Verification — only shows after 3+ photos */}
+      {photoCount >= 3 && (
       <View style={styles.selfieSection}>
         <View style={styles.selfieHeader}>
           <Text style={styles.sectionTitle}>Selfie Verification</Text>
@@ -827,7 +856,7 @@ export default function ProfileSetupScreen() {
         {selfieStatus === 'none' && (
           <>
             <Text style={styles.selfieDesc}>
-              Take a quick selfie so we can confirm you're real. No filters, no editing — just you!
+              Take a quick selfie so we can confirm your photos are really you. No filters, no editing — just you!
             </Text>
             <TouchableOpacity style={styles.selfieBtn} onPress={handleSelfiePhoto} disabled={uploading}>
               <Text style={styles.selfieBtnText}>Take Selfie</Text>
@@ -871,6 +900,15 @@ export default function ProfileSetupScreen() {
           </View>
         )}
       </View>
+      )}
+
+      {/* Full-screen analyzing overlay */}
+      {analyzingPhotos && (
+        <View style={styles.analyzingFullOverlay}>
+          <ActivityIndicator size="large" color={colors.primary} />
+          <Text style={styles.analyzingFullText}>{analyzingMessage}</Text>
+        </View>
+      )}
     </View>
   );
 
@@ -1532,6 +1570,8 @@ const styles = StyleSheet.create({
   removeTxt: { color: '#fff', fontSize: 12, fontWeight: 'bold' },
   analyzingOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.5)', borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
   analyzingText: { color: '#fff', fontSize: 11, fontWeight: '600', marginTop: 4 },
+  analyzingFullOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(255,255,255,0.95)', alignItems: 'center', justifyContent: 'center', zIndex: 100, borderRadius: 12 },
+  analyzingFullText: { fontSize: 16, fontWeight: '600', color: colors.dark, marginTop: 16, textAlign: 'center' },
   photoGuidelinesBox: { backgroundColor: colors.surfaceSelected, borderRadius: 12, padding: 14, marginBottom: 14, borderWidth: 1, borderColor: colors.borderLight },
   photoGuidelinesTitle: { fontSize: 14, fontWeight: '700', color: colors.dark, marginBottom: 6 },
   photoGuidelinesText: { fontSize: 13, color: colors.darkSecondary, lineHeight: 20 },
