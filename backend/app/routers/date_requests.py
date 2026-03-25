@@ -116,6 +116,21 @@ async def _create_companion_test_requests(main_user: User, data, db: AsyncSessio
     companion_emails = [e for e in TEST_USERS if e != "tester@mail.utoronto.ca"]
     companion_users = []
 
+    # Force group_size=4 since we only have 4 test users
+    effective_group_size = 4
+
+    # Also update the main user's request to group_size=4
+    main_req = await db.execute(
+        select(DateRequest).where(
+            DateRequest.user_id == main_user.id,
+            DateRequest.status == "pending",
+            DateRequest.activity == data.activity.value,
+        )
+    )
+    main_dr = main_req.scalar_one_or_none()
+    if main_dr:
+        main_dr.group_size = effective_group_size
+
     for email in companion_emails:
         result = await db.execute(select(User).where(User.email == email))
         user = result.scalar_one_or_none()
@@ -125,21 +140,20 @@ async def _create_companion_test_requests(main_user: User, data, db: AsyncSessio
         if not user.bio:
             await _setup_test_user(user, TEST_USERS[email], db)
 
-        # Cancel any existing pending requests for this activity
+        # Cancel ALL existing pending requests for this user
         existing = await db.execute(
             select(DateRequest).where(
                 DateRequest.user_id == user.id,
                 DateRequest.status == "pending",
-                DateRequest.activity == data.activity.value,
             )
         )
         for old_req in existing.scalars().all():
             old_req.status = "cancelled"
 
-        # Create matching request
+        # Create matching request with same activity and group_size=4
         dr = DateRequest(
             user_id=user.id,
-            group_size=data.group_size,
+            group_size=effective_group_size,
             activity=data.activity.value,
             status="pending",
         )
@@ -157,15 +171,22 @@ async def _create_companion_test_requests(main_user: User, data, db: AsyncSessio
         companion_users.append(user)
 
     await db.commit()
+    print(f"[TEST] Created companion requests for {len(companion_users)} users, activity={data.activity.value}, group_size={effective_group_size}")
 
-    # Now trigger instant matching using the old deterministic algorithm
+    # Trigger instant matching
     try:
         from app.services.matching_service import run_batch_matching
         groups = await run_batch_matching(db)
         if groups:
             print(f"[TEST] Auto-matched {len(groups)} groups for test users")
+            for g in groups:
+                print(f"[TEST]   Group {g.id}: {g.activity}, {len(g.members)} members, chat_room={g.chat_room_id}")
+        else:
+            print(f"[TEST] WARNING: No groups formed. Check gender balance and availability overlap.")
     except Exception as e:
-        print(f"[TEST] Auto-matching failed (non-critical): {e}")
+        import traceback
+        print(f"[TEST] Auto-matching failed: {e}")
+        traceback.print_exc()
 
 
 @router.get("", response_model=list[DateRequestResponse])
