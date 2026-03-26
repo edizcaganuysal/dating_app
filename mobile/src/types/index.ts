@@ -228,14 +228,20 @@ export interface VenuesResponse {
   venues: Venue[];
 }
 
-export interface RomanticInterestInput {
+export type InterestLevel = 'not_interested' | 'maybe' | 'interested' | 'very_interested';
+
+export interface IndividualImpression {
   user_id: string;
-  interested: boolean;
+  interest_level: InterestLevel;
+  friend_interest: boolean;
 }
 
 export interface FeedbackCreateData {
   experience_rating: number;
-  romantic_interests: RomanticInterestInput[];
+  group_chemistry_rating: number;
+  activity_fit_rating: number;
+  reflection_tags: string[];
+  impressions: IndividualImpression[];
   block_user_ids: string[];
   report_user_ids: string[];
   report_category?: string;
@@ -245,6 +251,8 @@ export interface FeedbackResponse {
   id: string;
   group_id: string;
   experience_rating: number;
+  group_chemistry_rating: number;
+  activity_fit_rating: number;
   submitted_at: string;
 }
 
