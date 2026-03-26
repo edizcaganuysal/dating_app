@@ -11,6 +11,7 @@ from app.models.analytics import AnalyticsEvent, GroupOutcome
 from app.models.experiment import Experiment, ExperimentAssignment
 from app.models.algorithm_config import AlgorithmConfig
 from app.models.pre_date_prompt import PreDatePrompt
+from app.models.second_date import SecondDate
 
 __all__ = [
     "User",
@@ -41,4 +42,5 @@ __all__ = [
     "ExperimentAssignment",
     "AlgorithmConfig",
     "PreDatePrompt",
+    "SecondDate",
 ]

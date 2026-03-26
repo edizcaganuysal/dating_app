@@ -5,11 +5,13 @@ from itertools import combinations
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.chat import ChatParticipant, ChatRoom
+from app.models.chat import ChatMessage, ChatParticipant, ChatRoom
+from app.models.group import DateGroup
 from app.models.match import Match
 from app.models.report import RomanticInterest, SoftMatch
 from app.models.user import User
 from app.services.analytics_service import log_event
+from app.services.chat_ai_service import YUNI_AI_USER_ID
 from app.services.notification_service import notify_match
 
 INTEREST_SCORES = {
@@ -85,6 +87,17 @@ async def _create_full_match(
     db.add(match)
     await db.flush()
     await log_event(db, user_a, "match_revealed", {"match_id": str(match.id), "group_id": str(group_id)})
+
+    # Auto conversation starter
+    group_result = await db.execute(select(DateGroup).where(DateGroup.id == group_id))
+    group = group_result.scalar_one_or_none()
+    activity_name = group.activity if group else "your group date"
+    db.add(ChatMessage(
+        room_id=chat_room.id,
+        sender_id=YUNI_AI_USER_ID,
+        content=f"You both had a great time at {activity_name}! Pick up where you left off 💬",
+        message_type="system",
+    ))
 
     result_a = await db.execute(select(User).where(User.id == user_a))
     result_b = await db.execute(select(User).where(User.id == user_b))
