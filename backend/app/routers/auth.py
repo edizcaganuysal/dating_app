@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
@@ -110,6 +110,36 @@ async def register(req: RegisterRequest, db: AsyncSession = Depends(get_db)):
             detail="An account with this email already exists.",
         )
 
+    # Gender ratio waitlist check for males
+    if req.gender == "male":
+        total_result = await db.execute(select(func.count(User.id)))
+        total_users = total_result.scalar() or 0
+        if total_users > 0:
+            male_result = await db.execute(
+                select(func.count(User.id)).where(User.gender == "male")
+            )
+            male_count = male_result.scalar() or 0
+            male_ratio = male_count / total_users
+            if male_ratio > 0.55:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail={
+                        "detail": "waitlisted",
+                        "position": male_count,
+                        "message": "Yuni is balancing its community. Invite a female friend to skip the line!",
+                    },
+                )
+
+    # Resolve referral code
+    referred_by_id = None
+    if req.referral_code:
+        referrer_result = await db.execute(
+            select(User).where(User.friend_code == req.referral_code.strip().upper())
+        )
+        referrer = referrer_result.scalar_one_or_none()
+        if referrer:
+            referred_by_id = referrer.id
+
     otp = generate_otp()
     domain = req.email.lower().strip().split("@")[-1]
 
@@ -123,6 +153,7 @@ async def register(req: RegisterRequest, db: AsyncSession = Depends(get_db)):
         age=req.age,
         university_domain=domain,
         email_otp=otp,
+        referred_by=referred_by_id,
     )
     db.add(user)
     await db.commit()

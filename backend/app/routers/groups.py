@@ -1,5 +1,6 @@
 import random
 import uuid
+from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
@@ -11,6 +12,7 @@ from app.middleware.auth_middleware import get_current_user
 from app.models.chat import ChatRoom
 from app.models.group import DateGroup, GroupMember
 from app.models.user import User
+from app.services.notification_service import notify_group_reveal
 from app.schemas.group import (
     GroupDetailResponse,
     GroupMemberDetailResponse,
@@ -185,3 +187,61 @@ async def get_venues(
     venues = [VenueResponse(**v) for v in venue_data]
 
     return VenuesResponse(activity=activity, venues=venues)
+
+
+@router.post("/{group_id}/confirm")
+async def confirm_group(
+    group_id: uuid.UUID,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Confirm participation in a group date. Female confirmations trigger male notifications."""
+    group = await _get_group_or_404(db, group_id)
+    _check_member_or_admin(group, current_user)
+
+    # Find this user's membership
+    gm_result = await db.execute(
+        select(GroupMember).where(
+            GroupMember.group_id == group_id,
+            GroupMember.user_id == current_user.id,
+        )
+    )
+    gm = gm_result.scalar_one_or_none()
+    if not gm:
+        raise HTTPException(status_code=404, detail="Not a member of this group")
+
+    gm.confirmed = True
+    await db.flush()
+
+    # If a female just confirmed, check if all females are now confirmed
+    if current_user.gender == "female":
+        await _check_and_notify_males(group_id, group.activity, db)
+
+    await db.commit()
+    return {"message": "Confirmed"}
+
+
+async def _check_and_notify_males(
+    group_id: uuid.UUID, activity: str, db: AsyncSession
+) -> None:
+    """If all female members confirmed, notify male members."""
+    all_members_result = await db.execute(
+        select(GroupMember).where(GroupMember.group_id == group_id)
+        .options(selectinload(GroupMember.user))
+    )
+    all_members = all_members_result.scalars().all()
+
+    females = [m for m in all_members if m.user.gender == "female"]
+    males = [m for m in all_members if m.user.gender == "male"]
+
+    all_females_confirmed = all(f.confirmed for f in females)
+    if not all_females_confirmed:
+        return
+
+    # Notify males who haven't been notified yet
+    now = datetime.utcnow()
+    for m in males:
+        if not m.notified_at:
+            m.notified_at = now
+            if m.user.push_token:
+                await notify_group_reveal(m.user.push_token, activity, str(group_id))

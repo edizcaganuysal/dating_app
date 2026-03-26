@@ -32,6 +32,8 @@ class GroupMember(Base):
     group_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("date_groups.id"))
     user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id"))
     date_request_id: Mapped[Optional[uuid.UUID]] = mapped_column(ForeignKey("date_requests.id"), nullable=True)
+    confirmed: Mapped[bool] = mapped_column(default=False)
+    notified_at: Mapped[Optional[dt.datetime]] = mapped_column(nullable=True)
     created_at: Mapped[dt.datetime] = mapped_column(server_default=func.now())
     updated_at: Mapped[dt.datetime] = mapped_column(server_default=func.now(), onupdate=func.now())
 

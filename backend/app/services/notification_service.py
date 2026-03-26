@@ -89,6 +89,20 @@ async def send_push_to_many(
         return 0
 
 
+async def notify_group_reveal(
+    push_token: str,
+    activity: str,
+    group_id: str,
+) -> bool:
+    """Notify a user that their group date has been confirmed."""
+    return await send_push_notification(
+        push_token=push_token,
+        title="Your group date is set! 🎉",
+        body=f"You've been matched for {activity}. Tap to see your group!",
+        data={"type": "group_reveal", "group_id": group_id},
+    )
+
+
 async def notify_match(user1_push_token: Optional[str], user1_name: str,
                        user2_push_token: Optional[str], user2_name: str,
                        match_data: Optional[dict] = None) -> None:

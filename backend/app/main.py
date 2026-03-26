@@ -79,15 +79,84 @@ async def matching_cron():
         await asyncio.sleep(900)  # 15 minutes
 
 
+async def female_confirm_timeout_cron():
+    """Every 30 minutes: notify males in groups where females haven't confirmed within 12 hours."""
+    await asyncio.sleep(60)
+    while True:
+        try:
+            from app.database import async_session
+            from app.models.group import GroupMember
+            from app.models.user import User
+            from app.services.notification_service import notify_group_reveal
+            from sqlalchemy import select
+            from sqlalchemy.orm import selectinload
+
+            cutoff = datetime.utcnow() - timedelta(hours=12)
+
+            async with async_session() as db:
+                # Find female members notified >12h ago who haven't confirmed
+                stale_result = await db.execute(
+                    select(GroupMember)
+                    .join(User, GroupMember.user_id == User.id)
+                    .where(
+                        User.gender == "female",
+                        GroupMember.notified_at != None,  # noqa: E711
+                        GroupMember.notified_at < cutoff,
+                        GroupMember.confirmed == False,  # noqa: E712
+                    )
+                )
+                stale_females = stale_result.scalars().all()
+                timed_out_group_ids = {gm.group_id for gm in stale_females}
+
+                for group_id in timed_out_group_ids:
+                    # Get group activity
+                    from app.models.group import DateGroup
+                    grp_result = await db.execute(
+                        select(DateGroup).where(DateGroup.id == group_id)
+                    )
+                    grp = grp_result.scalar_one_or_none()
+                    if not grp:
+                        continue
+
+                    # Notify un-notified males
+                    males_result = await db.execute(
+                        select(GroupMember)
+                        .join(User, GroupMember.user_id == User.id)
+                        .where(
+                            GroupMember.group_id == group_id,
+                            User.gender == "male",
+                            GroupMember.notified_at == None,  # noqa: E711
+                        )
+                        .options(selectinload(GroupMember.user))
+                    )
+                    males = males_result.scalars().all()
+                    now = datetime.utcnow()
+                    for m in males:
+                        m.notified_at = now
+                        if m.user.push_token:
+                            await notify_group_reveal(m.user.push_token, grp.activity, str(group_id))
+
+                if timed_out_group_ids:
+                    await db.commit()
+                    logger.info(f"Female confirm timeout: notified males in {len(timed_out_group_ids)} groups")
+
+        except Exception as e:
+            logger.error(f"Female confirm timeout cron error: {e}")
+
+        await asyncio.sleep(1800)  # 30 minutes
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Start background matching cron tasks."""
     batch_task = asyncio.create_task(batch_formation_cron())
     match_task = asyncio.create_task(matching_cron())
+    confirm_task = asyncio.create_task(female_confirm_timeout_cron())
     logger.info("Started matching cron tasks")
     yield
     batch_task.cancel()
     match_task.cancel()
+    confirm_task.cancel()
 
 
 # ── App Setup ──

@@ -13,6 +13,7 @@ class RegisterRequest(BaseModel):
     phone: str = ""
     gender: Literal["male", "female"]
     age: int = Field(ge=18, le=99)
+    referral_code: str = ""
 
 
 class LoginRequest(BaseModel):

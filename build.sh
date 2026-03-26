@@ -365,13 +365,21 @@ TASK: $prompt"
             continue  # Retry after waiting
         fi
 
-        # FAILED (not rate limit) — retry once with context, then move on
-        if [[ $attempt -eq 1 ]]; then
-            echo -e "  ${Y}⟳${NC} Step $step_id: first attempt issue (exit $exit_code, ${log_kb}KB log). Retrying..."
-            continue  # One free retry for non-rate-limit failures
+        # Check if Claude actually produced anything (0KB log = total failure)
+        if [[ $log_size -lt 200 ]]; then
+            # Claude didn't run at all — likely rate limited but didn't say so in log
+            echo -e "  ${Y}⏳${NC} Step $step_id: empty response (likely rate limited). Waiting 1 hour..."
+            wait_for_rate_limit "$step_id" "$attempt"
+            continue
         fi
 
-        # Second failure — commit whatever we have, mark done, move on
+        # FAILED but produced output — retry once with context, then move on
+        if [[ $attempt -eq 1 ]]; then
+            echo -e "  ${Y}⟳${NC} Step $step_id: first attempt issue (exit $exit_code, ${log_kb}KB log). Retrying..."
+            continue
+        fi
+
+        # Second failure with actual output — commit whatever we have, mark done, move on
         echo -e "  ${Y}⚠${NC} Step $step_id: completed with warnings after $attempt attempts"
         set_step_status "$step_id" "done"
         git_checkpoint "$step_id" "$step_desc"

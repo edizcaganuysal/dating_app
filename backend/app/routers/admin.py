@@ -829,6 +829,28 @@ async def approve_batch_groups(
                 db=db,
             )
 
+            # Women-confirm-first: notify female members first
+            from app.services.notification_service import notify_group_reveal
+            from datetime import datetime as _dt
+
+            for m in pg.members:
+                user_result2 = await db.execute(select(User).where(User.id == m.user_id))
+                u = user_result2.scalar_one_or_none()
+                if u and u.gender == "female" and u.push_token:
+                    await notify_group_reveal(u.push_token, pg.activity, str(date_group.id))
+                # Mark female members as notified, males wait for female confirmation
+                gm_result = await db.execute(
+                    select(GroupMember).where(
+                        GroupMember.group_id == date_group.id,
+                        GroupMember.user_id == m.user_id,
+                    )
+                )
+                gm = gm_result.scalar_one_or_none()
+                if gm and u:
+                    if u.gender == "female":
+                        gm.notified_at = _dt.utcnow()
+                    # Males: notified_at stays None until females confirm
+
             pg.status = "executed"
             approved_count += 1
 

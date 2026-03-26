@@ -104,6 +104,9 @@ class User(Base):
     attractiveness_score: Mapped[float] = mapped_column(default=5.0)
     elo_score: Mapped[float] = mapped_column(default=1000.0)
 
+    # Referral
+    referred_by: Mapped[Optional[uuid.UUID]] = mapped_column(ForeignKey("users.id"), nullable=True)
+
     created_at: Mapped[datetime] = mapped_column(server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(server_default=func.now(), onupdate=func.now())
 
