@@ -925,7 +925,7 @@ async def trigger_matching_pipeline(
 
 # ── Waitlist Admin ──
 
-@router.get("/waitlist")
+@router.get("/api/admin/waitlist")
 async def get_waitlist_entries(
     search: str = Query(None),
     limit: int = Query(50, ge=1, le=500),
@@ -967,7 +967,7 @@ async def get_waitlist_entries(
     }
 
 
-@router.delete("/waitlist/{entry_id}")
+@router.delete("/api/admin/waitlist/{entry_id}")
 async def delete_waitlist_entry(
     entry_id: uuid.UUID,
     _admin: User = Depends(get_admin_user),
