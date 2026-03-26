@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Inter, Space_Grotesk } from "next/font/google";
+import { Inter, Playfair_Display } from "next/font/google";
 import "./globals.css";
 
 const inter = Inter({
@@ -7,15 +7,16 @@ const inter = Inter({
   variable: "--font-inter",
 });
 
-const spaceGrotesk = Space_Grotesk({
+const playfair = Playfair_Display({
   subsets: ["latin"],
-  variable: "--font-space-grotesk",
+  variable: "--font-playfair",
+  weight: ["400", "500", "600", "700"],
 });
 
 export const metadata: Metadata = {
-  title: "Yuni — Find Your Group, Find Your Person",
+  title: "Yuni — The Group Dating App for University Students",
   description:
-    "The group dating app for university students. Join the waitlist and be the first to know when Yuni launches.",
+    "Stop swiping. Start meeting. Yuni matches university students into groups of 4-6 for real activities with real people from your campus. Join the waitlist.",
 };
 
 export default function RootLayout({
@@ -24,10 +25,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="bg-[#050505]" style={{ background: "#050505" }}>
+    <html lang="en" className="scroll-smooth bg-[#F7F0E7]" style={{ background: "#F7F0E7" }}>
       <body
-        className={`${inter.variable} ${spaceGrotesk.variable} font-body antialiased bg-background text-foreground`}
-        style={{ background: "#050505", color: "#ffffff", margin: 0 }}
+        className={`${inter.variable} ${playfair.variable} font-body antialiased bg-background text-foreground`}
+        style={{ background: "#F7F0E7", color: "#241C1A", margin: 0 }}
       >
         {children}
       </body>

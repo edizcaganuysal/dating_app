@@ -4,66 +4,59 @@
 
 html,
 body {
-  background: #050505;
-  color: #ffffff;
+  background: #F7F0E7;
+  color: #241C1A;
   overflow-x: hidden;
 }
 
-html.lenis {
-  height: auto;
-}
-
-.lenis.lenis-smooth {
-  scroll-behavior: auto;
-}
-
 ::-webkit-scrollbar {
-  width: 4px;
+  width: 6px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #050505;
+  background: #F7F0E7;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #333;
-  border-radius: 2px;
+  background: #D4C9BE;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #C40018;
 }
 
 ::selection {
-  background: rgba(255, 77, 109, 0.3);
-  color: #fff;
+  background: rgba(196, 0, 24, 0.15);
+  color: #241C1A;
 }
 
-/* Marquee infinite scroll */
-@keyframes marquee {
-  0% { transform: translateX(0); }
-  100% { transform: translateX(-33.333%); }
+/* Scroll reveal animation */
+.reveal {
+  opacity: 0;
+  transform: translateY(24px);
+  transition: opacity 0.7s ease-out, transform 0.7s ease-out;
 }
 
-.animate-marquee {
-  animation: marquee 30s linear infinite;
+.reveal.visible {
+  opacity: 1;
+  transform: translateY(0);
 }
 
-/* Smooth gradient border animation */
-@keyframes gradient-shift {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
+/* Staggered children */
+.reveal-children > * {
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 0.5s ease-out, transform 0.5s ease-out;
 }
 
-/* Scroll indicator dot animation */
-@keyframes scroll-dot {
-  0% { transform: translateY(0); opacity: 1; }
-  50% { transform: translateY(14px); opacity: 0.3; }
-  100% { transform: translateY(0); opacity: 1; }
-}
+.reveal-children.visible > *:nth-child(1) { transition-delay: 0ms; opacity: 1; transform: translateY(0); }
+.reveal-children.visible > *:nth-child(2) { transition-delay: 100ms; opacity: 1; transform: translateY(0); }
+.reveal-children.visible > *:nth-child(3) { transition-delay: 200ms; opacity: 1; transform: translateY(0); }
+.reveal-children.visible > *:nth-child(4) { transition-delay: 300ms; opacity: 1; transform: translateY(0); }
 
-.animate-scroll-dot {
-  animation: scroll-dot 1.8s ease-in-out infinite;
-}
-
-/* Hide cursor on touch devices */
-@media (hover: none) {
-  * { cursor: auto !important; }
+/* Smooth FAQ accordion */
+.faq-answer {
+  overflow: hidden;
+  transition: max-height 0.4s ease-in-out, padding-bottom 0.4s ease-in-out;
 }

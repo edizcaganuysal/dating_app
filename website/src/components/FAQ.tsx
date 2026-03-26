@@ -51,42 +51,42 @@ export default function FAQ() {
   return (
     <div className="max-w-3xl mx-auto px-6">
       <div className="text-center mb-16">
-        <p className="text-[10px] uppercase tracking-[0.4em] text-accent/60 mb-5 font-body">
+        <p className="text-xs uppercase tracking-[0.3em] text-accent font-medium mb-4 font-display">
           Questions
         </p>
-        <h2 className="font-display text-3xl md:text-5xl font-extralight tracking-cinematic">
-          FAQ
+        <h2 className="font-display text-3xl md:text-5xl font-bold tracking-tight text-coal">
+          Frequently Asked Questions
         </h2>
       </div>
 
-      <div className="space-y-0">
+      <div className="bg-white/50 rounded-2xl border border-coal/5 overflow-hidden">
         {faqs.map((faq, i) => {
           const isOpen = openIndex === i;
           return (
-            <div key={i} className="border-b border-white/[0.08]">
+            <div key={i} className={i < faqs.length - 1 ? "border-b border-coal/[0.08]" : ""}>
               <button
                 onClick={() => setOpenIndex(isOpen ? null : i)}
-                className="w-full flex items-center justify-between py-6 text-left group"
+                className="w-full flex items-center justify-between py-5 px-6 md:px-8 text-left group"
               >
-                <span className="font-body text-sm md:text-base font-light tracking-wide text-white/80 group-hover:text-white transition-colors duration-300 pr-8">
+                <span className="font-body text-sm md:text-base font-medium text-coal group-hover:text-accent transition-colors duration-300 pr-8">
                   {faq.question}
                 </span>
                 <span
-                  className={`shrink-0 w-5 h-5 flex items-center justify-center text-accent/60 transition-transform duration-300 ${
+                  className={`shrink-0 w-5 h-5 flex items-center justify-center text-accent transition-transform duration-300 ${
                     isOpen ? "rotate-45" : ""
                   }`}
                 >
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
                   </svg>
                 </span>
               </button>
               <div
-                className={`overflow-hidden transition-all duration-500 ease-in-out ${
-                  isOpen ? "max-h-60 pb-6" : "max-h-0"
+                className={`faq-answer ${
+                  isOpen ? "max-h-60 pb-5" : "max-h-0"
                 }`}
               >
-                <p className="text-white/50 text-sm leading-relaxed font-light pr-12">
+                <p className="text-muted text-sm leading-relaxed px-6 md:px-8 pr-12">
                   {faq.answer}
                 </p>
               </div>
