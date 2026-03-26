@@ -188,6 +188,17 @@ async def verify_email(req: VerifyEmailRequest, db: AsyncSession = Depends(get_d
     return {"message": "Email verified"}
 
 
+@router.post("/init-seed", status_code=200)
+async def init_seed(db: AsyncSession = Depends(get_db)):
+    """One-time seed endpoint. Only works if no admin user exists yet."""
+    result = await db.execute(select(User).where(User.is_admin == True))
+    if result.scalar_one_or_none():
+        raise HTTPException(status_code=400, detail="Already seeded")
+    from app.seed import seed_database
+    await seed_database(session=db)
+    return {"detail": "Database seeded"}
+
+
 @router.post("/login", response_model=TokenResponse)
 async def login(req: LoginRequest, db: AsyncSession = Depends(get_db)):
     email = req.email.lower().strip()
