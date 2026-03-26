@@ -8,6 +8,7 @@ from app.models.chat import ChatParticipant, ChatRoom
 from app.models.match import Match
 from app.models.report import RomanticInterest
 from app.models.user import User
+from app.services.analytics_service import log_event
 from app.services.notification_service import notify_match
 
 
@@ -48,6 +49,8 @@ async def check_and_create_matches(
                 chat_room_id=chat_room.id,
             )
             db.add(match)
+            await db.flush()
+            await log_event(db, a, "match_revealed", {"match_id": str(match.id), "group_id": str(group_id)})
             matches.append(match)
 
             # Send push notifications to both users

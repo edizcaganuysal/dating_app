@@ -216,4 +216,4 @@ After completing any major change, **automatically update README.md** before tel
 
 ## Current Phase
 
-All 18 build phases complete. Onboarding overhaul complete.
+Complete STEPS.md as instructed. Mark as completed once you are done.

@@ -21,6 +21,7 @@ from app.schemas.profile import (
     PrivateProfileResponse,
     PublicProfileResponse,
 )
+from app.services.analytics_service import log_event
 from app.services.image_verification import (
     score_attractiveness,
     score_user_photos,
@@ -154,6 +155,7 @@ async def create_profile(
             print(f"[PHOTO CHECK] {current_user.email} attractiveness score: {current_user.attractiveness_score}")
 
     await db.commit()
+    await log_event(db, current_user.id, "profile_completed", {})
     await db.refresh(current_user)
     return current_user
 

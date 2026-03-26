@@ -7,6 +7,8 @@ from app.models.report import FeedbackRating, RomanticInterest, BlockedPair, Rep
 from app.models.friendship import Friendship
 from app.models.matching_batch import MatchingBatch, ProposedGroup, ProposedGroupMember
 from app.models.waitlist import WaitlistEntry
+from app.models.analytics import AnalyticsEvent, GroupOutcome
+from app.models.experiment import Experiment, ExperimentAssignment
 
 __all__ = [
     "User",
@@ -30,4 +32,8 @@ __all__ = [
     "ProposedGroup",
     "ProposedGroupMember",
     "WaitlistEntry",
+    "AnalyticsEvent",
+    "GroupOutcome",
+    "Experiment",
+    "ExperimentAssignment",
 ]

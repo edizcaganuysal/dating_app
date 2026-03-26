@@ -10,6 +10,7 @@ from app.config import settings
 from app.models.chat import ChatMessage, ChatParticipant, ChatRoom
 from app.models.group import DateGroup, GroupMember
 from app.models.user import User
+from app.services.analytics_service import log_event
 from app.services.chat_ai_service import (
     YUNI_AI_USER_ID,
     check_rate_limit,
@@ -59,6 +60,8 @@ async def handle_chat_message(data: dict, user: User, room_id: str, db: AsyncSes
         content=content,
     )
     db.add(msg)
+    await db.flush()
+    await log_event(db, user.id, "message_sent", {"room_id": room_id, "message_id": str(msg.id)})
     await db.commit()
     await db.refresh(msg)
 

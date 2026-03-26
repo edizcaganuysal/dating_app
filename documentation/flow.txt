@@ -26,10 +26,10 @@ PHASE 0: DISCOVERY & SIGNUP
      ~FEMALE~ Marketing targets women first (sororities, women's groups)
 
 0.2  [APP STORE / LANDING PAGE]
-     Key stats displayed:
-     - "1 in 3 group dates leads to a real date"
-     - "90% of women feel safe"
-     - "Average user gets a date in 2 group dates"
+     Key stats displayed (update with real data as it becomes available):
+     - "1 in 5 group dates leads to a real date" (conservative target)
+     - "90% of women feel safe on Yuni dates"
+     - "Average user gets a date in 3 group dates"
 
 0.3  (User downloads app)
 

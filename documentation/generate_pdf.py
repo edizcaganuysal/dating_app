@@ -175,7 +175,7 @@ def build_pdf():
         "empirical finding that 45% of women leave dating apps due to safety concerns, and present "
         "the Second-Date Bridge -- a structured facilitation system that addresses the 94% attrition "
         "rate observed in speed-dating follow-through. Industry benchmarks suggest swipe apps convert "
-        "at <5% (match to real date); our framework targets 27-35%."
+        "at <5% (match to real date); our framework targets 15-20%."
     )
 
     # ==================== 1. THE PROBLEM ====================
@@ -191,7 +191,7 @@ def build_pdf():
     pdf.table_row(["Bumble", "~5%", "70% of matches stall before plans are made"])
     pdf.table_row(["Hinge", "~8%", "Best performing swipe app"])
     pdf.table_row(["Speed dating", "4-6%", "Mutual match to actual follow-up date"])
-    pdf.table_row(["Yuni (target)", "27-35%", "Group date to second date with romantic intent"], bold=True)
+    pdf.table_row(["Yuni (target)", "15-20%", "Group date to second date with romantic intent"], bold=True)
 
     pdf.ln(4)
     pdf.body_text(
@@ -452,7 +452,7 @@ def build_pdf():
     pdf.ln(2)
 
     pdf.table_row(["Metric", "Target", "Industry Benchmark"], header=True)
-    pdf.table_row(["Second-date rate", "27-35%", "Speed dating: 4-6%"])
+    pdf.table_row(["Second-date rate", "15-20%", "Speed dating: 4-6%"])
     pdf.table_row(["Match rate per date", "45-55%", "Swipe apps: <5% to real date"])
     pdf.table_row(["Dates per match", "1.5-2.0", "Swipe apps: 56 matches per date"])
     pdf.table_row(["Female safety rating", ">90%", "Industry: ~55%"])
@@ -461,7 +461,7 @@ def build_pdf():
 
     pdf.ln(4)
     pdf.highlight_box(
-        "The value proposition: '1 in 3 Yuni group dates leads to a real date. "
+        "The value proposition: '1 in 5 Yuni group dates leads to a real date. "
         "Not a match. Not a message. An actual, in-person, second date. "
         "Your first date is never alone.'"
     )

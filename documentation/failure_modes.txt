@@ -1,0 +1,277 @@
+================================================================================
+    YUNI — FAILURE MODES & FALLBACK STRATEGIES
+================================================================================
+
+    Every failure mode has: Detection mechanism, Threshold, Fallback action.
+    Added per analysis.txt Condition 4.
+
+================================================================================
+
+FAILURE MODE 1: GENDER RATIO COLLAPSE
+--------------------------------------------------------------------------------
+
+    Description: Male users significantly outnumber female users,
+    creating an imbalanced market where women are overwhelmed and men
+    are frustrated.
+
+    Detection:
+    - Gender ratio monitored in real-time (Phase 1 analytics)
+    - Alert at 60/40 (warning)
+    - Alert at 70/30 (critical)
+
+    Thresholds:
+    - WARNING (60/40): Activate waitlist for new male signups
+    - CRITICAL (70/30): Pause male signups entirely. Emergency female
+      outreach campaign. Consider giving women extra free dates.
+
+    Fallback actions:
+    1. Male waitlist activated automatically
+    2. "Invite a female friend to skip the line" referral push
+    3. Targeted female marketing campaign (budget: pre-allocated)
+    4. Double free dates for women (temporary incentive)
+    5. If ratio does not recover within 4 weeks: reduce matching
+       frequency (bi-weekly instead of weekly) to accumulate larger pools
+
+
+FAILURE MODE 2: POOL TOO SMALL FOR ALGORITHM
+--------------------------------------------------------------------------------
+
+    Description: Fewer than 50 users per gender in the matching pool.
+    The algorithm cannot form quality groups because there aren't enough
+    candidates to satisfy hard constraints + quality optimization.
+
+    Detection:
+    - Pool size logged before each matching batch
+    - Alert when pool < 50 per gender for any activity/timeslot
+
+    Thresholds:
+    - SMALL POOL (20-50 per gender): Algorithm runs but with reduced
+      quality expectations. Wider attractiveness bands. Fewer constraints.
+    - VERY SMALL POOL (<20 per gender): Algorithm disabled. Admin
+      manual matching only.
+
+    Fallback actions:
+    1. Admin manual matching (already in IDEA.md, first 3-6 months)
+    2. Relax soft constraints (wider age range tolerance, wider
+       attractiveness bands, cross-activity matching)
+    3. Combine time slots (Saturday afternoon + evening = one pool)
+    4. Reduce activity options (offer only 3-4 activities instead of 12)
+    5. Increase matching batch window (accumulate 2 weeks instead of 1)
+
+
+FAILURE MODE 3: 4-POINT SCALE REDUCES MATCH RATE
+--------------------------------------------------------------------------------
+
+    Description: Users select "Maybe" when they would have said "Yes"
+    under the binary system, reducing full match rate without the soft
+    match mechanism compensating enough.
+
+    Detection:
+    - A/B test: 4-point vs. binary (Phase 3, launched from day one)
+    - Compare: full_match_rate + soft_match_conversion_rate (4-point)
+      vs. match_rate (binary)
+
+    Thresholds:
+    - If 4-point total conversion < binary conversion by >15% after
+      200 feedback submissions: REVERT to binary
+
+    Fallback actions:
+    1. Revert to binary interest (simple and proven)
+    2. Keep group chemistry + activity fit ratings (those are additive)
+    3. If 4-point matches binary: keep 4-point (richer signal for algo)
+    4. If 4-point beats binary: celebrate, publish the finding
+
+
+FAILURE MODE 4: PRE-DATE PROMPTS CAUSE FATIGUE OR NO-SHOWS
+--------------------------------------------------------------------------------
+
+    Description: Users find the 4-prompt escalation annoying, mute the
+    group chat, or feel like the app is too pushy. Possibly increases
+    no-show rate if users feel they already "know" the group.
+
+    Detection:
+    - A/B test: structured prompts vs. single icebreaker (Phase 5)
+    - Track: group chat engagement rate, no-show rate, conversion rate
+    - Survey: "Were the group chat prompts helpful?" (post-date)
+
+    Thresholds:
+    - If no-show rate increases >5% with prompts: REVERT
+    - If engagement drops (fewer messages after prompts): REDUCE to 2
+    - If no measurable impact on conversion after 100 group dates: REMOVE
+
+    Fallback actions:
+    1. Reduce to 2 prompts (Day -2 and Day of) instead of 4
+    2. Make prompts optional (group can disable)
+    3. Revert to single icebreaker (current state, proven)
+
+
+FAILURE MODE 5: SECOND-DATE BRIDGE FEELS PUSHY
+--------------------------------------------------------------------------------
+
+    Description: Users perceive the auto-suggested date as intrusive or
+    algorithmically forced. Reduces chat organic conversation.
+
+    Detection:
+    - Track: suggestion dismissal rate, proposal acceptance rate
+    - Track: user feedback "the app is too pushy" (report category)
+    - Compare: match-to-second-date rate WITH bridge vs. WITHOUT
+
+    Thresholds:
+    - If >50% of suggestion cards are dismissed without interaction: REVISE
+    - If acceptance rate < 10%: the feature is failing
+    - If users report "pushy" at >5% rate: REMOVE
+
+    Fallback actions:
+    1. Reduce suggestion frequency (1 suggestion, no follow-up nudge)
+    2. Move suggestion to a separate "Date Ideas" tab (opt-in, not pushed)
+    3. Remove auto-suggestion entirely; keep only the proposal mechanism
+       (let users initiate, but provide the infrastructure)
+
+
+FAILURE MODE 6: VALUES VECTOR ADDS NO SIGNAL
+--------------------------------------------------------------------------------
+
+    Description: The 6 binary value pairs don't actually improve group
+    quality or conversion compared to not using them.
+
+    Detection:
+    - A/B test: matching with values_vector vs. without (Phase 2)
+    - Compare: group chemistry ratings, conversion rate
+
+    Thresholds:
+    - If no significant difference after 200 group dates: REMOVE from
+      matching algorithm (keep in onboarding for profile display)
+
+    Fallback actions:
+    1. Remove ValuesBaseline from Q scoring function (set weight to 0)
+    2. Keep values in profile for conversation hooks
+    3. Re-evaluate if larger sample shows signal
+
+
+FAILURE MODE 7: EPSILON-GREEDY EXPLORE GROUPS PRODUCE BAD EXPERIENCES
+--------------------------------------------------------------------------------
+
+    Description: The 15% of groups formed randomly (for exploration)
+    produce significantly worse experiences than optimized groups.
+    Users in explore groups have bad dates and churn.
+
+    Detection:
+    - Tag groups as "explore" vs "exploit" in group_outcomes table
+    - Compare: experience rating, chemistry rating, conversion rate
+
+    Thresholds:
+    - If explore group satisfaction is >1.0 stars lower than exploit:
+      REDUCE epsilon
+    - If explore groups cause >10% higher churn: REDUCE epsilon to 5%
+
+    Fallback actions:
+    1. Reduce epsilon immediately to 5% (minimum exploration)
+    2. Apply MINIMUM quality threshold to explore groups (reject random
+       assignments where Q score is below 50th percentile of exploit)
+    3. If still problematic: disable exploration, use Bayesian weight
+       updates from exploit groups only (slower learning, but no bad dates)
+
+
+FAILURE MODE 8: WOMEN DON'T FEEL SAFE DESPITE GROUPS
+--------------------------------------------------------------------------------
+
+    Description: Despite the group format, women report safety concerns.
+    Possible causes: aggressive male behavior during date, post-date
+    harassment via chat, venue choice issues.
+
+    Detection:
+    - Track: safety-related reports (category filter)
+    - Post-date safety check: "Did you get home safe?" response rate
+    - Female retention rate vs. male retention rate
+
+    Thresholds:
+    - ANY report of physical safety concern: immediate admin investigation
+    - If female NPS < 30: systemic issue, pause and investigate
+    - If female retention drops below 50%: emergency response
+
+    Fallback actions:
+    1. Priority admin review of all women's reports (already in plan)
+    2. Verified venue partnerships (venues know Yuni group is coming)
+    3. Post-date safety check for ALL users (already in plan)
+    4. Emergency contact integration (share with trusted person)
+    5. Ban offending users immediately (zero tolerance)
+    6. Consider: female-only feedback session to understand issues
+
+
+FAILURE MODE 9: SOFT MATCH MECHANISM DOESN'T CONVERT
+--------------------------------------------------------------------------------
+
+    Description: Users who tap "reveal" on soft matches don't end up
+    connecting. The "Maybe" → "Interested" conversion is too rare.
+
+    Detection:
+    - Track: soft match reveal rate, soft match → chat rate,
+      soft match → second date rate
+
+    Thresholds:
+    - If <20% of soft matches are revealed (tapped): notification copy
+      may be wrong. A/B test different messages.
+    - If <10% of revealed soft matches lead to chat: the mechanism
+      isn't working. Users say "Maybe" but mean "No."
+
+    Fallback actions:
+    1. Test different notification copy and timing (24h vs 48h vs 72h)
+    2. If reveal rate is low: make the notification more compelling
+    3. If conversion after reveal is low: the mechanism is a false
+       positive generator. Remove it. Binary was better.
+    4. Keep data collected from soft matches for algorithm learning
+       even if the feature is removed
+
+
+FAILURE MODE 10: ACTIVITY TIER PREDICTIONS ARE WRONG
+--------------------------------------------------------------------------------
+
+    Description: Escape rooms and cooking classes don't actually convert
+    better than dinner and bar dates. The activity ranking is based on
+    research inference, not Yuni-specific data.
+
+    Detection:
+    - Track conversion rate by activity type (Phase 1 analytics)
+    - After 50+ dates per activity: compute confidence intervals
+
+    Thresholds:
+    - If Tier 1 activities don't outperform Tier 3 by >20% relative:
+      the tier system is wrong for this population
+    - Update rankings based on REAL DATA, not research predictions
+
+    Fallback actions:
+    1. Replace research-based tiers with data-driven rankings
+    2. Remove tier badges from UI (don't recommend activities the data
+       doesn't support)
+    3. Let user choice + pool size drive activity selection naturally
+
+
+================================================================================
+MONITORING DASHBOARD REQUIREMENTS
+================================================================================
+
+The admin dashboard must surface all detection metrics:
+
+    REAL-TIME:
+    - Gender ratio gauge (with warning/critical zones)
+    - Pool size by activity/timeslot
+    - Active experiment results
+
+    WEEKLY:
+    - Conversion rate (overall + by activity + by group size)
+    - Match rate (full + soft)
+    - Experience ratings distribution
+    - Female retention vs. male retention
+    - Explore vs. exploit group quality comparison
+    - A/B test significance updates
+
+    MONTHLY:
+    - NPS score
+    - Second-date confirmation rate
+    - Churn analysis by gender
+    - Activity tier performance vs. predictions
+    - Weight learning convergence
+
+================================================================================
+END OF DOCUMENT
+================================================================================

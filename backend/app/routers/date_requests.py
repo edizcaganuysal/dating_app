@@ -9,6 +9,7 @@ from app.database import get_db
 from app.middleware.auth_middleware import get_current_user
 from app.models.date_request import AvailabilitySlot, DateRequest, DateRequestTemplate, PreGroupFriend
 from app.models.user import User
+from app.services.analytics_service import log_event
 from app.schemas.date_request import (
     DateRequestCreate,
     DateRequestResponse,
@@ -95,6 +96,7 @@ async def create_date_request(
         db.add(PreGroupFriend(date_request_id=dr.id, friend_user_id=friend_id))
 
     await db.commit()
+    await log_event(db, current_user.id, "date_request_created", {"activity": dr.activity})
 
     # Auto-create companion requests for test user
     if current_user.email == "tester@mail.utoronto.ca":

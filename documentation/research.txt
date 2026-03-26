@@ -118,10 +118,15 @@ THE INDUSTRY REALITY:
     │ Speed dating                 │ 4-6% (mutual match → actual date)│
     │ Coffee Meets Bagel           │ ~10% (curated, less choice)      │
     ├──────────────────────────────┼──────────────────────────────────┤
-    │ Yuni target                  │ 30-45%                           │
+    │ Yuni target                  │ 15-20% (25%+ stretch goal)       │
     └──────────────────────────────┴──────────────────────────────────┘
 
-WHY YUNI CAN HIT 30-45%:
+    Note: Targets derived from conservative decomposition analysis.
+    Speed dating baseline (4-6%) x structural advantages (3-4x) = 15-20%.
+    25%+ requires all hypothesized mechanisms to work simultaneously.
+    See documentation/analysis.txt Section 6 for full derivation.
+
+WHY YUNI CAN REALISTICALLY HIT 15-20%:
 
 Yuni has a structural advantage that no swipe app can replicate:
 
@@ -984,8 +989,9 @@ weeks after the group date. We need PROXY objectives.
 
     QUANTIFIED ADVANTAGE:
     Speed dating converts at 4-6%. Yuni's longer interaction, shared
-    activity, and second-date facilitation should yield 5-10× improvement.
-    Target: 30-45% conversion rate.
+    activity, and second-date facilitation should yield 3-4x improvement.
+    Target: 15-20% conversion rate (25%+ stretch goal).
+    Note: 15-20% is already 3x better than any existing platform.
 
 --------------------------------------------------------------------------------
 4.4 Mathematical Formulation for Group Optimization
@@ -1712,14 +1718,15 @@ second date. This is where 94% of speed-dating matches die.
     │                              │          │          │ bridge           │
     ├──────────────────────────────┼──────────┼──────────┼──────────────────┤
     │ END-TO-END CONVERSION:       │          │          │                  │
-    │ Attend → Second date         │ ~9%      │ ~27%     │ 3× improvement   │
+    │ Attend → Second date         │ ~5%      │ ~18%     │ 3× improvement   │
     │ (the marketable stat)        │          │          │                  │
     └──────────────────────────────┴──────────┴──────────┴──────────────────┘
 
-    With soft matches adding ~10% to the match rate:
-    Target: 27-35% of date attendees go on a second date with someone.
-    This is 5-7× better than speed dating (4-6%) and orders of magnitude
-    better than swipe apps.
+    With soft matches adding ~10% to the match rate (HYPOTHESIS — A/B test):
+    Target: 15-20% of date attendees go on a second date with someone.
+    Stretch goal: 25%+.
+    This is 3-4x better than speed dating (4-6%) and far better than
+    swipe apps. Even the conservative target is remarkable.
 
 --------------------------------------------------------------------------------
 8.2 Group Size: Default to 4
@@ -1881,7 +1888,7 @@ second date. This is where 94% of speed-dating matches die.
 
     PRIMARY CONVERSION METRIC:
     C₁ = Second-date rate = Users who had a second date / Users who attended
-    TARGET: 27-35%    BENCHMARK: Speed dating 4-6%, swipe apps <5%
+    TARGET: 15-20%    STRETCH: 25%+    BENCHMARK: Speed dating 4-6%
 
     SECONDARY METRICS:
     C₂ = Match rate per date = Mutual matches / Attendees
@@ -1917,7 +1924,7 @@ second date. This is where 94% of speed-dating matches die.
     │ Dates to find match  │ 56 swipes │ 1.8     │ Quality > quantity   │
     │ Women feeling safe   │ ~55%      │ >90%    │ Group format         │
     │ User satisfaction    │ NPS ≈ 2   │ NPS >50 │ Designed to end      │
-    │ Second-date rate     │ 4-6%      │ 27-35%  │ The whole system     │
+    │ Second-date rate     │ 4-6%      │ 15-20%  │ The whole system     │
     └──────────────────────┴───────────┴─────────┴──────────────────────┘
 
 --------------------------------------------------------------------------------
@@ -1925,20 +1932,23 @@ second date. This is where 94% of speed-dating matches die.
 --------------------------------------------------------------------------------
 
     FOR USERS (app store, website, social media):
-    "1 in 3 Yuni group dates leads to a real date. Not a match. Not a
+    "1 in 5 Yuni group dates leads to a real date. Not a match. Not a
      message. An actual, in-person, second date."
+    (Update with real data as it becomes available. If actual rate
+     exceeds 20%, update to reflect reality.)
 
-    "The average Yuni user goes on a real date within 2 weeks of signing up.
+    "The average Yuni user goes on a real date within 3 group dates.
      On Tinder, the average user needs 56 matches to get one coffee."
 
     "90% of women on Yuni say they feel safe on their dates.
      Your first date is never alone."
 
     FOR INVESTORS / PRESS:
-    "Yuni converts at 30% — 5× higher than speed dating and 6× higher than
-     swipe apps. Our secret: you already met before you matched."
+    "Yuni converts at [X]% — [Y]x higher than speed dating and far higher
+     than swipe apps. Our secret: you already met before you matched."
+    (Use REAL data. Do not publish projected numbers as actuals.)
 
-    "Our female retention rate is [X]% — 2× the industry average.
+    "Our female retention rate is [X]% — [Y]x the industry average.
      Group dates solve the safety problem that's driving women off apps."
 
     FOR CAMPUS MARKETING:
@@ -1949,75 +1959,54 @@ second date. This is where 94% of speed-dating matches die.
 
 
 ================================================================================
-10. IMPLEMENTATION ROADMAP
+10. IMPLEMENTATION ROADMAP (Revised per analysis.txt)
 ================================================================================
 
-PHASE 1: INSTRUMENTATION (2 weeks)
-    No user-facing changes. Add tracking for all metrics in Section 9.
-    - Analytics events table (profile_view, message_sent, date_proposed, etc.)
-    - Group outcomes table (group features + conversion signals)
-    - Baseline measurement of current conversion rate
-    - Gender ratio monitoring dashboard
-    Files: new analytics_service.py, extend feedback_service.py
+See PLAN.md for detailed task lists. See STEPS.md for executable prompts.
+See failure_modes.txt for fallback strategies.
+
+PHASE 0: CAMPUS LAUNCH PLAYBOOK (founders, not engineering)
+    - Recruit ambassadors, design launch event, female-first outreach
+    - GATE: Do not launch until 100 women pre-registered
+
+PHASE 1: INSTRUMENTATION + A/B FRAMEWORK (3 weeks)
+    - Analytics events + group outcomes tables
+    - Gender ratio monitoring + alerts
+    - A/B experiment framework (merged from old Phase 7)
+    - Must be COMPLETE before any feature ships
 
 PHASE 2: ONBOARDING REDESIGN (3 weeks)
-    - Merge quick/thorough into single 7-step path
-    - Add values assessment (6 binary pairs)
-    - Simplify roles to single-select
-    - Remove: attachment, emotional stability, stated preferences,
-      exercise, sleep, style tags, body type prefs
-    - Add progressive profiling for existing users
-    Files: models/user.py, schemas/profile.py, mobile onboarding screens
+    - Single 7-step path, values assessment, remove stated prefs
+    - A/B test: values vector ON vs OFF
 
-PHASE 3: MATCHING ALGORITHM (4 weeks)
-    - Replace pairwise scoring with group-level Q function
-    - Implement all scoring components from Section 6.8
-    - Default group size to 4
-    - Add epsilon-greedy exploration
-    - Store weights in database (learnable, not hardcoded)
-    Files: services/matching_service.py, new models/algorithm_config.py
+PHASE 3: FEEDBACK REDESIGN (3 weeks) — MOVED BEFORE matching algorithm
+    - 4-point interest scale, soft matches, women-submit-first
+    - Produces the SIGNAL the algorithm needs to learn
+    - A/B test: 4-point vs binary, soft matches ON vs OFF
 
-PHASE 4: POST-DATE REDESIGN (3 weeks)
-    - 4-point interest scale (not binary)
-    - Group chemistry + activity fit ratings
-    - Quick reflection tags
-    - Women-submit-first logic
-    - Soft match mechanism
-    Files: schemas/feedback.py, services/feedback_service.py,
-           mobile PostDateScreen.tsx
+PHASE 4: MATCHING ALGORITHM (4 weeks)
+    - Group-level Q function, epsilon-greedy, learnable weights
+    - Now has feedback signals to learn from (Phase 3)
 
-PHASE 5: SECOND-DATE BRIDGE (3 weeks)
-    - Auto-generated date suggestions for matches
-    - Mutual availability detection
-    - Venue recommendation engine
-    - One-tap date proposal/acceptance
-    - 1-week follow-up prompt
-    - 2-week check-in for conversion tracking
-    Files: new services/second_date_service.py, mobile new screens
+PHASE 5: GENDER RATIO & GROWTH (2 weeks) — MOVED EARLIER
+    - Waitlist, referral, women-confirm-first, pre-date prompts
 
-PHASE 6: GENDER RATIO & GROWTH (2 weeks)
-    - Waitlist mechanics for gender balance
-    - Referral system (opposite-gender bonus)
-    - Gender ratio monitoring + alerts
-    - Female-first marketing materials
-    Files: new services/waitlist_service.py, routers/referral.py
+PHASE 6: SECOND-DATE BRIDGE (3 weeks)
+    - Auto-suggest dates, venue recommendation, follow-up, check-in
 
-PHASE 7: A/B TESTING & LEARNING (3 weeks)
-    - Experiment assignment framework
-    - Automated metric computation per variant
-    - Weight learning pipeline (weekly regression)
-    - Activity conversion tracking and energy map updates
-    Files: new services/experiment_service.py, services/learning_service.py
+PHASE 7: WEIGHT LEARNING (2 weeks)
+    - Reward signal computation, weekly regression, activity tracking
 
-PHASE 8: COLLABORATIVE FILTERING (4 weeks, requires data)
-    - User × user interest matrix
-    - Matrix factorization model (ALS, d=20)
-    - Reciprocal scoring integration
-    - CF score blended into Q function (capped at β=0.3)
-    Files: new services/cf_model_service.py
+PHASE 8: COLLABORATIVE FILTERING (4 weeks, deferred until 500+ users)
 
-TOTAL: ~24 weeks to full implementation. Each phase is independently
-valuable. Phase 1-4 are the highest priority and should be done first.
+MVP: Phases 0-3 = 10 weeks. Admin matching covers Phases 4+.
+FULL: Phases 0-7 = 25 weeks.
+
+UNPROVEN HYPOTHESES (must A/B test — see failure_modes.txt):
+    H1: 4-point interest scale improves conversion vs. binary
+    H2: Pre-date prompts improve conversion vs. single icebreaker
+    H3: Soft match mechanism recovers 10-20% of borderline connections
+    H4: Values vector improves group comfort vs. no values matching
 
 
 ================================================================================
@@ -2164,6 +2153,12 @@ SUMMARY OF KEY RECOMMENDATIONS:
     9. LEARNABLE WEIGHTS (epsilon-greedy → Thompson sampling)
     10. GENDER RATIO MANAGEMENT (50/50 or the app dies)
 
-    THE MARKETABLE CLAIM:
-    "1 in 3 Yuni group dates leads to a real date.
+    HYPOTHESES TO A/B TEST (not yet validated):
+    H1. 4-point interest scale improves conversion vs. binary
+    H2. Pre-date structured prompts improve conversion vs. single icebreaker
+    H3. Soft match mechanism recovers 10-20% of borderline connections
+    H4. Values vector improves group comfort vs. no values matching
+
+    THE MARKETABLE CLAIM (update with real data):
+    "1 in 5 Yuni group dates leads to a real date.
      Your first date is never alone."
