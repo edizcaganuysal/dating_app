@@ -199,6 +199,21 @@ async def init_seed(db: AsyncSession = Depends(get_db)):
     return {"detail": "Database seeded"}
 
 
+@router.post("/reset-admin-pw", status_code=200)
+async def reset_admin_pw(db: AsyncSession = Depends(get_db)):
+    """TEMPORARY: Reset admin password. Remove after first use."""
+    from app.services.auth_service import hash_password
+    result = await db.execute(select(User).where(User.email == "admin@mail.utoronto.ca"))
+    admin = result.scalar_one_or_none()
+    if not admin:
+        raise HTTPException(status_code=404, detail="Admin not found")
+    admin.password_hash = hash_password("admin123")
+    admin.is_admin = True
+    admin.is_email_verified = True
+    await db.commit()
+    return {"detail": "Admin password reset to admin123"}
+
+
 @router.post("/login", response_model=TokenResponse)
 async def login(req: LoginRequest, db: AsyncSession = Depends(get_db)):
     email = req.email.lower().strip()
