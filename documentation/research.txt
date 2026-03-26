@@ -1,0 +1,2169 @@
+================================================================================
+    THE SCIENCE OF ROMANTIC CONVERSION:
+    AN OPTIMIZATION FRAMEWORK FOR YUNI
+================================================================================
+
+    Approach: Conversion-rate optimization, grounded in meta-analytic consensus
+    Lens: Female-first design
+    Scope: Holistic — any aspect of the app may be redesigned
+
+    Conversion Defined: The proportion of users who, after attending a
+    Yuni group date, meet someone from that group again with romantic intent.
+
+================================================================================
+                        TABLE OF CONTENTS
+================================================================================
+
+    1.  EXECUTIVE SUMMARY
+    2.  LITERATURE REVIEW — Meta-Analytic Consensus
+        2.1  What Predicts Initial Attraction
+        2.2  The Unpredictability of Specific Chemistry
+        2.3  What Predicts Second-Date Desire (Distinct From Initial Attraction)
+        2.4  The Match-to-Date Gap: Where 90% of Value Dies
+        2.5  Group Dynamics and Attraction
+        2.6  Shared Experience and Bonding
+        2.7  The Paradox of Choice in Dating
+        2.8  Gender Dynamics in Dating Markets
+    3.  FEMALE-FIRST DESIGN FRAMEWORK
+        3.1  Why Female Retention IS the Optimization Problem
+        3.2  Safety as Prerequisite for Attraction
+        3.3  The Group Format as Female-Safety Mechanism
+        3.4  Control, Agency, and What Retains Women
+        3.5  Gender Ratio Management
+        3.6  What Makes Women Say Yes to a Second Date
+    4.  THE CONVERSION OPTIMIZATION FRAMEWORK
+        4.1  Formal Problem Definition
+        4.2  Conversion Decomposition
+        4.3  Yuni's Structural Advantages
+        4.4  Mathematical Formulation for Group Optimization
+        4.5  Computational Complexity and Practical Solutions
+    5.  EVIDENCE-BASED ONBOARDING
+        5.1  Audit: What Predicts Conversion vs. What We Collect
+        5.2  The Redesigned Onboarding (Single Path, ~5 Minutes)
+        5.3  What Was Removed and Why
+        5.4  The Cold Start Problem
+    6.  THE MATCHING ALGORITHM
+        6.1  The Paradigm: Condition Optimization, Not Compatibility Prediction
+        6.2  Hard Constraint Filtering
+        6.3  Attractiveness Band Clustering
+        6.4  Group Chemistry Scoring
+        6.5  Activity-Group Fit
+        6.6  Exploration-Exploitation via Epsilon-Greedy
+        6.7  The Learning Loop
+        6.8  Complete Scoring Formula
+    7.  THE SECOND-DATE BRIDGE
+        7.1  Where Connections Die (and How to Save Them)
+        7.2  Expanded Post-Date Feedback
+        7.3  The Soft Match Mechanism
+        7.4  Structured Second-Date Facilitation
+        7.5  Reward Signal Design
+        7.6  Feedback Loop Architecture
+    8.  HOLISTIC APP REDESIGN
+        8.1  The Conversion Funnel (Every Stage)
+        8.2  Group Size: Default to 4
+        8.3  Activity Intelligence
+        8.4  Pre-Date Structured Disclosure
+        8.5  Hybrid Format: Optional 1-on-1 Dates
+        8.6  The Re-Match Mechanism
+    9.  MARKETABLE STATISTICS FRAMEWORK
+        9.1  What to Track
+        9.2  Benchmark Comparisons
+        9.3  How to Present the Data
+    10. IMPLEMENTATION ROADMAP
+    11. REFERENCES
+
+
+================================================================================
+1. EXECUTIVE SUMMARY
+================================================================================
+
+YUNI'S VALUE PROPOSITION IN ONE SENTENCE:
+
+    "Yuni is the dating app that actually works — X% of group dates
+     lead to a real relationship."
+
+Every design decision in this document optimizes for making that sentence
+true and the number as high as possible.
+
+THE METRIC:
+
+    ┌─────────────────────────────────────────────────────────────────┐
+    │                                                                  │
+    │  CONVERSION RATE (C):                                            │
+    │                                                                  │
+    │  C = Users who meet someone from their group again               │
+    │      with romantic intent                                        │
+    │      ─────────────────────────────────────────                   │
+    │      Total users who attended a group date                       │
+    │                                                                  │
+    │  This is NOT:                                                    │
+    │  - Match rate (too easy to inflate, vanity metric)               │
+    │  - Message count (Tinder has millions, creates zero dates)       │
+    │  - Long-term relationship success (important but secondary)      │
+    │                                                                  │
+    │  This IS:                                                        │
+    │  - Did the app actually produce a real-world romantic outcome?   │
+    │  - Something no other dating app can credibly claim or measure   │
+    │                                                                  │
+    └─────────────────────────────────────────────────────────────────┘
+
+THE INDUSTRY REALITY:
+
+    ┌──────────────────────────────┬──────────────────────────────────┐
+    │ Platform                     │ Match-to-Real-Date Rate          │
+    ├──────────────────────────────┼──────────────────────────────────┤
+    │ Tinder                       │ <2% (1 in 500 swipes → phone #) │
+    │ Bumble                       │ ~5% (70% of matches stall)       │
+    │ Hinge                        │ ~8% (best of the swipe apps)     │
+    │ Speed dating                 │ 4-6% (mutual match → actual date)│
+    │ Coffee Meets Bagel           │ ~10% (curated, less choice)      │
+    ├──────────────────────────────┼──────────────────────────────────┤
+    │ Yuni target                  │ 30-45%                           │
+    └──────────────────────────────┴──────────────────────────────────┘
+
+WHY YUNI CAN HIT 30-45%:
+
+Yuni has a structural advantage that no swipe app can replicate:
+
+    1. YOU ALREADY MET. The biggest drop-off in dating apps is the
+       match-to-meeting gap. 70% of matches never exchange more than
+       5 messages. Yuni users have already spent 2-3 hours together.
+       The meeting barrier is zero.
+
+    2. YOU SAW THEM IN CONTEXT. You didn't judge a curated photo and
+       a polished bio. You saw how they interact with others, how they
+       laugh, how they handle awkward moments. The information quality
+       is orders of magnitude higher than any profile.
+
+    3. GROUP SAFETY. Women — the scarce resource in every dating market —
+       feel fundamentally safer in a group setting. 45% of women cite
+       harassment fears as their reason for leaving dating apps. Groups
+       eliminate this barrier.
+
+    4. SHARED EXPERIENCE. You have a shared memory, inside jokes, a
+       story to tell. "Remember when..." is the most powerful foundation
+       for a second date. Swipe apps start from zero shared context.
+
+THE TWO DESIGN PRINCIPLES:
+
+    PRINCIPLE 1: FEMALE-FIRST
+    Women are the scarce resource. If women leave, the app dies.
+    Every design decision must pass the test: "Does this make a woman
+    more likely to sign up, come back, and feel good about the experience?"
+
+    PRINCIPLE 2: BRIDGE TO SECOND DATE
+    A mutual match is not a conversion. A chat is not a conversion.
+    Only a second real-world meeting counts. The app must actively
+    facilitate the bridge from group date → 1-on-1 date, not just
+    open a chat and hope.
+
+
+================================================================================
+2. LITERATURE REVIEW — Meta-Analytic Consensus
+================================================================================
+
+This section grounds every recommendation in the GENERAL SCIENTIFIC CONSENSUS,
+not individual studies. Where meta-analyses exist, they are cited. Individual
+studies are cited only when no meta-analysis covers the topic, and this is
+explicitly noted.
+
+--------------------------------------------------------------------------------
+2.1 What Predicts Initial Attraction
+--------------------------------------------------------------------------------
+
+SIMILARITY-ATTRACTION EFFECT:
+
+    Meta-analysis: Montoya, Horton, & Kirchner (2008)
+    460 effect sizes from 313 independent studies
+
+    Key findings:
+    - Actual similarity → attraction: r = 0.47 (large effect)
+    - Perceived similarity → attraction: r = 0.39 (large effect)
+
+    CRITICAL NUANCE (often missed):
+    - Before interaction: actual similarity is strong (r = 0.59)
+    - During short interaction: weakens dramatically (r = 0.21)
+    - In existing relationships: non-significant (r = 0.08)
+
+    Interpretation: Similarity helps form the INITIAL basis for comfort
+    and approach behavior, but once people are interacting face-to-face,
+    other factors dominate. For a group date app, similarity provides a
+    reasonable BASELINE for group composition, but it is NOT the driver
+    of conversion. After the date starts, the interaction itself takes over.
+
+PHYSICAL ATTRACTIVENESS MATCHING:
+
+    Meta-analysis: Feingold (1988)
+    Multiple studies on established couples
+
+    Key finding:
+    - Partners' attractiveness ratings correlate at r = 0.49
+
+    This is one of the strongest findings in relationship science.
+    People pair with others at similar attractiveness levels, not because
+    of a conscious preference, but as an equilibrium outcome of mutual
+    selection in a competitive market.
+
+    For Yuni: Groups with LOW attractiveness variance will produce more
+    mutual interest because everyone feels "in the same league." This is
+    NOT about being shallow — it's about removing the psychological
+    barrier of feeling outclassed or settling.
+
+STATED vs. REVEALED PREFERENCES:
+
+    Eastwick & Finkel (2008) + Eastwick et al. (2014) replications
+    Multiple speed-dating studies with combined N > 10,000
+
+    Consensus finding:
+    - What people SAY they want (surveys) does NOT predict who they
+      are ACTUALLY attracted to in face-to-face encounters
+    - Men claim to value attractiveness more; women claim to value
+      resources/ambition more. In person, BOTH sexes weight
+      attractiveness equally, and stated preferences for other traits
+      predict nothing about actual choices
+
+    Hitsch, Hortaçsu & Ariely (2010) confirmed at scale with online
+    dating behavioral data: stated preferences diverge from revealed
+    behavior due to social desirability bias, lack of introspective
+    access, and context-dependent preferences.
+
+    IMPLICATION FOR YUNI:
+    ┌─────────────────────────────────────────────────────────────────┐
+    │  DO NOT use stated preferences (preferred body type, height,    │
+    │  humor style, communication style) as matching inputs.          │
+    │  They are scientifically unreliable predictors of actual        │
+    │  attraction. Use BEHAVIORAL data from past dates instead.       │
+    │                                                                  │
+    │  The ONLY stated preferences worth respecting are:              │
+    │  - Dealbreakers (genuine hard limits backed by values)          │
+    │  - Age range (biological/life-stage relevance)                  │
+    │  - Location (logistical necessity)                              │
+    │  - Relationship intent (mismatched intents waste everyone's time)│
+    └─────────────────────────────────────────────────────────────────┘
+
+--------------------------------------------------------------------------------
+2.2 The Unpredictability of Specific Chemistry
+--------------------------------------------------------------------------------
+
+    Joel, Eastwick, & Finkel (2017)
+    Psychological Science, 28(10), 1478-1489
+    43 speed-dating studies, 100+ variables, machine learning (random forests)
+
+    ┌─────────────────────────────┬──────────────┐
+    │ Variance Component          │ R² Explained │
+    ├─────────────────────────────┼──────────────┤
+    │ Actor effects               │ 4-18%        │
+    │ (how desirable YOU are      │              │
+    │  to people in general)      │              │
+    │                             │              │
+    │ Partner effects             │ 7-27%        │
+    │ (how desirable THEY are     │              │
+    │  to people in general)      │              │
+    │                             │              │
+    │ Relationship effects        │ ~0%          │
+    │ (do YOU + THEY specifically │              │
+    │  click with each other?)    │              │
+    └─────────────────────────────┴──────────────┘
+
+This is the single most cited finding in modern relationship science, and it
+has been REPLICATED and EXTENDED by multiple independent groups (Tidwell et al.,
+2013; Finkel et al., 2015; Eastwick et al., 2017).
+
+WHAT THE CONSENSUS SAYS:
+
+    1. GENERAL DESIRABILITY IS REAL AND PREDICTABLE.
+       Some people are more attractive, more charismatic, more socially
+       skilled. The algorithm CAN identify who is generally popular.
+       → This validates Elo-based attractiveness scoring.
+
+    2. SPECIFIC COMPATIBILITY IS NOT PREDICTABLE.
+       No combination of personality traits, interests, values, or
+       demographics can predict which specific two people will feel
+       a mutual spark. The spark is an emergent property of the
+       interaction itself.
+       → This INVALIDATES pairwise compatibility scoring.
+
+    3. THE INTERACTION IS WHAT MATTERS.
+       Chemistry arises from the dynamic, real-time interplay between
+       two people — eye contact, humor, conversational rhythm, physical
+       synchrony. These cannot be predicted in advance; they can only
+       be FACILITATED by creating the right conditions.
+       → This is why Yuni must optimize CONDITIONS, not MATCHES.
+
+WHY THIS IS NOT JUST ONE STUDY:
+
+Joel et al. (2017) is the definitive paper, but the finding is corroborated
+by the broader body of speed-dating research:
+
+    - Eastwick & Finkel (2008): Stated preferences don't predict choices
+    - Tidwell et al. (2013): Perceived, not actual, similarity predicts
+    - Todd et al. (2007): Different cognitive processes for preferences
+      vs. actual choices
+    - Finkel et al. (2015): Comprehensive review of initial romantic
+      encounters supporting the unpredictability thesis
+
+This is the scientific consensus, not an outlier finding.
+
+--------------------------------------------------------------------------------
+2.3 What Predicts Second-Date Desire (Distinct From Initial Attraction)
+--------------------------------------------------------------------------------
+
+THIS IS THE MOST IMPORTANT SECTION FOR YUNI because our conversion metric
+is the second date, not initial attraction.
+
+Initial attraction (the "spark" during the group date) is necessary but NOT
+SUFFICIENT. The question is: what makes someone want to see a specific
+person AGAIN after the date is over?
+
+EYE CONTACT AND NONVERBAL SYNCHRONY:
+
+    Prochazkova et al. (2023), Archives of Sexual Behavior
+    Speed-dating study with physiological measurement
+
+    - Mutual eye contact during interaction: 270% increase in desire
+      for second date (vs. 33% increase from perceived attractiveness)
+    - Body sway coupling (unconscious physical synchrony) predicted
+      romantic interest ABOVE AND BEYOND physical attractiveness
+
+    Allegrini et al. (2021), PMC: Body Sway Predicts Romantic Interest
+    - Directional body sway (not just similarity) during conversation
+      predicted long-term interest above physical attractiveness
+
+    This means: the QUALITY OF INTERACTION during the date is a far
+    stronger predictor of conversion than any pre-date profile data.
+    Eye contact and physical synchrony happen naturally in face-to-face
+    settings — especially during engaging shared activities.
+
+COMPATIBILITY IMPRESSIONS FORMED DURING INTERACTION:
+
+    Eastwick, Finkel, & Simpson (2019), PNAS
+    Three speed-dating studies
+
+    - Both "consensually desirable traits" (general attractiveness) AND
+      "unique impressions of compatibility" predicted romantic interest
+    - Unique compatibility impressions predicted actual dating behavior
+      BETTER than pre-measured trait similarity
+    - These impressions are formed DURING interaction and cannot be
+      predicted in advance
+
+    This reinforces: you cannot pre-compute compatibility. You can only
+    create environments where compatibility impressions form well.
+
+WHAT WOMEN SPECIFICALLY VALUE FOR SECOND DATES:
+
+    Fisman, Iyengar et al. (2006, 2008), Columbia/Stanford speed-dating
+    Large-N studies with actual behavioral outcomes
+
+    Women's second-date decisions driven by:
+    - Intelligence: 24% weight (highest for women)
+    - Attractiveness, sincerity, fun, ambition: weighted more evenly
+    - "Clicking" — a reported sense of genuine connection during
+      conversation (the strongest qualitative predictor)
+
+    Dealbreakers for women (51.75% cite this):
+    - Disrespectful or rude behavior
+
+    Conversational factors that drive second dates:
+    - Appreciative language ("That's awesome," "Good for you")
+    - Sympathy and validation
+    - Men who show engagement by building on stories
+    - Perceived humor and wit in real-time (not self-reported humor style)
+
+    IMPLICATION: The group date must create conditions where intelligence,
+    sincerity, fun, and conversational engagement are VISIBLE. Passive
+    activities (dinner, sitting at a bar) are poor at surfacing these.
+    Active, challenging activities (escape rooms, trivia, cooking) are
+    good at surfacing them.
+
+--------------------------------------------------------------------------------
+2.4 The Match-to-Date Gap: Where 90% of Value Dies
+--------------------------------------------------------------------------------
+
+The dating app industry's dirty secret: matches are abundant, dates are rare.
+
+    ┌──────────────────────────────────────────────────────────────────┐
+    │ THE FUNNEL OF DEATH (typical swipe app):                         │
+    │                                                                   │
+    │ 1,000 right swipes                                               │
+    │   → 50 matches (5% match rate for men, higher for women)         │
+    │     → 15 conversations started (30% of matches)                  │
+    │       → 5 conversations sustained past 5 messages (33%)          │
+    │         → 2 phone numbers exchanged                              │
+    │           → 1 actual date (if lucky)                             │
+    │             → ??? second date                                    │
+    │                                                                   │
+    │ Conversion: 0.1% from swipe to date.                             │
+    │ Most users never go on a single date from the app.               │
+    └──────────────────────────────────────────────────────────────────┘
+
+WHY MATCHES DON'T CONVERT TO DATES:
+
+    1. VOLUME OVERWHELM (especially for women):
+       Women receive dramatically more matches than they can process.
+       Women respond to only 1 in 8 messages. The sorting problem
+       exceeds human cognitive capacity.
+
+    2. CONVERSATION FATIGUE:
+       70% of Bumble matches stall before plans are made.
+       Conversations typically die after 2-5 messages.
+       The "talking stage" is where connections go to die.
+
+    3. STRANGER ANXIETY:
+       Meeting a stranger from the internet 1-on-1 is inherently
+       anxiety-inducing, especially for women. This is a genuine
+       psychological barrier, not laziness.
+
+    4. BOREDOM AND DISPOSABILITY:
+       Swipe culture makes connections feel disposable. If the
+       conversation isn't immediately exciting, the user moves on.
+       There's always another match waiting.
+
+    5. GHOSTING EPIDEMIC:
+       62% of active dating app users have been ghosted.
+       42% of young adults (18-29) report being ghosted.
+       Ghosting is normalized and often unintentional — app design
+       makes it frictionless to simply stop responding.
+
+SPEED DATING — THE CLOSEST ANALOG TO YUNI:
+
+    Asendorpf, Penke, & Back (2011)
+    Large-scale speed-dating longitudinal study
+
+    - 60-87% of participants get at least one mutual match
+    - Average: 1.7-2.4 mutual matches per event
+    - BUT: Only 6% actually go on a date afterward
+    - Only 4% begin any form of relationship
+
+    The gap between "I'd like to see them again" (said at the event)
+    and actually meeting again is enormous. 94% attrition.
+
+WHY YUNI BYPASSES THIS:
+
+    ┌─────────────────────────────────────────────────────────────────┐
+    │  YUNI'S STRUCTURAL ADVANTAGE:                                    │
+    │                                                                  │
+    │  Speed dating:  Meet for 5 min → Say "interested" → Exchange    │
+    │                 contact → ... → 94% never follow through         │
+    │                                                                  │
+    │  Yuni:          Meet for 2-3 hours of shared activity →          │
+    │                 Say "interested" → Chat auto-opens in app →      │
+    │                 Already have shared memories/inside jokes →       │
+    │                 Much lower barrier to "let's do this again"      │
+    │                                                                  │
+    │  The 2-3 hours of shared experience is the critical difference.  │
+    │  It creates the emotional foundation + conversational momentum   │
+    │  that the talking stage is supposed to (but never does) create.  │
+    └─────────────────────────────────────────────────────────────────┘
+
+    But even with this advantage, we must actively BRIDGE the gap from
+    mutual interest to actual second date. This is Section 7.
+
+--------------------------------------------------------------------------------
+2.5 Group Dynamics and Attraction
+--------------------------------------------------------------------------------
+
+GROUP SIZE EFFECTS:
+
+    Dunbar (2010), "How Many Friends Does One Person Need?"
+    Decades of research on social brain hypothesis
+
+    Social group size hierarchy: 5, 15, 50, 150, 500
+    - 4-5 people: Cognitive sweet spot for direct conversation
+    - Everyone can maintain awareness of all relationships in the group
+    - Conversation naturally includes all members
+    - Self-disclosure is higher than in larger groups
+
+    Solano & Dunnam (1985): Social Psychology Quarterly
+    - People disclose MORE in dyads than larger groups
+    - As group size increases, willingness to self-disclose decreases
+    - Women are MORE INHIBITED in larger groups
+    - This means: groups of 6 actively suppress the disclosure that
+      builds romantic connection, especially for women
+
+SOCIAL PROOF:
+
+    Meta-analysis: Dimant (2019), Nature Human Behavior
+    89 studies, n = 85,759
+
+    - Social proof effect exists but is SMALL: Cohen's d = 0.1
+    - Works best in early perception formation (before own opinion forms)
+    - In dating context: seeing others positively react to someone
+      modestly increases your own attraction to them
+
+    HONEST ASSESSMENT: Social proof is a real but modest effect. It
+    should not be a primary design consideration. The group format's
+    advantages lie in safety, shared experience, and behavioral
+    observation — not in social proof.
+
+SELF-DISCLOSURE AND CLOSENESS:
+
+    Aron et al. (1997): "The experimental generation of interpersonal closeness"
+    (Individual study — no meta-analysis available on this specific protocol)
+
+    - Structured reciprocal self-disclosure between strangers generated
+      measurable closeness in 45 minutes
+    - The process of disclosing creates closeness, not just the content
+    - Escalating intimacy (light → personal → vulnerable) builds trust
+
+    IMPLICATION: The pre-date group chat is an underutilized asset.
+    Structured escalating prompts before the date could prime the
+    disclosure patterns that build closeness during the date.
+
+--------------------------------------------------------------------------------
+2.6 Shared Experience and Bonding
+--------------------------------------------------------------------------------
+
+SYNCHRONIZED AFFECT:
+
+    Multiple studies (no single definitive meta-analysis; consensus from
+    review papers)
+
+    Participating in shared activities creates social bonds through:
+    1. Simultaneous emotional experiences
+    2. Physiological synchrony (heart rate, breathing align)
+    3. Cognitive alignment (shared reference points, inside jokes)
+    4. Behavioral synchrony (mirroring body language)
+
+    A 2024 Royal Society Open Science paper found groups engaging in
+    shared activities showed significantly stronger bonding than groups
+    doing parallel individual activities.
+
+MISATTRIBUTION OF AROUSAL — DOWNGRADED:
+
+    The famous Dutton & Aron (1974) "shaky bridge" study claimed that
+    physiological arousal from fear gets misattributed to romantic
+    attraction.
+
+    ┌─────────────────────────────────────────────────────────────────┐
+    │  REPLICATION STATUS: MIXED / WEAKENED                            │
+    │                                                                  │
+    │  - Subsequent replications produced inconsistent results          │
+    │  - The original study NEVER MEASURED physiological arousal in     │
+    │    participants — they assumed the bridge caused arousal but      │
+    │    didn't verify it                                               │
+    │  - Recent reanalysis found "methodological, theoretical, and     │
+    │    interpretative incoherences" (Polish Psychological Bulletin)   │
+    │  - Effect is real in controlled lab settings but less robust      │
+    │    and reliable than commonly portrayed                           │
+    │                                                                  │
+    │  HONEST ASSESSMENT: Do NOT design around arousal misattribution. │
+    │  Instead, design around the RELIABLE mechanism: shared positive   │
+    │  experience creates genuine bonding. Exciting activities work     │
+    │  because they're FUN and CREATE MEMORIES, not because of a       │
+    │  questionable arousal transfer effect.                            │
+    └─────────────────────────────────────────────────────────────────┘
+
+WHAT ACTUALLY MATTERS ABOUT ACTIVITIES:
+
+Activities that produce high conversion will be those that:
+    1. Create SHARED MEMORIES (something to reference later)
+    2. Surface PERSONALITY (intelligence, humor, kindness become visible)
+    3. Require COLLABORATION (builds rapport and compatibility impressions)
+    4. Enable CONVERSATION (not too loud/passive; natural breaks for talking)
+    5. Generate POSITIVE EMOTION (fun, laughter, surprise, accomplishment)
+
+    Escape rooms: ★★★★★ (collaboration, personality surfacing, shared achievement)
+    Cooking class: ★★★★☆ (collaboration, sensory experience, conversation)
+    Trivia night: ★★★★☆ (intelligence display, team bonding, fun)
+    Hiking: ★★★★☆ (natural conversation, shared adventure, no phones)
+    Karaoke: ★★★☆☆ (vulnerability, fun, but limits conversation)
+    Bowling/mini golf: ★★★☆☆ (playful, turn-taking enables side conversations)
+    Dinner: ★★☆☆☆ (conversation-heavy but can feel like an interview)
+    Bar/drinks: ★★☆☆☆ (low structure, relies entirely on conversation skill)
+    Art gallery: ★☆☆☆☆ (passive, limited interaction structure)
+
+--------------------------------------------------------------------------------
+2.7 The Paradox of Choice in Dating
+--------------------------------------------------------------------------------
+
+    Schwartz (2004), "The Paradox of Choice"
+    Supported by subsequent research on choice overload in dating contexts
+
+    ┌─────────────────────────────────────────────────────────────────┐
+    │  With abundance of options: only 17% find romantic partnerships │
+    │                                                                  │
+    │  Users with multiple dating apps open report LOWER commitment    │
+    │  and relationship satisfaction than those who delete apps.        │
+    │                                                                  │
+    │  Mere perceptual availability of alternatives erodes investment  │
+    │  in the present partner.                                         │
+    └─────────────────────────────────────────────────────────────────┘
+
+    The insight: MODERATE SCARCITY + STRUCTURAL COMMITMENT works better
+    than either extreme (no options or infinite options).
+
+    YUNI'S MODEL IS WELL-DESIGNED HERE:
+    - 1 free date per week (moderate scarcity)
+    - Groups of 4: only 2 cross-gender options (focused, not overwhelming)
+    - Must commit to a date/time/activity (structural commitment)
+    - Can't endlessly browse profiles (no swipe mechanism)
+
+    These are features, not limitations. The paradox of choice research
+    says Yuni's constrained model should produce BETTER outcomes than
+    unlimited-swipe apps. This is a marketable insight.
+
+--------------------------------------------------------------------------------
+2.8 Gender Dynamics in Dating Markets
+--------------------------------------------------------------------------------
+
+OPERATIONAL SEX RATIO (OSR) RESEARCH:
+
+    Large body of research across evolutionary biology, sociology, economics
+    (Trivers 1972; Guttentag & Secord 1983; Pedersen 1991; numerous modern studies)
+
+    When men outnumber women (male-biased OSR — typical in dating apps):
+    - Women become CHOOSIER and more selective
+    - Men become more competitive and aggressive
+    - Women have greater bargaining power
+    - Overall: fewer relationships form, but those that do are higher quality
+
+    Dating app gender ratios:
+    - Tinder: ~75% male
+    - Bumble: ~65% male
+    - Hinge: ~64% male
+    - The average dating app is 60-80% male
+
+    CRITICAL IMPLICATION:
+    ┌─────────────────────────────────────────────────────────────────┐
+    │  Gender ratio is not a "nice to have" metric.                    │
+    │  It is THE fundamental driver of market dynamics.                │
+    │                                                                  │
+    │  If Yuni is 70% male:                                           │
+    │  - Women are overwhelmed with attention → burnout → leave        │
+    │  - Men can't get matched → frustration → leave                  │
+    │  - Death spiral                                                  │
+    │                                                                  │
+    │  If Yuni is 50/50:                                               │
+    │  - Women feel valued, not overwhelmed                            │
+    │  - Men get matched reliably                                      │
+    │  - Both sides have good experience → retention → growth          │
+    │                                                                  │
+    │  ACHIEVING 50/50 IS A CORE PRODUCT REQUIREMENT,                 │
+    │  NOT A MARKETING AFTERTHOUGHT.                                   │
+    └─────────────────────────────────────────────────────────────────┘
+
+WHY WOMEN LEAVE DATING APPS:
+
+    Aggregated from multiple large surveys (Pew 2023, Cloudwards 2025,
+    Forbes Health 2024, YouGov 2024):
+
+    1. SAFETY/HARASSMENT (45% cite this): Unsolicited sexual messages,
+       stalking concerns, fear of meeting strangers alone
+    2. BURNOUT (78% of Gen Z): Feeling drained, viewing dating as a chore,
+       swiping feels like work
+    3. COMMODIFICATION: Being reduced to photos, judged on appearance,
+       treated as disposable
+    4. GHOSTING/LOW EFFORT: Matches who never message, conversations that
+       go nowhere, feeling like they're always the one making effort
+    5. MENTAL HEALTH: Anxiety, decreased self-esteem, comparison fatigue
+
+    How Yuni addresses each:
+    1. Safety → GROUP FORMAT (inherently safer than 1-on-1 stranger meetup)
+    2. Burnout → ONE DATE PER WEEK (no endless swiping, finite commitment)
+    3. Commodification → IN-PERSON FIRST (judged on personality, not photos)
+    4. Ghosting → ALREADY MET (shared experience creates investment)
+    5. Mental health → SOCIAL EVEN IF NO MATCH (you still had a fun night out)
+
+
+================================================================================
+3. FEMALE-FIRST DESIGN FRAMEWORK
+================================================================================
+
+--------------------------------------------------------------------------------
+3.1 Why Female Retention IS the Optimization Problem
+--------------------------------------------------------------------------------
+
+This is not a philosophical position. It is a mathematical reality.
+
+    In a two-sided marketplace, the SCARCE SIDE determines the
+    market's health. In dating, the scarce side is women.
+
+    If you have 1,000 men and 100 women:
+    - You can only form 50 groups of 4 (2M + 2F)
+    - 900 men (90%) are unmatched and frustrated
+    - 100 women are overwhelmed by demand → leave
+    - Your effective capacity is determined entirely by female supply
+
+    If you have 500 men and 500 women:
+    - You can form 250 groups of 4
+    - Roughly equal matching opportunity for everyone
+    - Women are not overwhelmed; men are not desperate
+    - Healthy market dynamics
+
+    THEREFORE: Every 1% increase in female retention is worth more
+    than a 1% increase in male retention. This is not sexism; it is
+    supply-demand economics applied to a two-sided market.
+
+    Every design decision that follows must pass the filter:
+    "Does this make a woman more likely to sign up, attend a date,
+     come back for another one, and refer her friends?"
+
+--------------------------------------------------------------------------------
+3.2 Safety as Prerequisite for Attraction
+--------------------------------------------------------------------------------
+
+Research on threat sensitivity in dating contexts shows:
+
+    - Facial and biographical threat cues in dating profiles significantly
+      reduce WOMEN'S (not men's) expressions of interest
+      (ScienceDirect, 2024)
+    - Women show greater threat sensitivity than men when evaluating
+      potential matches
+    - Safety concerns are NOT separate from attraction — they are a
+      PREREQUISITE. A woman who feels unsafe cannot feel attracted.
+
+    ┌─────────────────────────────────────────────────────────────────┐
+    │  SAFETY IS NOT A FEATURE. IT IS THE FOUNDATION.                 │
+    │                                                                  │
+    │  You don't market safety. You don't make it optional.           │
+    │  You make it invisible and absolute.                             │
+    │                                                                  │
+    │  A woman who feels safe is free to feel attracted.              │
+    │  A woman who feels unsafe will never convert, no matter how      │
+    │  good the algorithm is.                                          │
+    └─────────────────────────────────────────────────────────────────┘
+
+SAFETY MECHANISMS IN YUNI (existing + proposed):
+
+    EXISTING:
+    ✓ Group format (never alone with a stranger)
+    ✓ University email verification (real identity, accountability)
+    ✓ Selfie verification (no catfishing)
+    ✓ Public venue suggestions
+    ✓ Reporting system
+    ✓ No-show penalties (accountability)
+
+    PROPOSED ADDITIONS:
+    + "Share my plans" one-tap feature (already in IDEA.md, implement it)
+    + Post-date safety check: "Did you get home safe?" (24h after date)
+    + Women-only reporting fast-track (admin reviews within 24h)
+    + Verified venue partnerships (venues know a Yuni group is coming)
+    + Emergency contact integration (phone number of a friend, not shown
+      to other users, only used if emergency button pressed)
+
+--------------------------------------------------------------------------------
+3.3 The Group Format as Female-Safety Mechanism
+--------------------------------------------------------------------------------
+
+The group format is not just a product differentiator. It is the single
+strongest female-retention feature Yuni has.
+
+    ┌─────────────────────────────────────────────────────────────────┐
+    │  In a group of 4 (2M + 2F):                                    │
+    │                                                                  │
+    │  - She has a female ally present (never outnumbered)             │
+    │  - Public setting with witnesses                                 │
+    │  - Social accountability (bad behavior has observers)            │
+    │  - Can leave with the other woman if uncomfortable               │
+    │  - Can observe male behavior toward OTHERS (not just her)        │
+    │  - Reduced 1-on-1 pressure (no "interview" feel)                │
+    │  - If a man is aggressive or creepy, the group dynamic           │
+    │    naturally checks it (other man may intervene, other woman      │
+    │    provides social support)                                      │
+    │                                                                  │
+    │  In a 1-on-1 date (any other app):                              │
+    │  - Alone with a stranger                                         │
+    │  - No witnesses to bad behavior                                  │
+    │  - Hard to leave without confrontation                           │
+    │  - "Interview" pressure from minute one                          │
+    │  - No behavioral context (only see how they act toward you)      │
+    └─────────────────────────────────────────────────────────────────┘
+
+THIS IS YUNI'S MOAT. No swipe app can replicate it without fundamentally
+changing their product. This should be the centerpiece of female-targeted
+marketing: "Your first date is never alone."
+
+--------------------------------------------------------------------------------
+3.4 Control, Agency, and What Retains Women
+--------------------------------------------------------------------------------
+
+Research on what design patterns retain women in dating contexts:
+
+    Key insight from Bumble's evolution:
+    - Women-message-first was intended to give women control
+    - But it BACKFIRED partially: women felt burdened with initiating
+    - Bumble added "opening moves" (men respond to prompts) in 2024
+    - Post-rebrand: female CONSIDERATION increased from 4.6 to 7.7
+
+    What actually works for female retention:
+    1. INFORMATION ADVANTAGE: Let women see who's interested before
+       they have to commit to anything
+    2. PACE CONTROL: Women set the pace of escalation, not men
+    3. QUALITY CURATION: Fewer, better options > infinite mediocre ones
+    4. VERIFICATION: Knowing that profiles are real (selfie verification,
+       university email)
+    5. FRICTIONLESS EXIT: Easy to block, report, or leave without
+       confrontation
+
+    YUNI'S NATURAL ADVANTAGES:
+    - Quality curation: algorithm curates the group, not infinite browsing
+    - Verification: university email + selfie
+    - Frictionless exit: post-date feedback is private; no confrontation
+    - Information richness: 2-3 hours of observation > a profile
+
+    PROPOSED ADDITIONS:
+    + Women see group composition first and can opt out before the date
+      (men see the group only after all women have confirmed)
+    + Women control the "interested" declaration timeline (women submit
+      feedback first; men's feedback is held until all women submit)
+    + Women's reports get priority review
+
+--------------------------------------------------------------------------------
+3.5 Gender Ratio Management
+--------------------------------------------------------------------------------
+
+Achieving and maintaining a 50/50 gender ratio requires active management:
+
+    STRATEGY 1: WOMEN-FIRST WAITLIST
+    - When male signups exceed female by >10%, put new male signups
+      on a waitlist
+    - Show waitlist position: "You're #47 — invite women to move up"
+    - This creates organic referral pressure AND signals exclusivity
+
+    STRATEGY 2: REFERRAL MECHANICS
+    - Users who refer a friend of the OPPOSITE gender get priority matching
+    - "Bring a friend" bonus: guaranteed match in next batch
+    - Women who refer women still get a bonus (maintaining female community)
+
+    STRATEGY 3: FEMALE-FIRST MARKETING
+    - Market primarily to women (through safety, group format, "your first
+      date is never alone")
+    - Men follow where women go (true for every social platform)
+    - University women's organizations, sororities, women in STEM groups
+
+    STRATEGY 4: DYNAMIC PRICING
+    - If gender ratio is balanced: both genders pay same (or free)
+    - If ratio is male-heavy: additional dates for men cost more credits;
+      women get bonus free dates
+    - This naturally equilibrates supply and demand
+
+    STRATEGY 5: MONITORING AND ALERTS
+    - Track gender ratio daily per campus
+    - Alert admin when ratio exceeds 60/40 in either direction
+    - Trigger targeted marketing campaigns automatically
+
+--------------------------------------------------------------------------------
+3.6 What Makes Women Say Yes to a Second Date
+--------------------------------------------------------------------------------
+
+Synthesizing the speed-dating and dating research:
+
+    ┌─────────────────────────────────────────────────────────────────┐
+    │  TOP FACTORS FOR WOMEN'S SECOND-DATE DECISION:                  │
+    │  (ranked by evidence strength)                                   │
+    │                                                                  │
+    │  1. "Clicking" / genuine connection felt during conversation     │
+    │     (qualitative research, consistently top-cited)               │
+    │                                                                  │
+    │  2. Respectful, attentive behavior                               │
+    │     (51.75% cite disrespect as instant dealbreaker)              │
+    │                                                                  │
+    │  3. Intelligence displayed in conversation                       │
+    │     (24% weight in women's speed-dating decisions)               │
+    │                                                                  │
+    │  4. Humor and fun during the interaction                         │
+    │     (not self-reported humor style — DISPLAYED humor)            │
+    │                                                                  │
+    │  5. Physical attractiveness at similar level                     │
+    │     (matching hypothesis; not "hottest possible")                │
+    │                                                                  │
+    │  6. Shared interests or values (perceived, not actual)           │
+    │     (r = 0.39 for perceived similarity)                          │
+    │                                                                  │
+    │  WHAT DOES NOT PREDICT:                                          │
+    │  ✗ Height, body type, style (stated prefs unreliable)           │
+    │  ✗ Same university program                                       │
+    │  ✗ Communication style match                                     │
+    │  ✗ Personality type match (introvert/extrovert)                 │
+    │  ✗ Attachment style (predicts long-term, not second-date)       │
+    └─────────────────────────────────────────────────────────────────┘
+
+    HOW YUNI CAN INFLUENCE THESE FACTORS:
+
+    #1 (Clicking): Choose activities that create natural conversation
+       and collaboration. Escape rooms > dinner.
+    #2 (Respect): Group setting naturally checks disrespectful behavior.
+       Other group members serve as social accountability.
+    #3 (Intelligence): Trivia nights, escape rooms, and cooking classes
+       surface intelligence better than sitting at a bar.
+    #4 (Humor): Active group activities create natural humor opportunities
+       (shared failures, playful competition, inside jokes).
+    #5 (Attractiveness matching): The algorithm's job. Elo + matching
+       hypothesis. Low-variance groups.
+    #6 (Perceived similarity): Pre-date group chat + shared activity
+       creates perceived similarity even where actual similarity is low.
+
+
+================================================================================
+4. THE CONVERSION OPTIMIZATION FRAMEWORK
+================================================================================
+
+--------------------------------------------------------------------------------
+4.1 Formal Problem Definition
+--------------------------------------------------------------------------------
+
+Let U = {u₁, u₂, ..., uₙ} be users in a matching batch.
+Let π = {G₁, G₂, ..., Gₖ} be a group assignment.
+
+CONVERSION RATE:
+
+    C = (1/|assigned users|) × Σⱼ SecondDates(Gⱼ)
+
+    Where SecondDates(Gⱼ) = number of users in Gⱼ who meet someone
+    from Gⱼ again with romantic intent.
+
+We cannot directly optimize C because SecondDates is only observable
+weeks after the group date. We need PROXY objectives.
+
+--------------------------------------------------------------------------------
+4.2 Conversion Decomposition
+--------------------------------------------------------------------------------
+
+    C = P(second_date | attended group date)
+
+    Decompose:
+
+    C = P(mutual_interest) × P(second_date | mutual_interest)
+
+    TERM 1: P(mutual_interest)
+    The probability that at least one cross-gender pair in the group
+    mutually expresses romantic interest.
+
+    Factors that increase P(mutual_interest):
+    (a) Attractiveness cohesion (matching hypothesis: r = 0.49)
+    (b) Group dynamics quality (everyone feels comfortable, included)
+    (c) Activity-personality fit (the activity surfaces attractive traits)
+    (d) Personality diversity (more different "types" → higher P someone
+        appeals to any given individual)
+    (e) Absence of dealbreaker friction
+    (f) Relationship intent alignment
+
+    TERM 2: P(second_date | mutual_interest)
+    The probability that a mutual match actually meets again.
+
+    Factors that increase P(second_date | mutual_interest):
+    (a) Strength of interaction quality (eye contact, synchrony: 270%)
+    (b) Shared memories from the date (conversational anchors)
+    (c) Low friction path to second date (facilitated scheduling)
+    (d) Momentum preservation (no long gap between match and action)
+    (e) Continued engagement (post-date chat activity)
+
+    THE KEY INSIGHT:
+    ┌─────────────────────────────────────────────────────────────────┐
+    │  Most dating apps only optimize Term 1 (mutual interest).       │
+    │  They completely ignore Term 2 (follow-through).                │
+    │                                                                  │
+    │  Speed dating shows that Term 2 is where 94% of value is lost.  │
+    │                                                                  │
+    │  Yuni must optimize BOTH terms:                                  │
+    │  - The algorithm + group design optimizes Term 1                 │
+    │  - The "Second-Date Bridge" (Section 7) optimizes Term 2        │
+    └─────────────────────────────────────────────────────────────────┘
+
+--------------------------------------------------------------------------------
+4.3 Yuni's Structural Advantages
+--------------------------------------------------------------------------------
+
+    vs. SWIPE APPS (Tinder, Bumble, Hinge):
+    - Eliminates the match-to-meeting gap entirely (already met)
+    - Information quality: 2-3 hours of real interaction vs. photos + bio
+    - Shared experience provides conversational foundation
+    - Group safety for women (the scarce resource)
+
+    vs. SPEED DATING:
+    - Longer interaction (2-3 hours vs. 5 minutes)
+    - Shared ACTIVITY (not just conversation)
+    - Integrated second-date facilitation (vs. exchanging numbers and hoping)
+    - Digital identity verification (vs. anonymous event)
+
+    vs. ORGANIC MEETING (friends of friends, parties):
+    - Intentionality (everyone is open to dating)
+    - Algorithm-optimized group composition
+    - Structured feedback mechanism
+    - Repeated opportunity (weekly)
+
+    QUANTIFIED ADVANTAGE:
+    Speed dating converts at 4-6%. Yuni's longer interaction, shared
+    activity, and second-date facilitation should yield 5-10× improvement.
+    Target: 30-45% conversion rate.
+
+--------------------------------------------------------------------------------
+4.4 Mathematical Formulation for Group Optimization
+--------------------------------------------------------------------------------
+
+We optimize a GROUP-LEVEL quality function Q(G) that serves as a proxy
+for P(mutual_interest | G):
+
+    maximize  Σⱼ Q(Gⱼ)
+
+    Subject to HARD CONSTRAINTS:
+    (C1) |Gⱼ| = 4 (default) or 6 (when pre-grouping requires)
+    (C2) |{u ∈ Gⱼ : gender(u) = M}| = |Gⱼ|/2       (gender balance)
+    (C3) ∀u,v ∈ Gⱼ: v ∉ Blocked(u)                   (no blocked pairs)
+    (C4) ∀u,v ∈ Gⱼ: Dealbreaker(u,v) = 0              (no dealbreaker violations)
+    (C5) ∩{Availability(u) : u ∈ Gⱼ} ≠ ∅              (time overlap)
+    (C6) ∩{Activities(u) : u ∈ Gⱼ} ≠ ∅                (activity overlap)
+    (C7) ∀u ∈ Gⱼ, ∀v ∈ PreGroup(u): v ∈ Gⱼ           (friends together)
+    (C8) ∀u,v ∈ Gⱼ: age(u) ∈ [age_min(v), age_max(v)] (age compatibility)
+    (C9) ∀u,v ∈ Gⱼ: distance(u,v) ≤ max_distance(u,v) (location)
+
+    GROUP-LEVEL QUALITY FUNCTION (see Section 6 for details):
+
+    Q(Gⱼ) = w₁ × AttCohesion(Gⱼ)      [attractiveness band tightness]
+           + w₂ × RoleDiversity(Gⱼ)     [conversation catalyst present]
+           + w₃ × EnergyBalance(Gⱼ)     [moderate energy diversity]
+           + w₄ × PersonalityDiv(Gⱼ)    [maximize type diversity]
+           + w₅ × IntentAlignment(Gⱼ)   [relationship intent match]
+           + w₆ × ActivityFit(Gⱼ, act)  [activity-energy alignment]
+           + w₇ × ValuesBaseline(Gⱼ)    [moderate values similarity]
+           - w₈ × FrictionScore(Gⱼ)     [lifestyle/logistic friction]
+
+    All weights are LEARNABLE and updated from outcome data.
+
+--------------------------------------------------------------------------------
+4.5 Computational Complexity and Practical Solutions
+--------------------------------------------------------------------------------
+
+The group formation problem is NP-hard (variant of balanced k-way partitioning).
+
+    For N users forming groups of 4:
+    - Candidate groups: C(N/2, 2)² (choose 2 males × 2 females)
+    - For N=100: ~1.5 million candidates
+    - For N=500: ~1.5 billion candidates
+
+    PRACTICAL ALGORITHM:
+    1. Pre-filter: Apply hard constraints to reduce candidate space
+    2. Activity clustering: Separate users by activity preference
+    3. Availability clustering: Within activity, cluster by time overlap
+    4. Greedy assignment: Score all valid groups, assign highest first
+    5. Local search: 2-opt swaps between assigned groups
+    6. Random restarts: 20 iterations with shuffled candidate order
+    7. Return best overall assignment
+
+    Runtime: < 5 seconds for N=500 on modern hardware.
+
+    For larger pools (N > 1000): Simulated annealing or genetic algorithm
+    with population size 100, 500 generations.
+
+
+================================================================================
+5. EVIDENCE-BASED ONBOARDING
+================================================================================
+
+--------------------------------------------------------------------------------
+5.1 Audit: What Predicts Conversion vs. What We Collect
+--------------------------------------------------------------------------------
+
+    ┌──────────────────────────────┬────────┬────────┬─────────────────────────┐
+    │ Data Point                   │ Pred.  │ Pred.  │ Notes                   │
+    │                              │ mutual │ 2nd    │                         │
+    │                              │ int.?  │ date?  │                         │
+    ├──────────────────────────────┼────────┼────────┼─────────────────────────┤
+    │ PHOTOS                       │ YES    │ —      │ Attractiveness scoring  │
+    │ AGE                          │ YES    │ —      │ Hard filter             │
+    │ GENDER                       │ YES    │ —      │ Hard constraint         │
+    │ LOCATION                     │ YES    │ YES    │ Logistics for 2nd date  │
+    │ RELATIONSHIP INTENT          │ YES    │ YES    │ Mismatched = no convert │
+    │ ACTIVITY PREFERENCES         │ YES    │ —      │ Group formation cluster │
+    │ DEALBREAKERS (max 3)         │ YES    │ —      │ Genuine hard limits     │
+    │ SOCIAL ENERGY (1-5)          │ —      │ —      │ GROUP dynamics only     │
+    │ GROUP ROLE                   │ —      │ —      │ GROUP dynamics only     │
+    │ VALUES (6 binary pairs)      │ WEAK   │ —      │ Comfort baseline        │
+    │ INTERESTS (up to 10)         │ WEAK   │ —      │ Profile display + ice   │
+    │ PROMPTS (2 of 10)            │ —      │ —      │ Profile + conversation  │
+    ├──────────────────────────────┼────────┼────────┼─────────────────────────┤
+    │ ATTACHMENT STYLE              │ NO     │ NO     │ Predicts long-term only │
+    │ EMOTIONAL STABILITY           │ NO     │ NO     │ Predicts long-term only │
+    │ BIG FIVE PERSONALITY          │ NO     │ NO     │ 0% relationship R²     │
+    │ HUMOR STYLE (self-report)    │ NO     │ NO     │ Poor introspection      │
+    │ COMMUNICATION PREFERENCE     │ NO     │ NO     │ No predictive evidence  │
+    │ BODY TYPE / HEIGHT PREFS     │ NO     │ NO     │ Stated ≠ revealed       │
+    │ EXERCISE / SLEEP / STYLE     │ NO     │ NO     │ No evidence at all      │
+    │ PROGRAM / YEAR               │ NO     │ NO     │ Irrelevant              │
+    └──────────────────────────────┴────────┴────────┴─────────────────────────┘
+
+RULE: If a data point doesn't predict mutual interest OR second-date
+follow-through, don't collect it during onboarding. Every unnecessary
+question reduces completion rate (and disproportionately loses women,
+who have lower tolerance for tedious signup flows).
+
+--------------------------------------------------------------------------------
+5.2 The Redesigned Onboarding (Single Path, ~5 Minutes)
+--------------------------------------------------------------------------------
+
+    ┌────────────────────────────────────────────────────────────────────┐
+    │  STEP 1: PHOTOS + SELFIE (2 min)                                  │
+    │  • 3-6 photos (aspect ratio 4:5)                                  │
+    │  • Live selfie verification                                       │
+    │  • WHY: Attractiveness scoring + identity verification            │
+    │  • EVIDENCE: Matching hypothesis (r=0.49), safety for women       │
+    │                                                                    │
+    │  STEP 2: BASICS (30 sec)                                          │
+    │  • Birthdate → age (auto-computed)                                │
+    │  • Gender (M/F for MVP)                                           │
+    │  • University (auto-detected from email domain)                   │
+    │  • Location (auto from device)                                    │
+    │  • WHY: Hard constraints + logistics                              │
+    │                                                                    │
+    │  STEP 3: WHAT YOU'RE LOOKING FOR (30 sec)                         │
+    │  • Relationship intent: Casual / Serious / Open                   │
+    │  • Age range preference (min-max slider)                          │
+    │  • Dealbreakers: max 3 from short list                            │
+    │    [Smoking, Heavy drinking, Different religion,                   │
+    │     Long distance, Rude to others]                                │
+    │  • WHY: Mismatched intents don't convert. Dealbreakers are        │
+    │    genuine hard limits. Capped at 3 to prevent over-filtering.    │
+    │                                                                    │
+    │  STEP 4: YOUR VALUES (30 sec)                                     │
+    │  • 6 forced-choice binary pairs:                                  │
+    │    "Which matters more to you?"                                   │
+    │    (a) Ambition vs. Work-life balance                             │
+    │    (b) Tradition vs. Open-mindedness                              │
+    │    (c) Independence vs. Togetherness                              │
+    │    (d) Adventure vs. Stability                                    │
+    │    (e) Spontaneity vs. Planning                                   │
+    │    (f) Brutal honesty vs. Kind diplomacy                          │
+    │  • WHY: Values similarity predicts initial comfort (meta: r=0.47 │
+    │    for similarity-attraction). Binary choice is fast, eliminates  │
+    │    acquiescence bias. Produces a 6-bit vector for matching.       │
+    │  • WEIGHT: Moderate. Enough overlap for comfort, not so much     │
+    │    that groups are clones of each other.                          │
+    │                                                                    │
+    │  STEP 5: YOUR VIBE IN GROUPS (30 sec)                             │
+    │  • Social energy: 1-5 slider (How much energy in group hangs?)   │
+    │  • Group role: single select                                      │
+    │    (a) Gets conversation started (Catalyst)                       │
+    │    (b) Makes everyone laugh (Entertainer)                         │
+    │    (c) Listens and asks good questions (Listener)                │
+    │    (d) Plans and organizes (Planner)                              │
+    │    (e) Goes with the flow (Flexible)                              │
+    │  • WHY: These are for GROUP COMPOSITION, not pairwise matching.  │
+    │    Groups need diverse roles and moderate energy variance.         │
+    │  • NOT USED FOR: Predicting which pair will match (can't be done)│
+    │                                                                    │
+    │  STEP 6: ACTIVITIES + INTERESTS (1 min)                           │
+    │  • Select 3+ preferred date activities from curated list          │
+    │  • Select up to 10 interests from streamlined list (~40 items)   │
+    │  • WHY: Activities determine group clustering. Interests are      │
+    │    for profile display and conversation hooks, not matching.      │
+    │                                                                    │
+    │  STEP 7: PROMPTS (1 min)                                          │
+    │  • Choose 2 prompts, select/write answers                        │
+    │  • WHY: Profile display, pre-date conversation starters,         │
+    │    personality surfacing                                           │
+    │                                                                    │
+    │  TOTAL: ~5 minutes                                                │
+    │  COMPLETION RATE TARGET: >85%                                     │
+    └────────────────────────────────────────────────────────────────────┘
+
+ONE PATH. No quick/thorough split. Every question has a citation behind it.
+The flow is designed to feel fast, engaging, and purposeful — not like a
+personality test.
+
+--------------------------------------------------------------------------------
+5.3 What Was Removed and Why
+--------------------------------------------------------------------------------
+
+    ✗ ATTACHMENT STYLE: Predicts relationship satisfaction 6 months in,
+      not second-date desire. Effect size on initial attraction: ~0.
+      (Hazan & Shaver research is about long-term outcomes.)
+      Wasted onboarding time for our metric.
+
+    ✗ EMOTIONAL STABILITY / BIG FIVE: The r=0.29 correlation with
+      relationship satisfaction is an ACTOR effect (your own neuroticism
+      affects YOUR satisfaction). It does not predict whether a specific
+      pair will feel mutual attraction. Joel et al.: 0% relationship R².
+      Does not predict conversion.
+
+    ✗ HUMOR STYLES: Self-reported humor style is unreliable. What matters
+      is DISPLAYED humor during the date — which you see in person, not in
+      a survey. The group activity is designed to surface actual humor.
+
+    ✗ COMMUNICATION PREFERENCE: Relevant AFTER you start dating, not for
+      group formation or initial attraction prediction.
+
+    ✗ BODY TYPE / HEIGHT / STYLE (self + preferences): Eastwick & Finkel
+      (2008) across multiple studies: stated physical preferences do NOT
+      predict who people are actually attracted to in person. Photos already
+      capture physical appearance. Preference questions add noise, not signal.
+
+    ✗ EXERCISE / SLEEP SCHEDULE: Zero evidence these predict anything
+      relevant to dating outcomes at any timescale.
+
+    ✗ PROGRAM / YEAR OF STUDY: No predictive value beyond age (already
+      captured). Keep as optional profile display.
+
+    ✗ QUICK/THOROUGH SPLIT: Creates a two-class system where quick-path
+      users get worse matching. One optimized path for everyone.
+
+--------------------------------------------------------------------------------
+5.4 The Cold Start Problem
+--------------------------------------------------------------------------------
+
+New users have zero behavioral data. Strategy:
+
+    DATE 1 (zero history):
+    - Attractiveness: ML photo score (prior = population mean 5.0)
+    - Desirability: Elo = 1000 (default)
+    - Matching: Based entirely on onboarding data + hard constraints
+    - Confidence: LOW → algorithm explores more (see Section 6.6)
+
+    DATE 2-3 (sparse history):
+    - Attractiveness: Bayesian blend of ML + first Elo updates
+    - Behavioral signal: who did they express interest in?
+    - Matching: Onboarding + early behavioral data
+
+    DATE 4+ (sufficient history):
+    - Elo dominates ML photo score
+    - Behavioral patterns visible (what "type" do they pick?)
+    - Collaborative filtering begins to apply
+
+    FORMULA:
+    attractiveness_score = α × Elo + (1-α) × ML_photo
+    Where α = min(1.0, n_dates_completed / 5)
+
+    After 5 dates, Elo fully dominates. Elo captures charisma, humor,
+    presence — everything that photos miss.
+
+
+================================================================================
+6. THE MATCHING ALGORITHM
+================================================================================
+
+--------------------------------------------------------------------------------
+6.1 The Paradigm: Condition Optimization, Not Compatibility Prediction
+--------------------------------------------------------------------------------
+
+    ╔═══════════════════════════════════════════════════════════════════╗
+    ║                                                                   ║
+    ║  THE ALGORITHM'S JOB IS NOT:                                      ║
+    ║  "Find people who will like each other"                           ║
+    ║  (Impossible — Joel et al. 2017: 0% predictable)                 ║
+    ║                                                                   ║
+    ║  THE ALGORITHM'S JOB IS:                                          ║
+    ║  "Create groups where the CONDITIONS for attraction are optimal"  ║
+    ║                                                                   ║
+    ║  CONDITIONS WE CAN OPTIMIZE:                                      ║
+    ║  1. Attractiveness cohesion (everyone feels "in their league")    ║
+    ║  2. Group dynamics (conversation flows, no one is excluded)       ║
+    ║  3. Activity fit (the experience is genuinely fun)                ║
+    ║  4. Personality diversity (max P someone appeals to each person)  ║
+    ║  5. Intent alignment (everyone wants the same type of thing)      ║
+    ║  6. Minimal friction (no dealbreaker surprises)                   ║
+    ║  7. Values baseline (enough similarity for comfort)               ║
+    ║                                                                   ║
+    ╚═══════════════════════════════════════════════════════════════════╝
+
+--------------------------------------------------------------------------------
+6.2 Hard Constraint Filtering
+--------------------------------------------------------------------------------
+
+    These are binary pass/fail. A group violating ANY hard constraint
+    is discarded:
+
+    (C1) Group size: 4 (default) or 6 (only when pre-grouping requires)
+    (C2) Gender balance: exactly 2M/2F (or 3M/3F for groups of 6)
+    (C3) No blocked pairs
+    (C4) No dealbreaker violations
+    (C5) Time availability overlap
+    (C6) Activity preference overlap
+    (C7) Pre-grouped friends stay together
+    (C8) Bidirectional age range compatibility
+    (C9) Location within max distance for all members
+
+    No changes from current implementation. These are correct.
+
+--------------------------------------------------------------------------------
+6.3 Attractiveness Band Clustering
+--------------------------------------------------------------------------------
+
+    Supported by: Matching Hypothesis (Feingold 1988, r = 0.49)
+
+    AttCohesion(G) = -σ²(attractiveness scores in G)
+
+    Lower variance = better group.
+
+    Attractiveness score computation:
+    score = α × Elo + (1-α) × ML_photo
+    Where α = min(1.0, n_dates / 5)
+
+    Elo update after each date:
+    For each cross-gender member j in user i's group:
+        Expected = 1 / (1 + 10^((Elo_j - Elo_i) / 400))
+        Actual = interest_level_received (0, 0.25, 0.75, 1.0)
+        Elo_new = Elo + K × (Actual - Expected)
+    K = 32 for first 10 dates, K = 16 thereafter
+
+    Soft band clustering:
+    Band 1: [1, 3)   Band 2: [3, 5)   Band 3: [5, 7)
+    Band 4: [7, 9)   Band 5: [9, 10]
+    Users near boundaries can be in either adjacent band.
+
+    INITIAL WEIGHT: w₁ = 5.0 (highest weight — strongest evidence)
+
+--------------------------------------------------------------------------------
+6.4 Group Chemistry Scoring
+--------------------------------------------------------------------------------
+
+    RoleDiversity(G):
+        roles = {role(u) for u in G}
+        score = |roles| / |G|  (proportion of unique roles)
+        bonus = 3.0 if group contains at least one Catalyst
+        return score × 5 + bonus
+
+        WHY CATALYST MATTERS: A group without someone who initiates
+        conversation risks awkward silences. Awkward silences are the
+        #1 killer of group chemistry. One catalyst person transforms
+        the entire dynamic.
+
+    EnergyBalance(G):
+        energies = [energy(u) for u in G]
+        std_e = std(energies)
+        # Want moderate diversity — not all introverts, not all extroverts
+        return 3.0 - |std_e - 1.0| × 2  (optimal std ≈ 1.0)
+
+    PersonalityDiversity(G):
+        # Maximize the variety of "types" in the group
+        # This maximizes P(at least one person appeals to each user)
+        # Because chemistry is unpredictable, diversity hedges our bets
+        vectors = [attribute_vector(u) for u in G]  # values + energy + role
+        return entropy(vectors)  # normalized to [0, 5]
+
+        THIS IS THE KEY CONVERSION LEVER: If everyone in the group is the
+        same "type," a user who doesn't like that type has zero options.
+        If the group has diverse types, each user is more likely to find
+        at least one person intriguing.
+
+    IntentAlignment(G):
+        intents = [intent(u) for u in G]
+        if all_same(intents): return 3.0
+        if 'open' in intents: return 1.5
+        return 0.0  (serious + casual clash)
+
+    ValuesBaseline(G):
+        # Cross-gender Hamming distance on 6-bit value vectors
+        distances = [hamming(v_i, v_j) for cross-gender pairs]
+        avg_dist = mean(distances)
+        # Optimal: moderate similarity (~2-3 out of 6 match)
+        # Too similar = boring; too different = friction
+        return 3.0 - |avg_dist - 2.5| × 1.5
+
+    FrictionScore(G):
+        friction = 0
+        if activity is dining-related:
+            diets = [diet(u) for u in G if diet(u)]
+            if 'vegan' in diets and 'no_restrictions' in diets:
+                friction += 1.0
+        return friction
+
+--------------------------------------------------------------------------------
+6.5 Activity-Group Fit
+--------------------------------------------------------------------------------
+
+    ActivityFit(G, activity):
+        ideal_energy = {
+            "escape_room": 3.5,  "karaoke": 4.0,   "hiking": 3.0,
+            "cooking_class": 2.5, "dinner": 2.5,    "bar": 3.5,
+            "bowling": 3.0,      "board_games": 2.0, "trivia": 3.0,
+            "mini_golf": 3.0,    "art_gallery": 2.0, "concert": 4.0,
+        }
+        group_energy = mean([energy(u) for u in G])
+        return max(0, 3.0 - |group_energy - ideal_energy[activity]|)
+
+    THESE VALUES ARE INITIAL PRIORS. They will be updated from actual
+    conversion data by activity type × group energy level. See Section 6.7.
+
+--------------------------------------------------------------------------------
+6.6 Exploration-Exploitation via Epsilon-Greedy
+--------------------------------------------------------------------------------
+
+    The current algorithm is purely exploitative — always picks the
+    highest-scoring group. This means it can never discover that its
+    weights are wrong.
+
+    EPSILON-GREEDY:
+    - With probability ε: form groups using random valid assignments
+    - With probability (1-ε): form groups using best-scoring assignments
+
+    Schedule: ε = max(0.05, 0.20 - 0.025 × month)
+    Start at 20% random, decay to 5% over 6 months.
+
+    Random groups provide unbiased outcome data for learning.
+    Exploit groups maximize conversion for current users.
+
+    UPGRADE PATH: When data science infrastructure supports it, move to
+    Thompson Sampling (sample weights from posterior distributions).
+    This is more sample-efficient but harder to implement.
+
+--------------------------------------------------------------------------------
+6.7 The Learning Loop
+--------------------------------------------------------------------------------
+
+    After each batch of dates completes and feedback is collected:
+
+    1. COMPUTE REWARD for each group (see Section 7.5)
+    2. EXTRACT FEATURES for each group (all scoring components)
+    3. RUN REGRESSION: Reward ~ w₁×Feature₁ + ... + w₈×Feature₈
+    4. UPDATE WEIGHTS: Use regression coefficients as new weights
+       (with regularization toward current weights for stability)
+    5. UPDATE ACTIVITY ENERGY MAP: Compute conversion by
+       (activity, mean_group_energy) buckets
+
+    Frequency: Weekly batch updates (accumulate enough data points)
+
+    COLLABORATIVE FILTERING (Phase 6, requires 500+ users):
+    - Build user × user interest matrix R
+    - Matrix factorization: R ≈ U × V^T (d=20 latent dimensions)
+    - P(i likes j) ≈ σ(Uᵢ · Vⱼ^T)
+    - P(mutual) ≈ σ(Uᵢ·Vⱼ) × σ(Uⱼ·Vᵢ)
+    - Incorporate as additional scoring component, capped at 30% weight
+    - Prevents filter bubbles: never let CF dominate condition optimization
+
+--------------------------------------------------------------------------------
+6.8 Complete Scoring Formula
+--------------------------------------------------------------------------------
+
+    Q(G) = w₁ × AttCohesion(G)         Initial: w₁ = 5.0
+         + w₂ × RoleDiversity(G)        Initial: w₂ = 3.0
+         + w₃ × EnergyBalance(G)        Initial: w₃ = 1.5
+         + w₄ × PersonalityDiv(G)       Initial: w₄ = 2.5
+         + w₅ × IntentAlignment(G)      Initial: w₅ = 2.0
+         + w₆ × ActivityFit(G, act)     Initial: w₆ = 1.5
+         + w₇ × ValuesBaseline(G)       Initial: w₇ = 1.5
+         - w₈ × FrictionScore(G)        Initial: w₈ = 1.5
+         + β × CFScore(G)               Initial: β = 0.0
+
+    ALL WEIGHTS ARE INITIAL PRIORS. Updated weekly from outcome data.
+    β grows with data: β = min(0.3, n_date_events / 10000)
+
+    NOTE: There is NO pairwise compatibility score in this formula.
+    Every component is a GROUP-LEVEL property. This is the paradigm shift.
+
+
+================================================================================
+7. THE SECOND-DATE BRIDGE
+================================================================================
+
+This is Yuni's most important innovation opportunity. No other dating app
+has a structured mechanism for converting mutual interest into a real
+second date. This is where 94% of speed-dating matches die.
+
+--------------------------------------------------------------------------------
+7.1 Where Connections Die (and How to Save Them)
+--------------------------------------------------------------------------------
+
+    CURRENT YUNI FLOW:
+    Mutual match → 1-on-1 chat opens → ... → ???
+
+    The "..." is where connections die. Industry data:
+    - 70% of app conversations die after 2-5 messages
+    - Conversation quality degrades rapidly after initial excitement
+    - The longer the gap between matching and meeting, the less likely
+      they'll ever meet
+
+    THE PROBLEM IS NOT MATCHING. IT IS FOLLOW-THROUGH.
+
+    95% of people who plan to meet do so within one week.
+    After one week, the probability of meeting drops to near zero.
+
+    ┌─────────────────────────────────────────────────────────────────┐
+    │  THE SECOND-DATE BRIDGE:                                         │
+    │                                                                  │
+    │  Don't just open a chat. Actively facilitate the second date.    │
+    │                                                                  │
+    │  Within 48 hours of mutual match:                                │
+    │  1. Auto-suggest a 1-on-1 date idea                             │
+    │     "You both loved [escape room]. Try [related activity]?"      │
+    │  2. Show mutual availability overlap                             │
+    │     "You're both free Saturday afternoon"                        │
+    │  3. Suggest a venue                                              │
+    │     "[Venue name] is between both of you, 4.5★ rated"           │
+    │  4. One-tap "Propose this date" button                          │
+    │     Partner gets notification: "[Name] wants to [activity] at    │
+    │     [venue] on [day]. Accept?"                                   │
+    │                                                                  │
+    │  Make the second date as frictionless as the first group date.   │
+    └─────────────────────────────────────────────────────────────────┘
+
+    This is not pushy. It's helpful. The user already said they're
+    interested. The app is just removing the friction that kills 94%
+    of speed-dating matches.
+
+--------------------------------------------------------------------------------
+7.2 Expanded Post-Date Feedback
+--------------------------------------------------------------------------------
+
+    SECTION 1: GROUP EXPERIENCE (20 sec)
+
+    Q1: "How was the overall experience?" (1-5 stars)
+    Q2: "How well did the group gel?" (1-5: Awkward ↔ Amazing)
+    Q3: "Was [Activity] a good fit?" (1-5)
+
+    SECTION 2: INDIVIDUAL IMPRESSIONS (30 sec)
+
+    For each cross-gender group member:
+
+    Q4: "How interested are you in [Name]?"
+        (a) Not interested
+        (b) Maybe — would need to see them again
+        (c) Interested — would like to connect
+        (d) Very interested — definitely want to see them again
+
+    MATCHING LOGIC:
+    • Both "Interested" or "Very interested" → FULL MATCH (chat opens)
+    • One "Interested/Very" + one "Maybe" → SOFT MATCH (see 7.3)
+    • Both "Maybe" → No match (but not blocked)
+    • Any "Not interested" → No match
+
+    Q5: "Would you hang out with [Name] as friends?" (Yes / No)
+        Separates social compatibility from romantic interest.
+
+    SECTION 3: QUICK REFLECTION (15 sec, optional)
+
+    Q6: "What made this date great (or not)?" (select all that apply)
+        ✓ Good conversation flow
+        ✓ Fun activity
+        ✓ Felt comfortable and included
+        ✓ Someone really caught my eye
+        ✗ Awkward silences
+        ✗ Activity wasn't my thing
+        ✗ Felt left out
+        ✗ Someone dominated the conversation
+
+    Block and Report options remain unchanged.
+
+    WOMEN SUBMIT FIRST:
+    Women's feedback is collected first. Men's feedback is held until
+    all women in the group have submitted. This gives women the
+    psychological safety of knowing their response is independent.
+
+    TOTAL FEEDBACK TIME: ~65 seconds
+
+--------------------------------------------------------------------------------
+7.3 The Soft Match Mechanism
+--------------------------------------------------------------------------------
+
+    When one person says "Interested" and the other says "Maybe":
+
+    CURRENT BEHAVIOR: No match. Connection lost forever.
+
+    PROPOSED: SOFT MATCH
+
+    48 hours after the date, the "Maybe" person gets a notification:
+
+    "Someone from your [Activity] group is interested in seeing you again.
+     Want to find out who? 💫"
+
+    If they tap yes:
+    - Match is revealed
+    - Chat opens
+    - Second-date suggestion appears (same as full matches)
+
+    If they don't tap or tap no:
+    - Nothing happens
+    - The interested person is never notified of the "maybe"
+    - No embarrassment for either party
+
+    WHY THIS MATTERS:
+    - "Maybe" often means "I'm not sure, I'd need to see them again"
+    - In a group date, you have limited 1-on-1 time with each person
+    - A soft match gives a second chance for borderline connections
+    - This could recover 10-20% of connections that would otherwise be lost
+    - The delay (48 hours) allows for "slow burn" attraction to develop
+      (some people become more attractive in memory than they seemed in
+      the moment)
+
+--------------------------------------------------------------------------------
+7.4 Structured Second-Date Facilitation
+--------------------------------------------------------------------------------
+
+    For FULL MATCHES (both interested/very interested):
+
+    IMMEDIATE (within 1 hour of mutual match):
+    1. Chat opens with personalized conversation starter:
+       "You both loved [activity] and are into [shared interest].
+        Pick up where you left off! 💬"
+
+    WITHIN 48 HOURS:
+    2. Second-date suggestion card appears in chat:
+       ┌───────────────────────────────────────────┐
+       │  📍 Suggested Date                         │
+       │  [Activity] at [Venue]                     │
+       │  [Day], [Time]                             │
+       │                                            │
+       │  Based on: You're both free, it's between  │
+       │  your locations, and you both rated         │
+       │  [original activity] highly.               │
+       │                                            │
+       │  [Propose This Date]  [Suggest Something]  │
+       └───────────────────────────────────────────┘
+
+    3. If one person proposes, the other gets:
+       "[Name] wants to [activity] at [venue] on [day].
+        ✓ Accept    ✗ Suggest alternative    ⏰ Not this week"
+
+    ONE WEEK FOLLOW-UP:
+    4. If no second date has been arranged after 7 days:
+       "Hey! You matched with [Name] last week. Don't let a good
+        thing slip away — here's a fresh date idea: [suggestion]"
+
+    TWO WEEK CHECK-IN (for matched pairs who've been chatting):
+    5. "How's it going with [Name]?"
+       (a) We've met up again! 🎉
+       (b) Still chatting, good vibes
+       (c) Conversation fizzled
+       (d) Prefer not to say
+
+    This check-in is the GOLD STANDARD conversion signal.
+
+    For SOFT MATCHES:
+    - Same facilitation flow, but starts 48 hours later
+    - Slightly gentler: "Take it slow — no pressure 💛"
+
+--------------------------------------------------------------------------------
+7.5 Reward Signal Design
+--------------------------------------------------------------------------------
+
+    The reward signal trains the matching algorithm. It must be
+    weighted toward our conversion metric: SECOND DATE.
+
+    REWARD COMPONENTS:
+
+    IMMEDIATE (within 24 hours):
+    r₁ = n_romantic_interests / possible_pairs      weight: 0.20
+    r₂ = n_mutual_matches / possible_pairs           weight: 0.25
+    r₃ = group_chemistry_rating / 5                  weight: 0.10
+    r₄ = activity_fit_rating / 5                     weight: 0.05
+
+    SHORT-TERM (within 1 week):
+    r₅ = any_1on1_message_sent                       weight: 0.05
+    r₆ = second_date_proposed (binary)               weight: 0.10
+
+    CONVERSION SIGNAL (within 2 weeks):
+    r₇ = second_date_confirmed (binary)              weight: 0.15
+    r₈ = follow_up_positive ("met up" or "good vibes") weight: 0.10
+
+    COMPOSITE REWARD:
+    R = 0.20×r₁ + 0.25×r₂ + 0.10×r₃ + 0.05×r₄
+      + 0.05×r₅ + 0.10×r₆ + 0.15×r₇ + 0.10×r₈
+
+    60% of weight is on immediate/short-term signals (available fast,
+    used for rapid algorithm updates). 25% is on actual second-date
+    conversion (the real metric, but delayed). 15% is experience quality
+    (user retention signal).
+
+    NOTE: No long-term relationship signals (still messaging after months,
+    etc.) are included. Those would bias the algorithm toward relationship
+    durability, which is our secondary metric, not primary.
+
+--------------------------------------------------------------------------------
+7.6 Feedback Loop Architecture
+--------------------------------------------------------------------------------
+
+    ┌───────────┐    ┌──────────┐    ┌──────────┐    ┌──────────────┐
+    │ Algorithm  │───▶│ Group    │───▶│ Date     │───▶│ Feedback     │
+    │ forms      │    │ revealed │    │ happens  │    │ collected    │
+    │ groups     │    │ + chat   │    │          │    │ (65 seconds) │
+    └───────────┘    └──────────┘    └──────────┘    └──────┬───────┘
+         ▲                                                   │
+         │                                                   ▼
+    ┌────┴────────┐                                   ┌──────────────┐
+    │ Weekly       │◀──────────────────────────────────│ Match/Soft   │
+    │ weight       │                                   │ match logic  │
+    │ update       │         ┌──────────────┐          └──────┬───────┘
+    │              │◀────────│ 2-week       │                 │
+    │ Elo update   │         │ check-in     │◀────────────────┘
+    │ Activity map │         │ (conversion  │    Second-date
+    │ CF retrain   │         │  signal)     │    facilitation
+    └─────────────┘         └──────────────┘
+
+
+================================================================================
+8. HOLISTIC APP REDESIGN
+================================================================================
+
+--------------------------------------------------------------------------------
+8.1 The Conversion Funnel (Every Stage)
+--------------------------------------------------------------------------------
+
+    ┌──────────────────────────────┬──────────┬──────────┬──────────────────┐
+    │ Funnel Stage                 │ Current  │ Target   │ How              │
+    │                              │ (est.)   │          │                  │
+    ├──────────────────────────────┼──────────┼──────────┼──────────────────┤
+    │ Sign up → Complete profile   │ ~60%     │ >85%     │ Single 5-min     │
+    │                              │          │          │ path, less noise │
+    ├──────────────────────────────┼──────────┼──────────┼──────────────────┤
+    │ Profile → First date request │ ~70%     │ >85%     │ Prompt within    │
+    │                              │          │          │ 24h of signup    │
+    ├──────────────────────────────┼──────────┼──────────┼──────────────────┤
+    │ Request → Get matched        │ ~80%     │ >90%     │ Gender ratio     │
+    │                              │          │          │ management, pool │
+    ├──────────────────────────────┼──────────┼──────────┼──────────────────┤
+    │ Matched → Attend date        │ ~85%     │ >92%     │ Pre-date prompts,│
+    │                              │          │          │ social commitment│
+    ├──────────────────────────────┼──────────┼──────────┼──────────────────┤
+    │ Attend → Submit feedback     │ ~90%     │ >95%     │ Push + 65-sec    │
+    │                              │          │          │ streamlined form │
+    ├──────────────────────────────┼──────────┼──────────┼──────────────────┤
+    │ Feedback → Mutual match      │ ~30%     │ ~45%     │ Algorithm +      │
+    │                              │          │          │ soft matches     │
+    ├──────────────────────────────┼──────────┼──────────┼──────────────────┤
+    │ Match → Second date          │ ~30%     │ >60%     │ Second-date      │
+    │                              │          │          │ bridge           │
+    ├──────────────────────────────┼──────────┼──────────┼──────────────────┤
+    │ END-TO-END CONVERSION:       │          │          │                  │
+    │ Attend → Second date         │ ~9%      │ ~27%     │ 3× improvement   │
+    │ (the marketable stat)        │          │          │                  │
+    └──────────────────────────────┴──────────┴──────────┴──────────────────┘
+
+    With soft matches adding ~10% to the match rate:
+    Target: 27-35% of date attendees go on a second date with someone.
+    This is 5-7× better than speed dating (4-6%) and orders of magnitude
+    better than swipe apps.
+
+--------------------------------------------------------------------------------
+8.2 Group Size: Default to 4
+--------------------------------------------------------------------------------
+
+    EVIDENCE:
+    - Dunbar: 4-5 is cognitive sweet spot for direct conversation
+    - Self-disclosure decreases with group size (Solano & Dunnam 1985)
+    - Women are MORE INHIBITED in larger groups (female-first concern)
+    - Each person gets more conversation time (critical for "clicking")
+    - Logistics are simpler (easier to find venues, schedule)
+
+    MATHEMATICAL CONSIDERATION:
+    In groups of 4 (2M + 2F), each person has 2 cross-gender options.
+    In groups of 6 (3M + 3F), each person has 3 cross-gender options.
+
+    More options sounds better, but:
+    - Less time per person → shallower connections
+    - Women disclose less → lower "clicking" probability
+    - Per-pair match probability likely drops in larger groups
+
+    If p₄ (per-pair match probability in groups of 4) is even 20% higher
+    than p₆ (in groups of 6), groups of 4 produce more conversions per user.
+
+    RECOMMENDATION: Default to 4. A/B test against 6. Let data decide.
+
+    Groups of 6 reserved for:
+    - Pre-grouped friends (2+1 structure requires 6)
+    - Specific high-energy activities (team trivia, sports)
+    - User explicit opt-in (rare)
+
+--------------------------------------------------------------------------------
+8.3 Activity Intelligence
+--------------------------------------------------------------------------------
+
+    RANKING BY PREDICTED CONVERSION:
+
+    TIER 1 — HIGHEST CONVERSION (collaborative, personality-surfacing):
+    • Escape rooms (collaboration, shared challenge, celebration)
+    • Cooking classes (sensory, teamwork, natural conversation)
+    • Trivia nights (intelligence display, team bonding, competition)
+
+    TIER 2 — HIGH CONVERSION (active, fun):
+    • Hiking (natural conversation, shared adventure)
+    • Bowling / mini golf (playful competition, turn-taking)
+    • Board game cafes (strategic interaction, humor opportunities)
+
+    TIER 3 — MODERATE CONVERSION (social, less structured):
+    • Karaoke (vulnerability, fun, but limits conversation)
+    • Bar / drinks (social, but low structure)
+    • Dinner (conversation-heavy, can feel like interview)
+
+    TIER 4 — LOW CONVERSION (passive):
+    • Art gallery (limited interaction structure)
+    • Movie / show (zero conversation during)
+
+    RECOMMENDATIONS:
+    1. Default suggestions should feature Tier 1-2 activities
+    2. Show social proof: "78% of escape room groups had a great time!"
+    3. Track conversion by activity and update rankings with real data
+    4. Seasonal rotation (winter: indoor Tier 1; summer: outdoor Tier 2)
+    5. Consider REMOVING Tier 4 activities or warning about lower engagement
+
+--------------------------------------------------------------------------------
+8.4 Pre-Date Structured Disclosure
+--------------------------------------------------------------------------------
+
+    Based on Aron et al. (1997): structured reciprocal self-disclosure
+    generates measurable closeness in 45 minutes.
+
+    REPLACE single icebreaker with ESCALATING PROMPT SERIES:
+
+    Day -3 (group chat opens):
+    "Let's break the ice! Everyone share your most controversial
+     food opinion. 🔥"
+
+    Day -2:
+    "What's something you're weirdly proud of that most people
+     don't know about?"
+
+    Day -1:
+    "One thing you're looking forward to about tomorrow?"
+
+    Day of (2 hours before):
+    "Almost time! Drop your outfit check 💫"
+
+    WHY THIS WORKS:
+    - Creates pre-date familiarity (propinquity effect)
+    - Establishes reciprocal disclosure patterns
+    - Provides conversation anchors for the actual date
+    - Builds anticipation and social commitment (reduces no-shows)
+
+    HYPOTHESIS: Groups that engage in pre-date chat will have
+    20-30% higher conversion. Track and validate.
+
+--------------------------------------------------------------------------------
+8.5 Hybrid Format: Optional 1-on-1 Dates
+--------------------------------------------------------------------------------
+
+    The group date is the PRIMARY format and should remain so.
+    However, there are scenarios where a 1-on-1 option adds value:
+
+    SCENARIO 1: RE-MATCH DATES
+    Two users who were in the same group, BOTH said "Maybe" (no match),
+    but the algorithm detects high compatibility signals (similar Elo band,
+    overlapping interests, both gave high group ratings). After 2 weeks:
+
+    "You and [Name] were in the same group at [Activity]. Want a second
+     chance to get to know each other? We can set up a casual 1-on-1."
+
+    This recovers connections that needed more time — the group date
+    gave them a foundation, but 2 hours wasn't enough.
+
+    SCENARIO 2: SECOND-DATE FACILITATION
+    All full and soft matches are inherently 1-on-1. The second-date
+    bridge (Section 7.4) is already a 1-on-1 date facilitation system.
+    Adding formal 1-on-1 date support (venue suggestions, scheduling,
+    reminders) is a natural extension.
+
+    SCENARIO 3: "DOUBLE DATE" FORMAT
+    Two mutual matches from different groups go on a double date together.
+    Each person has their match + one other couple for social support.
+    This is a hybrid: safer than pure 1-on-1, more intimate than a full
+    group of strangers.
+
+    RECOMMENDATION: Implement Scenario 2 first (it's the second-date bridge).
+    A/B test Scenarios 1 and 3 when data permits.
+
+--------------------------------------------------------------------------------
+8.6 The Re-Match Mechanism
+--------------------------------------------------------------------------------
+
+    Current: Users who don't match in a group date can be re-matched
+    in future groups. But there's no mechanism to pair two people who
+    were in the same group and BOTH showed tepid interest.
+
+    PROPOSED: After 2 weeks, if two users from the same group both gave
+    ratings of "Maybe" or both said "would hang out as friends":
+
+    "Second Look 👀: You and [Name] were in the same [Activity] group.
+     Neither of you made a move — but we think there might be something
+     there. Want to explore it?"
+
+    If BOTH tap yes → Soft match opens.
+    If either says no → Nothing happens, no notification.
+
+    WHY: Many romantic connections start as "not sure." Given more context
+    and time to reflect, borderline interest can crystallize. This costs
+    nothing and could recover 5-10% additional conversions.
+
+
+================================================================================
+9. MARKETABLE STATISTICS FRAMEWORK
+================================================================================
+
+--------------------------------------------------------------------------------
+9.1 What to Track
+--------------------------------------------------------------------------------
+
+    PRIMARY CONVERSION METRIC:
+    C₁ = Second-date rate = Users who had a second date / Users who attended
+    TARGET: 27-35%    BENCHMARK: Speed dating 4-6%, swipe apps <5%
+
+    SECONDARY METRICS:
+    C₂ = Match rate per date = Mutual matches / Attendees
+    TARGET: 45-55%    (inflated by soft matches — still a real connection)
+
+    C₃ = Dates per match = 1 / (avg number of group dates before first match)
+    TARGET: 1.5-2.0   COMPARE: Swipe apps require 56 matches for 1 date
+
+    C₄ = Relationships initialized = Couples who met up 3+ times
+    TARGET: Track and report monthly/quarterly
+
+    C₅ = Retention rate = % of users who request another date within 2 weeks
+    TARGET: >70%      (even without a match, the experience should be fun)
+
+    C₆ = Female retention rate = Same, for women specifically
+    TARGET: >65%      (if this drops, everything else follows)
+
+    C₇ = Net Promoter Score = "Would you recommend Yuni to a friend?"
+    TARGET: >50       (dating apps average NPS of 2)
+
+    C₈ = No-match satisfaction = "Even without a match, was it worth it?"
+    TARGET: >80% positive (the group experience itself has value)
+
+--------------------------------------------------------------------------------
+9.2 Benchmark Comparisons
+--------------------------------------------------------------------------------
+
+    ┌──────────────────────┬───────────┬─────────┬──────────────────────┐
+    │ Metric               │ Industry  │ Yuni    │ Yuni Advantage       │
+    │                      │ Average   │ Target  │                      │
+    ├──────────────────────┼───────────┼─────────┼──────────────────────┤
+    │ Match → real date    │ <5%       │ >60%    │ You already met      │
+    │ Dates to find match  │ 56 swipes │ 1.8     │ Quality > quantity   │
+    │ Women feeling safe   │ ~55%      │ >90%    │ Group format         │
+    │ User satisfaction    │ NPS ≈ 2   │ NPS >50 │ Designed to end      │
+    │ Second-date rate     │ 4-6%      │ 27-35%  │ The whole system     │
+    └──────────────────────┴───────────┴─────────┴──────────────────────┘
+
+--------------------------------------------------------------------------------
+9.3 How to Present the Data
+--------------------------------------------------------------------------------
+
+    FOR USERS (app store, website, social media):
+    "1 in 3 Yuni group dates leads to a real date. Not a match. Not a
+     message. An actual, in-person, second date."
+
+    "The average Yuni user goes on a real date within 2 weeks of signing up.
+     On Tinder, the average user needs 56 matches to get one coffee."
+
+    "90% of women on Yuni say they feel safe on their dates.
+     Your first date is never alone."
+
+    FOR INVESTORS / PRESS:
+    "Yuni converts at 30% — 5× higher than speed dating and 6× higher than
+     swipe apps. Our secret: you already met before you matched."
+
+    "Our female retention rate is [X]% — 2× the industry average.
+     Group dates solve the safety problem that's driving women off apps."
+
+    FOR CAMPUS MARKETING:
+    "Last month, Yuni started [N] real relationships at [University].
+     Not matches. Relationships."
+
+    "Join [N] students who ditched swiping and actually started dating."
+
+
+================================================================================
+10. IMPLEMENTATION ROADMAP
+================================================================================
+
+PHASE 1: INSTRUMENTATION (2 weeks)
+    No user-facing changes. Add tracking for all metrics in Section 9.
+    - Analytics events table (profile_view, message_sent, date_proposed, etc.)
+    - Group outcomes table (group features + conversion signals)
+    - Baseline measurement of current conversion rate
+    - Gender ratio monitoring dashboard
+    Files: new analytics_service.py, extend feedback_service.py
+
+PHASE 2: ONBOARDING REDESIGN (3 weeks)
+    - Merge quick/thorough into single 7-step path
+    - Add values assessment (6 binary pairs)
+    - Simplify roles to single-select
+    - Remove: attachment, emotional stability, stated preferences,
+      exercise, sleep, style tags, body type prefs
+    - Add progressive profiling for existing users
+    Files: models/user.py, schemas/profile.py, mobile onboarding screens
+
+PHASE 3: MATCHING ALGORITHM (4 weeks)
+    - Replace pairwise scoring with group-level Q function
+    - Implement all scoring components from Section 6.8
+    - Default group size to 4
+    - Add epsilon-greedy exploration
+    - Store weights in database (learnable, not hardcoded)
+    Files: services/matching_service.py, new models/algorithm_config.py
+
+PHASE 4: POST-DATE REDESIGN (3 weeks)
+    - 4-point interest scale (not binary)
+    - Group chemistry + activity fit ratings
+    - Quick reflection tags
+    - Women-submit-first logic
+    - Soft match mechanism
+    Files: schemas/feedback.py, services/feedback_service.py,
+           mobile PostDateScreen.tsx
+
+PHASE 5: SECOND-DATE BRIDGE (3 weeks)
+    - Auto-generated date suggestions for matches
+    - Mutual availability detection
+    - Venue recommendation engine
+    - One-tap date proposal/acceptance
+    - 1-week follow-up prompt
+    - 2-week check-in for conversion tracking
+    Files: new services/second_date_service.py, mobile new screens
+
+PHASE 6: GENDER RATIO & GROWTH (2 weeks)
+    - Waitlist mechanics for gender balance
+    - Referral system (opposite-gender bonus)
+    - Gender ratio monitoring + alerts
+    - Female-first marketing materials
+    Files: new services/waitlist_service.py, routers/referral.py
+
+PHASE 7: A/B TESTING & LEARNING (3 weeks)
+    - Experiment assignment framework
+    - Automated metric computation per variant
+    - Weight learning pipeline (weekly regression)
+    - Activity conversion tracking and energy map updates
+    Files: new services/experiment_service.py, services/learning_service.py
+
+PHASE 8: COLLABORATIVE FILTERING (4 weeks, requires data)
+    - User × user interest matrix
+    - Matrix factorization model (ALS, d=20)
+    - Reciprocal scoring integration
+    - CF score blended into Q function (capped at β=0.3)
+    Files: new services/cf_model_service.py
+
+TOTAL: ~24 weeks to full implementation. Each phase is independently
+valuable. Phase 1-4 are the highest priority and should be done first.
+
+
+================================================================================
+11. REFERENCES
+================================================================================
+
+META-ANALYSES AND LARGE-SCALE STUDIES:
+
+[1]  Montoya, R. M., Horton, R. S., & Kirchner, J. (2008). Is actual
+     similarity necessary for attraction? A meta-analysis of actual and
+     perceived similarity. 460 effect sizes, 313 studies.
+     Journal of Social and Personal Relationships, 25(6), 889-922.
+
+[2]  Feingold, A. (1988). Matching for attractiveness in romantic partners
+     and same-sex friends: A meta-analysis and theoretical critique.
+     Psychological Bulletin, 104(2), 226-235.
+
+[3]  Joel, S., Eastwick, P. W., & Finkel, E. J. (2017). Is romantic desire
+     predictable? Machine learning applied to initial romantic attraction.
+     Psychological Science, 28(10), 1478-1489.
+     43 speed-dating studies, 100+ variables.
+
+[4]  Eastwick, P. W., & Finkel, E. J. (2008). Sex differences in mate
+     preferences revisited. Multiple speed-dating studies.
+     Journal of Personality and Social Psychology, 94(2), 245-264.
+
+[5]  Eastwick, P. W., Luchies, L. B., Finkel, E. J., & Hunt, L. L. (2014).
+     The predictive validity of ideal partner preferences: A review and
+     meta-analysis. Psychological Bulletin, 140(3), 623-665.
+
+[6]  Hitsch, G. J., Hortaçsu, A., & Ariely, D. (2010). What makes you click?
+     Mate preferences in online dating. Large-scale behavioral data.
+     American Economic Review, 100(1), 130-163.
+
+[7]  Dimant, E. (2019). Meta-analysis of social norms messaging.
+     89 studies, n = 85,759. Nature Human Behavior.
+
+[8]  Malouff, J. M., et al. (2010). Big Five and relationship satisfaction.
+     Meta-analysis. Journal of Research in Personality.
+
+SECOND-DATE PREDICTORS:
+
+[9]  Prochazkova, E., et al. (2023). Eye contact and romantic interest
+     in speed dating. Archives of Sexual Behavior.
+
+[10] Allegrini, A., et al. (2021). Body sway predicts romantic interest.
+     PMC, speed-dating with physiological measurement.
+
+[11] Eastwick, P. W., Finkel, E. J., & Simpson, J. A. (2019). Best practices
+     for testing the predictive validity of ideal partner preference-matching.
+     PNAS. Three speed-dating studies.
+
+[12] Fisman, R., Iyengar, S. S., Kamenica, E., & Simonson, I. (2006).
+     Gender differences in mate selection. Quarterly Journal of Economics.
+     Columbia/Stanford speed-dating studies.
+
+SPEED DATING LONGITUDINAL:
+
+[13] Asendorpf, J. B., Penke, L., & Back, M. D. (2011). From dating to
+     mating and relating. Personal Relationships, 18(3), 312-325.
+
+SHARED EXPERIENCE AND BONDING:
+
+[14] Aron, A., et al. (1997). Experimental generation of interpersonal
+     closeness. Personality and Social Psychology Bulletin, 23(4), 363-377.
+
+[15] Royal Society Open Science (2024). Social bonding through shared
+     activities vs. parallel activities.
+
+MISATTRIBUTION OF AROUSAL:
+
+[16] Dutton, D. G., & Aron, A. P. (1974). Some evidence for heightened
+     sexual attraction under conditions of high anxiety. JPSP.
+     NOTE: Mixed replications. Methodological concerns identified.
+
+PARADOX OF CHOICE:
+
+[17] Schwartz, B. (2004). The Paradox of Choice. HarperCollins.
+
+GROUP DYNAMICS:
+
+[18] Dunbar, R. I. M. (2010). How Many Friends Does One Person Need?
+     Harvard University Press.
+
+[19] Solano, C. H., & Dunnam, M. (1985). Self-disclosure and reciprocity
+     in triads versus dyads. Social Psychology Quarterly, 48(2), 183-187.
+
+GENDER DYNAMICS AND DATING MARKETS:
+
+[20] Pew Research Center (2023). The experiences of U.S. online daters.
+     Large-scale national survey.
+
+[21] Cloudwards (2025). Dating app safety survey.
+     45% of women cite harassment fears.
+
+[22] Forbes Health (2024). Gen Z dating app burnout survey.
+     78% experienced burnout.
+
+[23] Guttentag, M., & Secord, P. F. (1983). Too Many Women? The Sex
+     Ratio Question. Sage Publications.
+
+[24] Pedersen, F. A. (1991). Secular trends in human sex ratios.
+     Human Nature, 2(3), 271-291.
+
+DATING APP INDUSTRY DATA:
+
+[25] YouGov (2024-2025). Bumble brand health tracking.
+[26] Ofcom (2024). Dating app usage decline report.
+[27] Various industry sources on match rates, conversation rates,
+     and match-to-date conversion across platforms.
+
+EVOLUTIONARY PSYCHOLOGY:
+
+[28] Trivers, R. L. (1972). Parental investment and sexual selection.
+
+[29] Buss, D. M., & Schmitt, D. P. (1993). Sexual strategies theory.
+     Psychological Review, 100(2), 204-232.
+
+SIMILARITY-ATTRACTION:
+
+[30] Byrne, D. (1971). The Attraction Paradigm. Academic Press.
+
+ATTACHMENT (cited for exclusion rationale):
+
+[31] Hazan, C., & Shaver, P. (1987). Romantic love conceptualized as an
+     attachment process. JPSP. NOTE: Predicts long-term satisfaction, not
+     initial attraction or second-date desire. Excluded from onboarding.
+
+
+================================================================================
+END OF DOCUMENT
+================================================================================
+
+SUMMARY OF KEY RECOMMENDATIONS:
+
+    1. CONVERSION = SECOND DATE (not match, not message)
+    2. FEMALE-FIRST (she decides if the app lives or dies)
+    3. CONDITION OPTIMIZATION, NOT COMPATIBILITY PREDICTION
+    4. GROUP SIZE 4 (evidence-based, especially for women)
+    5. SECOND-DATE BRIDGE (the biggest innovation opportunity)
+    6. SOFT MATCHES (recover borderline connections)
+    7. ACTIVITY INTELLIGENCE (escape rooms > dinner)
+    8. PRE-DATE DISCLOSURE (structured prompts, not one icebreaker)
+    9. LEARNABLE WEIGHTS (epsilon-greedy → Thompson sampling)
+    10. GENDER RATIO MANAGEMENT (50/50 or the app dies)
+
+    THE MARKETABLE CLAIM:
+    "1 in 3 Yuni group dates leads to a real date.
+     Your first date is never alone."

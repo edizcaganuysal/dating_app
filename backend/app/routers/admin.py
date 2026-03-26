@@ -896,3 +896,64 @@ async def trigger_matching_pipeline(
         "batches_created": len(batches),
         "groups_proposed": matched_count,
     }
+
+
+# ── Waitlist Admin ──
+
+@router.get("/waitlist")
+async def get_waitlist_entries(
+    search: str = Query(None),
+    limit: int = Query(50, ge=1, le=500),
+    offset: int = Query(0, ge=0),
+    _admin: User = Depends(get_admin_user),
+    db: AsyncSession = Depends(get_db),
+):
+    from app.models.waitlist import WaitlistEntry
+
+    query = select(WaitlistEntry).order_by(WaitlistEntry.created_at.desc())
+
+    if search:
+        query = query.where(
+            or_(
+                WaitlistEntry.name.ilike(f"%{search}%"),
+                WaitlistEntry.email.ilike(f"%{search}%"),
+                WaitlistEntry.university.ilike(f"%{search}%"),
+            )
+        )
+
+    count_q = select(func.count()).select_from(query.subquery())
+    total = (await db.execute(count_q)).scalar() or 0
+
+    result = await db.execute(query.offset(offset).limit(limit))
+    entries = result.scalars().all()
+
+    return {
+        "entries": [
+            {
+                "id": str(e.id),
+                "name": e.name,
+                "email": e.email,
+                "university": e.university,
+                "created_at": e.created_at.isoformat() if e.created_at else None,
+            }
+            for e in entries
+        ],
+        "total": total,
+    }
+
+
+@router.delete("/waitlist/{entry_id}")
+async def delete_waitlist_entry(
+    entry_id: uuid.UUID,
+    _admin: User = Depends(get_admin_user),
+    db: AsyncSession = Depends(get_db),
+):
+    from app.models.waitlist import WaitlistEntry
+
+    result = await db.execute(select(WaitlistEntry).where(WaitlistEntry.id == entry_id))
+    entry = result.scalar_one_or_none()
+    if not entry:
+        raise HTTPException(status_code=404, detail="Entry not found")
+    await db.delete(entry)
+    await db.commit()
+    return {"detail": "Entry deleted"}

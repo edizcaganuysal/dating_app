@@ -186,6 +186,34 @@ JAVA_HOME=/Library/Java/JavaVirtualMachines/temurin-17.jdk/Contents/Home ANDROID
 ```
 After first build, just run `npx expo start --dev-client` and relaunch the app on the phone.
 
+## README.md Auto-Update
+
+After completing any major change, **automatically update README.md** before telling the user the task is done. Major changes include:
+
+- **Matching algorithm** changes (scoring formula, hard constraints, batch formation, AI matching logic)
+- **User flow** changes (onboarding steps, dating flow, post-date flow, navigation restructuring)
+- **API endpoint** additions, removals, or signature changes
+- **Database schema** changes (new models, new fields on existing models, removed fields)
+- **Business rule** changes (group sizes, gender rules, dealbreaker logic, no-show policy, verification rules)
+- **New screens** added or existing screens significantly redesigned
+- **New services** or major service rewrites
+- **Admin dashboard** new pages or significant feature additions
+- **Tech stack** changes (new dependencies, framework upgrades)
+
+**What to update:**
+1. Update the relevant section(s) in README.md to reflect the change
+2. Add a row to the **Changelog** table at the bottom with the date and a brief description
+3. If a new API endpoint was added, add it to the API Reference table
+4. If a new screen was added, add it to the Mobile App screens table
+5. If a new model was added, add it to the Database Schema table
+
+**Do NOT update README.md for:**
+- Bug fixes that don't change behavior
+- Style/UI tweaks (colors, spacing, animations)
+- Code refactoring that doesn't change external behavior
+- Test additions
+- Comment or documentation-only changes
+
 ## Current Phase
 
 All 18 build phases complete. Onboarding overhaul complete.

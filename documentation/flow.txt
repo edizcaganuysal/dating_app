@@ -1,0 +1,626 @@
+================================================================================
+                    YUNI — COMPLETE APP FLOW
+================================================================================
+
+    This document describes every user touchpoint, screen, notification,
+    and decision point in the Yuni app — incorporating all research-based
+    redesign recommendations.
+
+    Legend:
+    [SCREEN]     = A visible app screen
+    (ACTION)     = User action
+    {SYSTEM}     = Backend/algorithm action (invisible to user)
+    >>NOTIFY>>   = Push notification
+    --IF--       = Conditional branch
+    **NEW**      = New feature from research redesign
+    **CHANGED**  = Modified from current implementation
+    ~FEMALE~     = Female-first design element
+
+
+================================================================================
+PHASE 0: DISCOVERY & SIGNUP
+================================================================================
+
+0.1  User discovers Yuni (marketing, referral, campus poster)
+     Primary message: "Your first date is never alone."
+     ~FEMALE~ Marketing targets women first (sororities, women's groups)
+
+0.2  [APP STORE / LANDING PAGE]
+     Key stats displayed:
+     - "1 in 3 group dates leads to a real date"
+     - "90% of women feel safe"
+     - "Average user gets a date in 2 group dates"
+
+0.3  (User downloads app)
+
+0.4  [WELCOME SCREEN]
+     "Yuni — Dating through real experiences"
+     (Tap: Get Started)
+     (Tap: I have an account → Login flow)
+
+0.5  [EMAIL VERIFICATION]
+     "Enter your university email"
+     (User enters .edu or recognized domain email)
+     {SYSTEM} Sends OTP to email
+     --IF-- Domain not recognized: "Sorry, Yuni is currently available
+             at [list of universities]. Join the waitlist?"
+
+0.6  [OTP ENTRY]
+     "Check your email for a verification code"
+     (User enters 6-digit OTP)
+     {SYSTEM} Verifies OTP
+     --IF-- Invalid: "That code didn't work. Try again or resend."
+
+0.7  [CREATE ACCOUNT]
+     - First name (required)
+     - Last name (required)
+     - Birthdate (date picker, must be 18+)
+     - Gender (Male / Female)
+     - Password (min 8 chars)
+     (Tap: Create Account)
+
+     **CHANGED** ~FEMALE~ Gender ratio check:
+     {SYSTEM} Check campus gender ratio
+     --IF-- User is male AND male ratio > 55%:
+            [WAITLIST SCREEN]
+            "Yuni is at capacity for men at [University] right now.
+             You're #[N] on the waitlist.
+             Invite a female friend to move up instantly!"
+            (Tap: Invite a Friend → share link)
+            (Tap: Notify me when a spot opens)
+     --IF-- Ratio is balanced OR user is female:
+            Proceed to onboarding
+
+
+================================================================================
+PHASE 1: ONBOARDING (Single Path, ~5 minutes)
+================================================================================
+
+**CHANGED** Merged quick/thorough into one optimized path.
+Every question backed by research evidence.
+
+1.1  [PHOTOS SCREEN]
+     "Add 3-6 photos of yourself"
+     - Photo grid (3 minimum, 6 maximum)
+     - Aspect ratio 4:5
+     - Drag to reorder
+     (Upload from camera roll or take new)
+     {SYSTEM} ML attractiveness scoring on upload (invisible)
+     (Tap: Next)
+     --IF-- < 3 photos: "Add at least 3 photos to continue"
+
+1.2  [SELFIE VERIFICATION SCREEN]
+     "Take a quick selfie to verify it's really you"
+     - Live camera view with face outline
+     - Instructions: "Look straight at the camera"
+     (Take selfie)
+     {SYSTEM} Compare to uploaded photos
+     {SYSTEM} Set selfie_status = "pending" (admin reviews)
+     (Tap: Next)
+
+1.3  [BASICS SCREEN]
+     Auto-populated where possible:
+     - Age: computed from birthdate (display only)
+     - University: auto-detected from email domain
+     - Location: "Allow location access" prompt
+       --IF-- Denied: manual address entry with autocomplete
+     (Tap: Next)
+
+1.4  [WHAT YOU'RE LOOKING FOR SCREEN] **CHANGED**
+     "What are you looking for?"
+     - Relationship intent: Casual / Serious / Open to either
+       (single select, large tappable cards)
+     - Age range: dual slider (min/max, default 18-25)
+     - Dealbreakers (max 3): **CHANGED** Capped at 3
+       [Smoking, Heavy drinking, Different religion,
+        Long distance, Rude to service staff]
+       (multi-select chips, counter shows "X/3 selected")
+     (Tap: Next)
+
+1.5  [YOUR VALUES SCREEN] **NEW**
+     "Quick round — which matters more to you?"
+     6 binary forced-choice cards, swipe or tap:
+     (a) Ambition ←→ Work-life balance
+     (b) Tradition ←→ Open-mindedness
+     (c) Independence ←→ Togetherness
+     (d) Adventure ←→ Stability
+     (e) Spontaneity ←→ Planning
+     (f) Brutal honesty ←→ Kind diplomacy
+     Card flip animation for each choice. Fast, engaging.
+     {SYSTEM} Stores as 6-bit binary values_vector
+     (Auto-advances after 6th choice)
+
+1.6  [YOUR VIBE IN GROUPS SCREEN] **CHANGED**
+     "How do you show up in groups?"
+     - Social energy: 1-5 slider with emoji faces
+       (1 = "Quiet observer" → 5 = "Life of the party")
+     - Group role: single select (was multi-select)
+       "In a group, I'm usually the one who..."
+       (a) Gets conversation started [Catalyst]
+       (b) Makes everyone laugh [Entertainer]
+       (c) Listens and asks great questions [Listener]
+       (d) Plans and organizes everything [Planner]
+       (e) Goes with the flow [Flexible]
+     (Tap: Next)
+
+1.7  [ACTIVITIES & INTERESTS SCREEN] **CHANGED**
+     "What would you do on a group date?"
+     - Activity preferences: select 3+ from curated list
+       (escape room, cooking class, trivia, hiking, karaoke,
+        bowling, board games, dinner, bar, mini golf, etc.)
+       **NEW** Activities sorted by predicted conversion rate
+       **NEW** Social proof: "Most popular: Escape Rooms 🔥"
+     - Interests: select up to 10 from ~40 items **CHANGED**
+       (was 110+ items, now streamlined)
+       Categories: Sports, Music, Creative, Food, Entertainment,
+                   Outdoors, Social, Intellectual
+     (Tap: Next)
+
+1.8  [PROMPTS SCREEN]
+     "Choose 2 prompts and fill them in"
+     - Scroll through 10 prompt options
+     - Tap to select, then choose from pre-made answers or write custom
+     - Must complete exactly 2
+     (Tap: Done → Profile review screen)
+
+1.9  [PROFILE REVIEW SCREEN]
+     Shows complete profile as others will see it:
+     - Photos, name, age, university
+     - Prompts, interests
+     - Relationship intent (public)
+     - NOT shown: dealbreakers, values, age range (private)
+     (Tap: Looks good! → Home screen)
+     (Tap: Edit → back to relevant step)
+
+     {SYSTEM} Profile marked as complete
+     {SYSTEM} User eligible for matching
+
+
+================================================================================
+PHASE 2: HOME & DATE REQUEST
+================================================================================
+
+2.1  [HOME SCREEN]
+     - "Your next group date" card (if matched, shows details)
+     - "Find a date" CTA button (if no active request)
+     - Past dates section (history)
+     - Active matches section (ongoing 1-on-1 chats)
+     - **NEW** Stats card: "You've been on X group dates.
+       Y matches. Z second dates."
+
+2.2  (Tap: Find a Date)
+
+2.3  [DATE REQUEST SCREEN] **CHANGED**
+     - Activity selection: cards with images
+       **NEW** Recommended activities highlighted:
+       "🔥 Escape rooms have the highest match rate!"
+       Tier 1 activities shown first, Tier 4 at bottom
+     - Availability: calendar date picker + time slots
+       Select 1-3 date/time combinations
+     - **CHANGED** Group size: REMOVED from UI. Default = 4.
+       (Groups of 6 only formed when pre-grouping requires it)
+     - Pre-group friend (optional):
+       "Bring a same-gender friend?"
+       (Enter friend code → friend must also have active request)
+     (Tap: Submit Request)
+
+     {SYSTEM} Request enters matching pool
+     {SYSTEM} Check gender ratio for this activity/timeslot
+
+2.4  [REQUEST CONFIRMED SCREEN]
+     "You're in the pool! We'll notify you when your group is set."
+     Shows estimated match time based on pool size.
+     --IF-- Low pool for chosen activity/time:
+            "Tip: [Escape Rooms] on [Saturday evening] has the most
+             people — switch for a faster match?"
+
+
+================================================================================
+PHASE 3: MATCHING (Backend)
+================================================================================
+
+3.1  {SYSTEM} Batch matching runs daily at set time (e.g., 8pm)
+     - Hard constraint filtering (Section 6.2 of research)
+     - Attractiveness band clustering
+     - Group-level Q scoring (NOT pairwise compatibility)
+     - Epsilon-greedy: 15% random groups for exploration
+     - Greedy assignment with 2-opt local search, 20 restarts
+
+3.2  {SYSTEM} Groups formed, assigned activity + time
+     {SYSTEM} Create DateGroup record
+     {SYSTEM} Create GroupMember records
+     {SYSTEM} Create group ChatRoom
+
+3.3  **NEW** ~FEMALE~ Women confirm first:
+     >>NOTIFY>> to women in group:
+     "Your group date is set! 🎉
+      [Activity] on [Day] at [Time]
+      Tap to see your group and confirm."
+
+3.4  [GROUP REVEAL SCREEN — WOMEN]
+     Shows all group members: name, photos, age, university
+     Shows activity, date, time
+     (Tap: I'm in! → Confirm)
+     (Tap: I can't make it → Cancel flow)
+     --IF-- Cancel: {SYSTEM} attempts replacement from pool
+            If no replacement found, remaining group votes
+
+3.5  --IF-- All women confirmed:
+     >>NOTIFY>> to men in group:
+     "Your group date is set! 🎉
+      [Activity] on [Day] at [Time]
+      Tap to see your group and confirm."
+
+3.6  [GROUP REVEAL SCREEN — MEN]
+     Same as women's screen.
+     (Tap: I'm in! → Confirm)
+     (Tap: I can't make it → Cancel flow)
+
+3.7  {SYSTEM} All confirmed → Group chat opens
+     {SYSTEM} Schedule pre-date prompts (Phase 4)
+     {SYSTEM} Schedule date-day reminder
+
+
+================================================================================
+PHASE 4: PRE-DATE (3 Days Before → Date Day)
+================================================================================
+
+**NEW** Structured self-disclosure prompt series
+
+4.1  DAY -3: Group chat opens
+     {SYSTEM} Auto-message in group chat:
+     "Hey [everyone's names]! 👋 Your [Activity] date is in 3 days.
+      Let's break the ice — everyone share your most controversial
+      food opinion! 🔥"
+
+4.2  DAY -2:
+     {SYSTEM} Auto-message:
+     "Day 2 prompt: What's something you're weirdly proud of that
+      most people don't know about? 🏆"
+
+4.3  DAY -1:
+     {SYSTEM} Auto-message:
+     "Tomorrow's the day! What's one thing you're looking forward to? ✨"
+
+4.4  [VENUE SUGGESTION] (appears in chat Day -2)
+     {SYSTEM} Based on activity + group location centroid:
+     "Here are some venue options for [Activity]:
+      📍 [Venue 1] — 4.5★, [distance] away
+      📍 [Venue 2] — 4.3★, [distance] away
+      📍 [Venue 3] — 4.1★, [distance] away
+      Vote for your favorite or suggest your own!"
+     (Tap on venue to vote — highest votes wins)
+
+4.5  DAY OF — 2 HOURS BEFORE:
+     >>NOTIFY>> to all group members:
+     "Your [Activity] date starts in 2 hours!
+      📍 [Venue], [Address]
+      See you there! 💫"
+
+4.6  DAY OF — In group chat:
+     {SYSTEM} Auto-message:
+     "Almost time! Drop your outfit check 💪"
+
+4.7  **NEW** ~FEMALE~ Share my plans feature:
+     [SHARE PLANS BUTTON] visible on date details card
+     (Tap: Share → sends text/message to chosen contact)
+     Message: "I'm going on a Yuni group date tonight!
+      📍 [Venue], [Time]
+      Group: [First names of members]
+      I'll check in after!"
+
+
+================================================================================
+PHASE 5: THE DATE
+================================================================================
+
+5.1  Users meet at venue. App is minimal during date.
+
+5.2  **NEW** Optional in-date prompts (off by default):
+     If group enabled "Fun prompts during date" in chat settings:
+     {SYSTEM} Push prompt 1 hour into date:
+     "Rapid fire! Everyone answer in one word: biggest green flag?"
+
+5.3  No tracking during date. Privacy is sacred.
+
+
+================================================================================
+PHASE 6: POST-DATE FEEDBACK
+================================================================================
+
+**CHANGED** Expanded feedback, 4-point scale, women first.
+
+6.1  {SYSTEM} 2 hours after estimated date end:
+     ~FEMALE~ >>NOTIFY>> to WOMEN first:
+     "How was tonight? Share your thoughts — it only takes a minute! 💬"
+
+6.2  [POST-DATE FEEDBACK SCREEN — SECTION 1: GROUP]
+     "How was the overall experience?" (1-5 stars)
+     "How well did the group gel?" (1-5: Awkward ↔ Amazing) **NEW**
+     "Was [Activity] a good fit?" (1-5) **NEW**
+     (Swipe up or tap Next)
+
+6.3  [POST-DATE FEEDBACK SCREEN — SECTION 2: INDIVIDUALS]
+     For each cross-gender group member, show photo + name:
+
+     "How interested are you in [Name]?" **CHANGED** 4-point scale
+     (a) Not interested
+     (b) Maybe — would need to see them again
+     (c) Interested — would like to connect
+     (d) Very interested — definitely want to see them again
+
+     "Would you hang out with [Name] as friends?" (Yes / No) **NEW**
+
+     [Block] button (creates BlockedPair, never matched again)
+     [Report] button (opens report flow)
+
+6.4  [POST-DATE FEEDBACK SCREEN — SECTION 3: REFLECTION] **NEW**
+     "What made this date great (or not)?" (select all that apply)
+     ✓ Good conversation flow
+     ✓ Fun activity
+     ✓ Felt comfortable and included
+     ✓ Someone really caught my eye
+     ✗ Awkward silences
+     ✗ Activity wasn't my thing
+     ✗ Felt left out
+     ✗ Someone dominated the conversation
+     (Optional — can skip)
+
+6.5  (Tap: Submit)
+     "Thanks! We'll let you know if there's a match 💫"
+
+6.6  ~FEMALE~ {SYSTEM} Hold men's notifications until ALL women submit
+     --IF-- Women haven't submitted after 12 hours:
+            >>NOTIFY>> reminder to women
+     --IF-- Women haven't submitted after 24 hours:
+            Release men's notifications anyway
+
+6.7  >>NOTIFY>> to MEN:
+     "How was tonight? Share your thoughts! 💬"
+     (Men go through same feedback flow: 6.2 → 6.5)
+
+6.8  **NEW** ~FEMALE~ Post-date safety check:
+     >>NOTIFY>> 24 hours after date, to all:
+     "Did everyone get home safe last night? ✓"
+     (Tap: All good! / Tap: I need help → admin alert)
+
+
+================================================================================
+PHASE 7: MATCH LOGIC
+================================================================================
+
+7.1  {SYSTEM} After all feedback collected, run match detection:
+
+     FULL MATCH: Both say "Interested" or "Very interested"
+     → Immediate match reveal (7.2)
+
+     SOFT MATCH: One says "Interested/Very" + other says "Maybe" **NEW**
+     → Delayed notification after 48 hours (7.5)
+
+     NO MATCH: Both "Not interested" or one "Not" + one "Maybe"
+     → No action. Users can be re-matched in future groups.
+
+     MUTUAL MAYBE: Both say "Maybe" **NEW**
+     → Flag for Re-Match mechanism (Phase 10)
+
+7.2  FULL MATCH REVEAL:
+     >>NOTIFY>> to both:
+     "It's a match! 🎉 You and [Name] are both interested.
+      Start chatting!"
+
+7.3  [MATCH REVEAL SCREEN]
+     Full-screen celebration animation
+     Shows match's photos, name, shared interests
+     "You both loved [Activity]!"
+     (Tap: Say Hi → opens 1-on-1 chat)
+
+7.4  [1-ON-1 CHAT]
+     Chat opens with auto-generated conversation starter: **NEW**
+     "You both love [shared interest] and had a blast at [Activity].
+      Pick up where you left off! 💬"
+
+     {SYSTEM} Create Match record
+     {SYSTEM} Create direct ChatRoom + ChatParticipants
+     {SYSTEM} Elo update for both users
+
+7.5  SOFT MATCH (48 hours after date): **NEW**
+     >>NOTIFY>> to the "Maybe" person only:
+     "Someone from your [Activity] group is interested in
+      seeing you again. Want to find out who? 💫"
+
+7.6  [SOFT MATCH SCREEN] **NEW**
+     "Someone liked you! Tap to reveal."
+     (Tap: Show me → Reveals the interested person's profile)
+     (Tap: Not now → Notification dismissed, no action)
+     --IF-- Tapped "Show me":
+            [SOFT MATCH REVEAL]
+            Shows the interested person's photos + name
+            "Want to connect with [Name]?"
+            (Tap: Yes! → Match created, chat opens with gentle starter)
+            (Tap: No thanks → Nothing happens. Interested person never told.)
+
+     Chat starter for soft matches:
+     "Take it slow — no pressure. You were in the same [Activity] group.
+      What stood out to you about the evening? 💛"
+
+
+================================================================================
+PHASE 8: SECOND-DATE BRIDGE
+================================================================================
+
+**NEW** — The biggest innovation. Converts matches to real dates.
+
+8.1  WITHIN 48 HOURS OF MATCH:
+     {SYSTEM} Analyze: shared activity, both users' locations,
+     mutual availability (from date request data), shared interests.
+
+     {SYSTEM} Generate second-date suggestion:
+     - Activity: related to original (or from shared interests)
+     - Venue: between both users' locations, highly rated
+     - Time: mutual availability overlap
+
+8.2  [SECOND-DATE SUGGESTION CARD] (appears in 1-on-1 chat)
+     ┌──────────────────────────────────────┐
+     │  💡 Date Idea                        │
+     │                                      │
+     │  [Activity] at [Venue]               │
+     │  [Day], [Time]                       │
+     │                                      │
+     │  Why: You're both free, it's 10 min  │
+     │  from both of you, and you both      │
+     │  rated [original activity] 5 stars.  │
+     │                                      │
+     │  [Propose This Date]  [Suggest Own]  │
+     └──────────────────────────────────────┘
+
+8.3  --IF-- One person taps "Propose This Date":
+     >>NOTIFY>> to the other person:
+     "[Name] wants to go to [Activity] at [Venue] on [Day]!
+      ✓ Accept    ✗ Suggest alternative    ⏰ Not this week"
+
+8.4  --IF-- Accept:
+     {SYSTEM} Create SecondDate record
+     {SYSTEM} Set reminder for 2 hours before
+     "It's a date! 🎉 [Activity] at [Venue], [Day] [Time]"
+
+     --IF-- Suggest alternative:
+     [DATE NEGOTIATION] — simple back-and-forth:
+     "What works better for you?"
+     (Activity picker, date/time picker, venue search)
+
+     --IF-- Not this week:
+     "No rush! We'll suggest another idea next week."
+
+8.5  ONE WEEK AFTER MATCH (if no second date arranged):
+     >>NOTIFY>>
+     "Hey! You matched with [Name] last week. Don't let a great
+      connection slip away — here's a fresh idea: [new suggestion]"
+
+8.6  TWO WEEKS AFTER MATCH — CHECK-IN: **NEW**
+     >>NOTIFY>>
+     "How's it going with [Name]?"
+     (a) We've met up again! 🎉
+     (b) Still chatting, good vibes
+     (c) Conversation fizzled
+     (d) Prefer not to say
+
+     {SYSTEM} Record response as conversion signal
+     --IF-- (a): C₁ conversion! 🎯 Record in analytics.
+     --IF-- (c): No penalty. User remains in pool for future dates.
+
+
+================================================================================
+PHASE 9: ONGOING EXPERIENCE
+================================================================================
+
+9.1  GROUP CHAT STAYS OPEN permanently.
+     Any member can propose follow-up hangouts.
+
+9.2  User can create new date requests weekly.
+     1 free date per week. Additional dates cost credits.
+
+9.3  [PROFILE SCREEN]
+     - Edit all profile fields
+     - View match history
+     - View stats: dates attended, matches, second dates
+     - **NEW** Referral code + "Invite a friend" button
+     - Settings, logout, delete account
+
+9.4  REPEAT: User submits new date request → PHASE 2
+
+
+================================================================================
+PHASE 10: RE-MATCH MECHANISM
+================================================================================
+
+**NEW** For users who were in the same group and both said "Maybe"
+
+10.1  {SYSTEM} 2 weeks after date, check for mutual "Maybe" pairs
+      where neither person has blocked the other
+
+10.2  >>NOTIFY>> to both (independently):
+      "Second Look 👀: You and [Name] were in the same [Activity]
+       group. Neither of you made a move — but there might be
+       something there. Want to explore it?"
+
+10.3  --IF-- BOTH tap yes (within 72 hours):
+       Soft match created → chat opens
+       "You both decided to take a second look!
+        Sometimes the best connections are slow burns. 💛"
+
+      --IF-- Either taps no or doesn't respond:
+       Nothing happens. Neither person is notified.
+       No embarrassment.
+
+
+================================================================================
+ADMIN FLOWS
+================================================================================
+
+A.1  [ADMIN DASHBOARD — HOME]
+     - Live gender ratio gauge
+     - Active pool size by activity/timeslot
+     - Conversion funnel metrics (all Section 9 metrics)
+     - Pending selfie verifications
+     - Pending reports
+
+A.2  [ADMIN — MATCHING]
+     - View algorithm-proposed groups
+     - Override/adjust groups manually
+     - Force-match (when pool is too small)
+     - View exploration vs. exploit group labels
+
+A.3  [ADMIN — REPORTS]
+     ~FEMALE~ Women's reports flagged as priority
+     - Review evidence
+     - Warn / suspend / ban
+     - No-show tracking + automated suspension
+
+A.4  [ADMIN — ANALYTICS]
+     All metrics from Section 9 of research:
+     - C₁: Second-date rate
+     - C₂: Match rate per date
+     - C₃: Dates per match
+     - C₄: Relationships initialized
+     - C₅: Retention rate
+     - C₆: Female retention rate
+     - C₇: NPS
+     - C₈: No-match satisfaction
+     - Gender ratio by campus
+     - Conversion by activity type
+     - A/B test results
+
+A.5  [ADMIN — EXPERIMENTS]
+     - Active A/B tests with variant metrics
+     - Statistical significance indicators
+     - Create/end experiments
+
+
+================================================================================
+NOTIFICATION SCHEDULE SUMMARY
+================================================================================
+
+    ┌──────────────────────────┬─────────────────────────────────────────┐
+    │ Trigger                  │ Notification                            │
+    ├──────────────────────────┼─────────────────────────────────────────┤
+    │ Group matched            │ Women first, then men after confirm     │
+    │ Day -3                   │ Group chat opens + icebreaker prompt    │
+    │ Day -2                   │ Prompt #2 + venue suggestions           │
+    │ Day -1                   │ Prompt #3                               │
+    │ Day of, -2h              │ Reminder with venue details             │
+    │ Day of                   │ Outfit check prompt                     │
+    │ Date +2h                 │ Feedback request (women first)          │
+    │ Date +12h                │ Feedback reminder (if not submitted)    │
+    │ Date +24h                │ Safety check + release men's feedback   │
+    │ Match detected           │ Full match: immediate reveal            │
+    │ Match +48h               │ Soft match: delayed reveal to "Maybe"   │
+    │ Match +48h               │ Second-date suggestion card             │
+    │ Match +7d                │ Follow-up nudge (if no 2nd date)       │
+    │ Match +14d               │ How's it going? check-in               │
+    │ Date +14d                │ Re-match notification (mutual Maybes)   │
+    └──────────────────────────┴─────────────────────────────────────────┘
+
+
+================================================================================
+END OF FLOW DOCUMENT
+================================================================================

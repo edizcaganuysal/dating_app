@@ -11,6 +11,7 @@ const NAV_ITEMS = [
   { href: "/reports", label: "Reports", icon: "🚩" },
   { href: "/selfie-review", label: "Selfie Review", icon: "📸" },
   { href: "/analytics", label: "Analytics", icon: "📈" },
+  { href: "/waitlist", label: "Waitlist", icon: "📋" },
 ];
 
 export function Sidebar() {

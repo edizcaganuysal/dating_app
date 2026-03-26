@@ -340,3 +340,34 @@ export interface NoshowUser {
   no_show_count: number;
   is_suspended: boolean;
 }
+
+// Waitlist
+
+export interface WaitlistEntry {
+  id: string;
+  name: string;
+  email: string;
+  university: string;
+  created_at: string;
+}
+
+export interface WaitlistParams {
+  search?: string;
+  limit?: number;
+  offset?: number;
+}
+
+export async function getWaitlistEntries(params?: WaitlistParams) {
+  const query = new URLSearchParams();
+  if (params) {
+    if (params.search) query.set("search", params.search);
+    if (params.limit !== undefined) query.set("limit", String(params.limit));
+    if (params.offset !== undefined) query.set("offset", String(params.offset));
+  }
+  const qs = query.toString();
+  return fetchJson<{ entries: WaitlistEntry[]; total: number }>(`/api/admin/waitlist${qs ? `?${qs}` : ""}`);
+}
+
+export async function deleteWaitlistEntry(id: string) {
+  return fetchJson<{ detail: string }>(`/api/admin/waitlist/${id}`, { method: "DELETE" });
+}

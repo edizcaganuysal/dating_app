@@ -6,6 +6,7 @@ from app.models.chat import ChatRoom, ChatParticipant, ChatMessage
 from app.models.report import FeedbackRating, RomanticInterest, BlockedPair, Report
 from app.models.friendship import Friendship
 from app.models.matching_batch import MatchingBatch, ProposedGroup, ProposedGroupMember
+from app.models.waitlist import WaitlistEntry
 
 __all__ = [
     "User",
@@ -28,4 +29,5 @@ __all__ = [
     "MatchingBatch",
     "ProposedGroup",
     "ProposedGroupMember",
+    "WaitlistEntry",
 ]

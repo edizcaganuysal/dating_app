@@ -8,7 +8,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
-from app.routers import admin, auth, chat, date_requests, feedback, friends, groups, matches, matching, profiles, reports
+from app.routers import admin, auth, chat, date_requests, feedback, friends, groups, matches, matching, profiles, reports, waitlist
 
 logger = logging.getLogger(__name__)
 
@@ -115,6 +115,7 @@ app.include_router(matches.router)
 app.include_router(chat.router)
 app.include_router(reports.router)
 app.include_router(friends.router)
+app.include_router(waitlist.router)
 
 
 @app.get("/api/health")
