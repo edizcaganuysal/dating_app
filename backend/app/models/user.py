@@ -74,6 +74,9 @@ class User(Base):
     # Dealbreakers (thorough path)
     dealbreakers: Mapped[list] = mapped_column(JSON, default=list)  # [smoking, heavy_drinking, ...]
 
+    # Values assessment (6 binary ints from values step)
+    values_vector: Mapped[list] = mapped_column(JSON, default=list)
+
     # Location (private — matching only, never exposed)
     latitude: Mapped[Optional[float]] = mapped_column(nullable=True)
     longitude: Mapped[Optional[float]] = mapped_column(nullable=True)

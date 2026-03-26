@@ -1,7 +1,7 @@
 import uuid
 from typing import Optional
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 class VibeAnswerCreate(BaseModel):
@@ -50,17 +50,20 @@ class ProfileCreate(BaseModel):
     height_cm: Optional[int] = Field(default=None, ge=100, le=250)
     style_tags: list[str] = Field(default_factory=list)
 
-    # Preferences about others (private, optional)
-    pref_body_type: list[str] = Field(default_factory=list)
-    pref_height_range: list[int] = Field(default_factory=list)  # [min_cm, max_cm]
-    pref_style: list[str] = Field(default_factory=list)
-    pref_social_energy_range: list[int] = Field(default_factory=list)  # [min, max] 1-5
-    pref_humor_styles: list[str] = Field(default_factory=list)
-    pref_communication: list[str] = Field(default_factory=list)
+    # Preferences about others (private, all truly optional)
+    pref_body_type: Optional[list[str]] = Field(default_factory=list)
+    pref_height_range: Optional[list[int]] = Field(default_factory=list)  # [min_cm, max_cm]
+    pref_style: Optional[list[str]] = Field(default_factory=list)
+    pref_social_energy_range: Optional[list[int]] = Field(default_factory=list)  # [min, max] 1-5
+    pref_humor_styles: Optional[list[str]] = Field(default_factory=list)
+    pref_communication: Optional[list[str]] = Field(default_factory=list)
 
     # Preferences (private)
     age_range_min: int = Field(ge=18, le=99)
     age_range_max: int = Field(ge=18, le=99)
+
+    # Values assessment (6 binary ints)
+    values_vector: list[int] = Field(default_factory=list)
 
     # Thorough-only fields (all optional — only present for thorough path)
     social_energy: Optional[int] = Field(default=None, ge=1, le=5)
@@ -79,11 +82,28 @@ class ProfileCreate(BaseModel):
     # Legacy compat
     bio: Optional[str] = Field(default=None, max_length=500)
 
+    @field_validator('values_vector')
+    @classmethod
+    def validate_values_vector(cls, v):
+        if v and len(v) != 6:
+            raise ValueError('values_vector must have exactly 6 items')
+        if v and not all(item in (0, 1) for item in v):
+            raise ValueError('each item in values_vector must be 0 or 1')
+        return v
+
+    @field_validator('dealbreakers')
+    @classmethod
+    def validate_dealbreakers(cls, v):
+        if v and len(v) > 3:
+            raise ValueError('maximum 3 dealbreakers allowed')
+        return v
+
 
 class ProfileUpdate(BaseModel):
     program: Optional[str] = None
     year_of_study: Optional[int] = Field(default=None, ge=1, le=6)
     relationship_intent: Optional[str] = None
+    values_vector: Optional[list[int]] = None
     photo_urls: Optional[list[str]] = Field(default=None, min_length=3)
     interests: Optional[list[str]] = Field(default=None, min_length=1)
     prompts: Optional[list[PromptAnswer]] = None
@@ -102,6 +122,22 @@ class ProfileUpdate(BaseModel):
     ideal_group_size: Optional[str] = None
     dealbreakers: Optional[list[str]] = None
     bio: Optional[str] = Field(default=None, max_length=500)
+
+    @field_validator('values_vector')
+    @classmethod
+    def validate_values_vector(cls, v):
+        if v and len(v) != 6:
+            raise ValueError('values_vector must have exactly 6 items')
+        if v and not all(item in (0, 1) for item in v):
+            raise ValueError('each item in values_vector must be 0 or 1')
+        return v
+
+    @field_validator('dealbreakers')
+    @classmethod
+    def validate_dealbreakers(cls, v):
+        if v and len(v) > 3:
+            raise ValueError('maximum 3 dealbreakers allowed')
+        return v
 
     # Location
     latitude: Optional[float] = Field(default=None, ge=-90, le=90)
@@ -165,6 +201,7 @@ class PrivateProfileResponse(PublicProfileResponse):
     conflict_style: Optional[str] = None
     ideal_group_size: Optional[str] = None
     dealbreakers: list = []
+    values_vector: list = []
     preferred_max_distance_km: Optional[int] = None
 
     # Preferences about others (PRIVATE — never in PublicProfileResponse)

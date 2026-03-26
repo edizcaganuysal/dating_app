@@ -94,6 +94,8 @@ async def create_profile(
         current_user.ideal_group_size = data.ideal_group_size
     if data.dealbreakers:
         current_user.dealbreakers = data.dealbreakers
+    if data.values_vector:
+        current_user.values_vector = data.values_vector
 
     # Location
     if data.latitude is not None and data.longitude is not None:
