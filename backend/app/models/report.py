@@ -31,7 +31,6 @@ class RomanticInterest(Base):
     group_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("date_groups.id"))
     from_user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id"))
     to_user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id"))
-    interested: Mapped[Optional[bool]] = mapped_column(nullable=True)
     interest_level: Mapped[str] = mapped_column(String(20), default="not_interested")
     friend_interest: Mapped[bool] = mapped_column(default=False)
     created_at: Mapped[datetime] = mapped_column(server_default=func.now())

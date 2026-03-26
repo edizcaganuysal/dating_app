@@ -84,7 +84,7 @@ async def compute_group_outcome(
     result = await db.execute(
         select(RomanticInterest).where(
             RomanticInterest.group_id == group_id,
-            RomanticInterest.interested == True,  # noqa: E712
+            RomanticInterest.interest_level.in_(["interested", "very_interested"]),
         )
     )
     interests = list(result.scalars().all())
