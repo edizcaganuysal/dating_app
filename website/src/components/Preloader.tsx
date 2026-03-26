@@ -202,7 +202,7 @@ export default function Preloader({ progress, firstFrameLoaded, onComplete }: Pr
       {/* Brand */}
       <p
         ref={brandRef}
-        className="font-display text-[10px] tracking-[0.5em] text-white/25 uppercase mb-16 opacity-0"
+        className="font-display text-[10px] tracking-[0.5em] text-white/40 uppercase mb-16 opacity-0"
       >
         Yuni
       </p>
@@ -247,7 +247,7 @@ export default function Preloader({ progress, firstFrameLoaded, onComplete }: Pr
           </h2>
           <div className="mt-8 flex items-center justify-center gap-3">
             <div className="w-8 h-[1px] bg-white/10" />
-            <p className="text-[9px] tracking-[0.4em] text-white/20 uppercase font-body">
+            <p className="text-[9px] tracking-[0.4em] text-white/35 uppercase font-body">
               Scroll to explore
             </p>
             <div className="w-8 h-[1px] bg-white/10" />
@@ -264,7 +264,7 @@ export default function Preloader({ progress, firstFrameLoaded, onComplete }: Pr
               style={{ width: `${Math.floor(progress * 100)}%` }}
             />
           </div>
-          <p className="text-[8px] tracking-[0.3em] text-white/10 uppercase font-body">
+          <p className="text-[8px] tracking-[0.3em] text-white/30 uppercase font-body">
             {Math.floor(progress * 100)}%
           </p>
         </div>

@@ -33,13 +33,15 @@ export async function joinWaitlist(
   return body;
 }
 
+const PAPER_SIGNUPS = 150;
+
 export async function getWaitlistCount(): Promise<number> {
   try {
     const res = await fetch(`${BASE_URL}/api/waitlist/count`);
-    if (!res.ok) return 0;
+    if (!res.ok) return PAPER_SIGNUPS;
     const body: WaitlistCountResponse = await res.json();
-    return body.count;
+    return body.count + PAPER_SIGNUPS;
   } catch {
-    return 75;
+    return PAPER_SIGNUPS;
   }
 }

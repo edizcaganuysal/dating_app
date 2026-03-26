@@ -46,8 +46,8 @@ export default function Navbar() {
       </div>
 
       {/* Nav content */}
-      <div className="flex items-center justify-between px-6 md:px-12 py-4 bg-background/40 backdrop-blur-md border-b border-white/[0.04]">
-        <p className="font-display text-sm tracking-[0.3em] text-white/60 uppercase">
+      <div className="flex items-center justify-between px-6 md:px-12 py-4 bg-background/60 backdrop-blur-md border-b border-white/[0.10]">
+        <p className="font-display text-sm tracking-[0.3em] text-white/80 uppercase">
           Yuni
         </p>
 
@@ -55,7 +55,7 @@ export default function Navbar() {
           onClick={() => {
             document.querySelector("#waitlist")?.scrollIntoView({ behavior: "smooth" });
           }}
-          className="text-[10px] tracking-[0.25em] text-white/40 uppercase font-body hover:text-accent transition-colors duration-300"
+          className="text-[10px] tracking-[0.25em] text-white/60 uppercase font-body hover:text-accent transition-colors duration-300"
           data-cursor-hover
         >
           Join Waitlist

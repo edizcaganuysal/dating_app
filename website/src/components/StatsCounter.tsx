@@ -45,10 +45,10 @@ function AnimatedCounter({
 export default function StatsCounter() {
   const sectionRef = useRef<HTMLDivElement>(null);
   const [triggered, setTriggered] = useState(false);
-  const [waitlistCount, setWaitlistCount] = useState(75);
+  const [waitlistCount, setWaitlistCount] = useState(150);
 
   useEffect(() => {
-    getWaitlistCount().then((c) => setWaitlistCount(c || 75));
+    getWaitlistCount().then((c) => setWaitlistCount(c || 150));
   }, []);
 
   useEffect(() => {
@@ -66,7 +66,7 @@ export default function StatsCounter() {
 
   const stats = [
     { label: "On the Waitlist", value: waitlistCount, suffix: "", prefix: "" },
-    { label: "Universities", value: 20, suffix: "+", prefix: "" },
+    { label: "Universities", value: 5, suffix: "", prefix: "" },
     { label: "Launch Year", value: 2026, suffix: "", prefix: "" },
   ];
 
@@ -76,7 +76,7 @@ export default function StatsCounter() {
         {stats.map((stat, i) => (
           <div key={i} className="space-y-3">
             <AnimatedCounter {...stat} triggered={triggered} />
-            <p className="text-[10px] uppercase tracking-[0.3em] text-white/30 font-body">
+            <p className="text-[10px] uppercase tracking-[0.3em] text-white/50 font-body">
               {stat.label}
             </p>
           </div>

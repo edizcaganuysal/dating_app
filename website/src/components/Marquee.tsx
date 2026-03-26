@@ -14,15 +14,15 @@ export default function Marquee() {
 
   const row = items.map((item, i) => (
     <span key={i} className="flex items-center gap-8 shrink-0">
-      <span className="font-display text-sm md:text-base tracking-[0.2em] text-white/30 uppercase whitespace-nowrap">
+      <span className="font-display text-sm md:text-base tracking-[0.2em] text-white/50 uppercase whitespace-nowrap">
         {item}
       </span>
-      <span className="w-1.5 h-1.5 rounded-full bg-accent/50 shrink-0" />
+      <span className="w-1.5 h-1.5 rounded-full bg-accent/70 shrink-0" />
     </span>
   ));
 
   return (
-    <div className="relative py-8 overflow-hidden border-y border-white/[0.03]">
+    <div className="relative py-8 overflow-hidden border-y border-white/[0.08]">
       <div className="flex gap-8 animate-marquee">
         {row}
         {row}

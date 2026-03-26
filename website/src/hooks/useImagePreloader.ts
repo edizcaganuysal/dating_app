@@ -49,18 +49,18 @@ export function useImagePreloader(
       // Phase 1: Load first frame immediately
       await loadImage(0);
 
-      // Phase 2: Load every 5th frame for smoother rough scrub
+      // Phase 2: Load every 4th frame for rough scrub
       const phase2: number[] = [];
-      for (let i = 5; i < total; i += 5) {
+      for (let i = 4; i < total; i += 4) {
         phase2.push(i);
       }
       await Promise.all(
-        chunkArray(phase2, 12).map((batch) =>
+        chunkArray(phase2, 10).map((batch) =>
           Promise.all(batch.map((idx) => loadImage(idx)))
         )
       );
 
-      // Phase 3: Fill all remaining frames in parallel
+      // Phase 3: Fill all remaining frames
       const phase3: number[] = [];
       for (let i = 1; i < total; i++) {
         if (!images.current[i]) {
@@ -68,7 +68,7 @@ export function useImagePreloader(
         }
       }
       await Promise.all(
-        chunkArray(phase3, 15).map((batch) =>
+        chunkArray(phase3, 20).map((batch) =>
           Promise.all(batch.map((idx) => loadImage(idx)))
         )
       );
