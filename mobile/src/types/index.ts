@@ -70,7 +70,7 @@ export interface ProfileCreateData {
   photo_urls: string[];
   interests: string[];
   prompts?: { prompt: string; answer: string }[];
-  vibe_answers: VibeAnswer[];
+  vibe_answers?: VibeAnswer[];
   age_range_min: number;
   age_range_max: number;
   bio?: string;
@@ -102,6 +102,7 @@ export interface ProfileCreateData {
   group_role?: string[];
   ideal_group_size?: string;
   dealbreakers?: string[];
+  values_vector?: number[];
 }
 
 export interface ProfileUpdateData {
