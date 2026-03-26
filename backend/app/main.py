@@ -79,6 +79,24 @@ async def matching_cron():
         await asyncio.sleep(900)  # 15 minutes
 
 
+async def pre_date_prompt_cron():
+    """Every 5 minutes: send any due pre-date prompts as system messages."""
+    await asyncio.sleep(30)
+    while True:
+        try:
+            from app.database import async_session
+            from app.services.pre_date_prompt_service import send_due_prompts
+
+            async with async_session() as db:
+                count = await send_due_prompts(db)
+                if count:
+                    logger.info(f"Pre-date prompt cron: sent {count} prompts")
+        except Exception as e:
+            logger.error(f"Pre-date prompt cron error: {e}")
+
+        await asyncio.sleep(300)  # 5 minutes
+
+
 async def female_confirm_timeout_cron():
     """Every 30 minutes: notify males in groups where females haven't confirmed within 12 hours."""
     await asyncio.sleep(60)
@@ -152,11 +170,13 @@ async def lifespan(app: FastAPI):
     batch_task = asyncio.create_task(batch_formation_cron())
     match_task = asyncio.create_task(matching_cron())
     confirm_task = asyncio.create_task(female_confirm_timeout_cron())
+    prompt_task = asyncio.create_task(pre_date_prompt_cron())
     logger.info("Started matching cron tasks")
     yield
     batch_task.cancel()
     match_task.cancel()
     confirm_task.cancel()
+    prompt_task.cancel()
 
 
 # ── App Setup ──

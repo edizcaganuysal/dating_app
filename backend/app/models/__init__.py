@@ -10,6 +10,7 @@ from app.models.waitlist import WaitlistEntry
 from app.models.analytics import AnalyticsEvent, GroupOutcome
 from app.models.experiment import Experiment, ExperimentAssignment
 from app.models.algorithm_config import AlgorithmConfig
+from app.models.pre_date_prompt import PreDatePrompt
 
 __all__ = [
     "User",
@@ -39,4 +40,5 @@ __all__ = [
     "Experiment",
     "ExperimentAssignment",
     "AlgorithmConfig",
+    "PreDatePrompt",
 ]

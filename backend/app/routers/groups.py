@@ -13,6 +13,7 @@ from app.models.chat import ChatRoom
 from app.models.group import DateGroup, GroupMember
 from app.models.user import User
 from app.services.notification_service import notify_group_reveal
+from app.services.pre_date_prompt_service import schedule_pre_date_prompts
 from app.schemas.group import (
     GroupDetailResponse,
     GroupMemberDetailResponse,
@@ -217,6 +218,9 @@ async def confirm_group(
     if current_user.gender == "female":
         await _check_and_notify_males(group_id, group.activity, db)
 
+    # Check if ALL members are now confirmed → schedule pre-date prompts
+    await _check_all_confirmed_and_schedule(group_id, group, db)
+
     await db.commit()
     return {"message": "Confirmed"}
 
@@ -245,3 +249,38 @@ async def _check_and_notify_males(
             m.notified_at = now
             if m.user.push_token:
                 await notify_group_reveal(m.user.push_token, activity, str(group_id))
+
+
+async def _check_all_confirmed_and_schedule(
+    group_id: uuid.UUID, group: DateGroup, db: AsyncSession
+) -> None:
+    """If all members confirmed, update status and schedule pre-date prompts."""
+    all_members_result = await db.execute(
+        select(GroupMember).where(GroupMember.group_id == group_id)
+    )
+    all_members = all_members_result.scalars().all()
+
+    if not all(m.confirmed for m in all_members):
+        return
+
+    # Mark group as confirmed
+    group.status = "confirmed"
+
+    # Find the group chat room
+    room_result = await db.execute(
+        select(ChatRoom.id).where(
+            ChatRoom.group_id == group_id,
+            ChatRoom.room_type == "group",
+        )
+    )
+    room_id = room_result.scalar_one_or_none()
+    if not room_id:
+        return
+
+    await schedule_pre_date_prompts(
+        group_id=group_id,
+        room_id=room_id,
+        scheduled_date=group.scheduled_date,
+        scheduled_time=group.scheduled_time,
+        db=db,
+    )
