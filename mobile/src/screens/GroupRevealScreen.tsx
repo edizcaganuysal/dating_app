@@ -9,6 +9,7 @@ import {
   Linking,
   Animated,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { getGroupDetail, getIcebreakers, getVenueSuggestions } from '../api/chat';
 import { GroupDetail, Venue } from '../types';
@@ -93,9 +94,11 @@ export default function GroupRevealScreen() {
 
   const handleShare = async () => {
     if (!group) return;
+    const activity = group.activity.replace(/_/g, ' ');
+    const venue = venues.length > 0 ? venues[0].name : 'TBD';
     const memberNames = group.members.map((m) => m.profile.first_name).join(', ');
-    const text = `I'm going to ${group.activity.replace(/_/g, ' ')} on ${group.scheduled_date} at ${group.scheduled_time}.${venues.length > 0 ? ` Venue: ${venues[0].name}` : ''} Group: ${memberNames}`;
-    try { await Share.share({ message: text }); } catch {}
+    const message = `I am going on a Yuni group date! ${activity} at ${venue}, ${group.scheduled_date} ${group.scheduled_time}. Group: ${memberNames}. I will check in after!`;
+    try { await Share.share({ message }); } catch {}
   };
 
   const handleOpenMaps = (address: string) => {
@@ -158,7 +161,10 @@ export default function GroupRevealScreen() {
           </PressableScale>
         )}
         <PressableScale testID="share-plans-button" style={styles.shareButton} onPress={handleShare}>
-          <Text style={styles.shareButtonText}>Share My Plans</Text>
+          <View style={styles.shareButtonContent}>
+            <Ionicons name="share-outline" size={18} color="#fff" />
+            <Text style={styles.shareButtonText}>Share My Plans</Text>
+          </View>
         </PressableScale>
       </View>
     </ScrollView>
@@ -195,5 +201,6 @@ const styles = StyleSheet.create({
   primaryButton: { backgroundColor: colors.primary, paddingVertical: 14, borderRadius: 25, alignItems: 'center' },
   primaryButtonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
   shareButton: { backgroundColor: colors.info, paddingVertical: 14, borderRadius: 25, alignItems: 'center' },
+  shareButtonContent: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   shareButtonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
 });
