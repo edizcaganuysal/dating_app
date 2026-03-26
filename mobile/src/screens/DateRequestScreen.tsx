@@ -30,16 +30,17 @@ const { width } = Dimensions.get('window');
 const CARD_SIZE = (width - 56) / 3;
 
 const ACTIVITIES: { value: ActivityType; label: string; emoji: string; desc: string }[] = [
-  { value: 'dinner', label: 'Dinner', emoji: '\u{1F37D}', desc: 'Restaurant vibes & good food' },
-  { value: 'bar', label: 'Bar / Pub', emoji: '\u{1F37A}', desc: 'Drinks, music & conversation' },
-  { value: 'bowling', label: 'Bowling', emoji: '\u{1F3B3}', desc: 'Lanes, shoes & friendly competition' },
-  { value: 'karaoke', label: 'Karaoke', emoji: '\u{1F3A4}', desc: 'Private rooms & terrible singing' },
-  { value: 'board_games', label: 'Board Game Cafe', emoji: '\u{1F3B2}', desc: 'Cozy cafe with 100+ games' },
+  { value: 'escape_room', label: 'Escape Room', emoji: '\u{1F510}', desc: 'Solve puzzles as a team' },
   { value: 'cooking_class', label: 'Cooking Class', emoji: '\u{1F468}\u200D\u{1F373}', desc: 'Learn & eat together' },
   { value: 'trivia_night', label: 'Trivia Night', emoji: '\u{1F9E0}', desc: 'Team up & show off your brains' },
+  { value: 'hiking', label: 'Hiking', emoji: '\u{1F97E}', desc: 'Trails, views & fresh air' },
+  { value: 'karaoke', label: 'Karaoke', emoji: '\u{1F3A4}', desc: 'Private rooms & terrible singing' },
+  { value: 'bowling', label: 'Bowling', emoji: '\u{1F3B3}', desc: 'Lanes, shoes & friendly competition' },
+  { value: 'board_games', label: 'Board Game Cafe', emoji: '\u{1F3B2}', desc: 'Cozy cafe with 100+ games' },
   { value: 'mini_golf', label: 'Mini Golf', emoji: '\u26F3', desc: 'Holes, putts & trash talk' },
-  { value: 'escape_room', label: 'Escape Room', emoji: '\u{1F510}', desc: 'Solve puzzles as a team' },
-  { value: 'arcade', label: 'Arcade', emoji: '\u{1F579}', desc: 'Games, prizes & good times' },
+  { value: 'dinner', label: 'Dinner', emoji: '\u{1F37D}', desc: 'Restaurant vibes & good food' },
+  { value: 'bar', label: 'Bar / Pub', emoji: '\u{1F37A}', desc: 'Drinks, music & conversation' },
+  { value: 'art_gallery', label: 'Art Gallery', emoji: '\u{1F3A8}', desc: 'Culture, vibes & conversation' },
 ];
 
 // Hour slots for time picker (8 AM to 1 AM)
@@ -114,8 +115,8 @@ export default function DateRequestScreen() {
   // Step 1: Activities
   const [selectedActivities, setSelectedActivities] = useState<ActivityType[]>([]);
 
-  // Step 2: Group size + Friends
-  const [groupSize, setGroupSize] = useState<4 | 6>(4);
+  // Group size is always 4 (backend default)
+  const groupSize = 4;
   const [friends, setFriends] = useState<Friend[]>([]);
   const [selectedFriendIds, setSelectedFriendIds] = useState<string[]>([]);
 
@@ -150,7 +151,6 @@ export default function DateRequestScreen() {
           // Edit mode: load the specific request
           const req = await getDateRequest(editRequestId);
           setSelectedActivities([req.activity]);
-          setGroupSize(req.group_size === 6 ? 6 : 4);
           if (req.pre_group_friend_ids?.length > 0) {
             setSelectedFriendIds(req.pre_group_friend_ids);
           }
@@ -172,7 +172,6 @@ export default function DateRequestScreen() {
           if (reqData.length > 0) {
             const last = reqData[reqData.length - 1];
             setSelectedActivities([last.activity]);
-            setGroupSize(last.group_size === 6 ? 6 : 4);
             if (last.pre_group_friend_ids?.length > 0) {
               setSelectedFriendIds(last.pre_group_friend_ids);
             }
@@ -285,7 +284,6 @@ export default function DateRequestScreen() {
         ACTIVITIES.some(act => act.value === a)
       ) as ActivityType[]
     );
-    setGroupSize(template.group_size === 6 ? 6 : 4);
     if (template.friend_ids?.length > 0) {
       setSelectedFriendIds(template.friend_ids);
     }
@@ -401,7 +399,7 @@ export default function DateRequestScreen() {
             )}
             {isEditMode && <Text style={{ fontSize: 14, color: colors.darkSecondary, marginBottom: 12 }}>Pick one activity for this request</Text>}
             <View style={styles.activityGrid}>
-              {ACTIVITIES.map(a => {
+              {ACTIVITIES.map((a, idx) => {
                 const isSelected = selectedActivities.includes(a.value);
                 return (
                   <TouchableOpacity
@@ -409,6 +407,11 @@ export default function DateRequestScreen() {
                     style={[styles.activityCard, isSelected && styles.activityCardSelected]}
                     onPress={() => toggleActivity(a.value)}
                   >
+                    {idx === 0 && (
+                      <View style={styles.popularBadge}>
+                        <Text style={styles.popularBadgeText}>Most popular</Text>
+                      </View>
+                    )}
                     <Text style={styles.activityEmoji}>{a.emoji}</Text>
                     <Text style={[styles.activityLabel, isSelected && styles.activityLabelSelected]}>
                       {a.label}
@@ -420,38 +423,12 @@ export default function DateRequestScreen() {
           </>
         )}
 
-        {/* Step 1: Group Size + Friends */}
+        {/* Step 1: Friends */}
         {step === 1 && (
           <>
-            <Text style={styles.stepTitle}>Group Size</Text>
-            <View style={styles.toggleRow}>
-              <TouchableOpacity
-                style={[styles.toggle, groupSize === 4 && styles.toggleSelected]}
-                onPress={() => {
-                  setGroupSize(4);
-                  // Trim friends if needed
-                  if (selectedFriendIds.length > 1) {
-                    setSelectedFriendIds(prev => prev.slice(0, 1));
-                  }
-                }}
-              >
-                <Text style={[styles.toggleText, groupSize === 4 && styles.toggleTextSelected]}>
-                  4 people
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.toggle, groupSize === 6 && styles.toggleSelected]}
-                onPress={() => setGroupSize(6)}
-              >
-                <Text style={[styles.toggleText, groupSize === 6 && styles.toggleTextSelected]}>
-                  6 people
-                </Text>
-              </TouchableOpacity>
-            </View>
-
-            <Text style={[styles.stepTitle, { marginTop: 24 }]}>Bring Friends</Text>
+            <Text style={styles.stepTitle}>Bring a Friend</Text>
             <Text style={styles.constraintNote}>
-              Same gender friends only. Max {maxFriends} for group of {groupSize}.
+              Same gender only. You can bring 1 friend.
             </Text>
 
             {friends.length === 0 ? (
@@ -631,9 +608,6 @@ export default function DateRequestScreen() {
                 })}
               </View>
 
-              <Text style={styles.summaryLabel}>Group Size</Text>
-              <Text style={styles.summaryValue}>{groupSize} people</Text>
-
               {selectedFriendIds.length > 0 && (
                 <>
                   <Text style={styles.summaryLabel}>Friends</Text>
@@ -770,6 +744,11 @@ const styles = StyleSheet.create({
   activityEmoji: { fontSize: 28, marginBottom: 6 },
   activityLabel: { fontSize: 12, color: colors.dark, textAlign: 'center', fontWeight: '500' },
   activityLabelSelected: { color: colors.primary, fontWeight: '700' },
+  popularBadge: {
+    position: 'absolute', top: 4, right: -2,
+    backgroundColor: colors.warning, paddingHorizontal: 5, paddingVertical: 1, borderRadius: 6,
+  },
+  popularBadgeText: { fontSize: 7, color: '#fff', fontWeight: '700' },
 
   // Group size
   toggleRow: { flexDirection: 'row', gap: 12, marginBottom: 8 },
