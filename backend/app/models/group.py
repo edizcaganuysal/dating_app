@@ -18,6 +18,7 @@ class DateGroup(Base):
     venue_name: Mapped[Optional[str]] = mapped_column(String(200), nullable=True)
     venue_address: Mapped[Optional[str]] = mapped_column(nullable=True)
     status: Mapped[str] = mapped_column(String(20), default="upcoming")
+    is_explore: Mapped[bool] = mapped_column(default=False)
     created_at: Mapped[dt.datetime] = mapped_column(server_default=func.now())
     updated_at: Mapped[dt.datetime] = mapped_column(server_default=func.now(), onupdate=func.now())
 

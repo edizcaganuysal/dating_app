@@ -9,6 +9,7 @@ from app.models.matching_batch import MatchingBatch, ProposedGroup, ProposedGrou
 from app.models.waitlist import WaitlistEntry
 from app.models.analytics import AnalyticsEvent, GroupOutcome
 from app.models.experiment import Experiment, ExperimentAssignment
+from app.models.algorithm_config import AlgorithmConfig
 
 __all__ = [
     "User",
@@ -37,4 +38,5 @@ __all__ = [
     "GroupOutcome",
     "Experiment",
     "ExperimentAssignment",
+    "AlgorithmConfig",
 ]

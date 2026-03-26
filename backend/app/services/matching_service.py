@@ -1,20 +1,46 @@
+import random
 import uuid
 from collections import defaultdict
 from itertools import combinations
-from math import radians, cos, sin, asin, sqrt
-from statistics import stdev
+from statistics import mean, stdev, variance
 from typing import Optional
 
 from sqlalchemy import or_, and_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from app.models.algorithm_config import AlgorithmConfig
 from app.models.chat import ChatParticipant, ChatRoom
-from app.models.date_request import AvailabilitySlot, DateRequest, PreGroupFriend
+from app.models.date_request import DateRequest, PreGroupFriend
 from app.models.group import DateGroup, GroupMember
 from app.models.report import BlockedPair
 from app.models.user import User, VibeAnswer
+from app.services.geo_utils import haversine_km
 
+
+# ── Default Configuration ──
+
+DEFAULT_WEIGHTS = {
+    "att_cohesion": 5.0,
+    "role_diversity": 3.0,
+    "energy_balance": 1.5,
+    "personality_div": 2.5,
+    "intent_alignment": 2.0,
+    "activity_fit": 1.5,
+    "values_baseline": 1.5,
+    "friction": 1.5,
+    "epsilon": 0.15,
+    "num_restarts": 20,
+}
+
+IDEAL_ENERGY_MAP = {
+    "escape_room": 3.5, "cooking_class": 2.5, "trivia": 3.0,
+    "hiking": 3.0, "karaoke": 4.0, "bowling": 3.0,
+    "board_games": 2.0, "mini_golf": 3.0, "dinner": 2.5, "bar": 3.5,
+}
+
+
+# ── Hard Constraints (unchanged) ──
 
 def check_age_compatibility(users: list[User]) -> bool:
     """Every user must fall within every other user's [age_range_min, age_range_max]."""
@@ -60,258 +86,155 @@ def check_dealbreakers(users: list[User]) -> bool:
     return True
 
 
-def _compute_intent_bonus(a: User, b: User) -> float:
-    """Score bonus for matching relationship intents."""
-    ia = a.relationship_intent or "open"
-    ib = b.relationship_intent or "open"
-    if ia == ib:
-        return 3.0 if ia in ("serious", "casual") else 2.0
-    if "open" in (ia, ib):
-        return 1.0
-    return 0.0
+def check_location_compatible(users: list[User]) -> bool:
+    """Return True if all users are within each other's preferred max distance."""
+    located = [(u, u.latitude, u.longitude) for u in users if u.latitude and u.longitude]
+    for i in range(len(located)):
+        ua, lat_a, lon_a = located[i]
+        for j in range(i + 1, len(located)):
+            ub, lat_b, lon_b = located[j]
+            dist = haversine_km(lat_a, lon_a, lat_b, lon_b)
+            max_dist = min(
+                ua.preferred_max_distance_km or 25,
+                ub.preferred_max_distance_km or 25,
+            )
+            if dist > max_dist:
+                return False
+    return True
 
 
-def _compute_personality_score(a: User, b: User) -> float:
-    """Score personality compatibility (thorough users only)."""
-    score = 0.0
-    # Social energy complementarity (replaces simple similarity)
-    score += _compute_energy_complementarity(a, b)
-    # Humor style overlap
-    a_humor = set(a.humor_styles or [])
-    b_humor = set(b.humor_styles or [])
-    if a_humor and b_humor:
-        score += len(a_humor & b_humor) * 2.0
-    return score
+def _check_blocked(users: list[User], blocked_set: set[tuple[uuid.UUID, uuid.UUID]]) -> bool:
+    """Return True if no blocked pairs exist in the group."""
+    for i in range(len(users)):
+        for j in range(i + 1, len(users)):
+            if (users[i].id, users[j].id) in blocked_set or (users[j].id, users[i].id) in blocked_set:
+                return False
+    return True
 
 
-def _compute_lifestyle_score(a: User, b: User) -> float:
-    """Score lifestyle compatibility (thorough users only)."""
-    score = 0.0
-    for field in ("drinking", "smoking", "exercise", "sleep_schedule"):
-        val_a = getattr(a, field, None)
-        val_b = getattr(b, field, None)
-        if val_a and val_b and val_a == val_b:
-            score += 1.0
-    return score
+def check_all_hard_constraints(
+    users: list[User],
+    blocked_set: set[tuple[uuid.UUID, uuid.UUID]],
+) -> bool:
+    """Check age, dealbreakers, location, and blocked pairs."""
+    if not check_age_compatibility(users):
+        return False
+    if not check_dealbreakers(users):
+        return False
+    if not check_location_compatible(users):
+        return False
+    if not _check_blocked(users, blocked_set):
+        return False
+    return True
 
 
-def _haversine_km(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
-    """Compute the great-circle distance between two points on Earth (km)."""
-    lat1, lon1, lat2, lon2 = map(radians, [lat1, lon1, lat2, lon2])
-    dlat = lat2 - lat1
-    dlon = lon2 - lon1
-    a = sin(dlat / 2) ** 2 + cos(lat1) * cos(lat2) * sin(dlon / 2) ** 2
-    return 6371.0 * 2 * asin(sqrt(a))
+# ── Group Quality Function (Q) ──
 
-
-def _compute_communication_compat(a: User, b: User) -> float:
-    """Score communication preference compatibility between two users."""
-    ca = a.communication_pref
-    cb = b.communication_pref
-    if ca is None or cb is None:
+def compute_group_quality(group_users: list[User], activity: str, weights: dict) -> float:
+    """Score = sum of weighted group-level components."""
+    scores = group_users
+    if not scores:
         return 0.0
 
-    # Normalise ordering so we only need to specify each pair once
-    pair = tuple(sorted([ca, cb]))
+    # AttCohesion: -variance of attractiveness scores (HIGHER IS BETTER when variance is LOW)
+    att_scores = [u.attractiveness_score or 5.0 for u in scores]
+    att_cohesion = -variance(att_scores) if len(att_scores) > 1 else 0
 
-    lookup = {
-        ("caller", "caller"): 2.0,
-        ("in_person", "in_person"): 2.0,
-        ("texter", "texter"): 2.0,
-        ("voice_notes", "voice_notes"): 1.5,
-        ("texter", "voice_notes"): 1.0,
-        ("caller", "in_person"): 1.5,
-        ("caller", "voice_notes"): 1.0,
-        ("in_person", "voice_notes"): 1.0,
-        ("caller", "texter"): -0.5,
-        ("in_person", "texter"): 0.5,
-    }
-    return lookup.get(pair, 0.0)
+    # RoleDiversity: proportion of unique roles + catalyst bonus
+    roles: set[str] = set()
+    for u in scores:
+        for r in (u.group_role or []):
+            if r:
+                roles.add(r)
+    role_div = (len(roles) / len(scores)) * 5 if scores else 0
+    has_catalyst = any(
+        r in ("catalyst", "Catalyst", "Gets conversation started",
+              "starts_conversations", "gets_everyone_hyped")
+        for r in roles
+    )
+    role_div += 3.0 if has_catalyst else 0
 
+    # EnergyBalance: moderate diversity, optimal std ~ 1.0
+    energies = [u.social_energy or 3 for u in scores]
+    energy_std = stdev(energies) if len(energies) > 1 else 0
+    energy_balance = max(0, 3.0 - abs(energy_std - 1.0) * 2)
 
-def _compute_energy_complementarity(a: User, b: User) -> float:
-    """Score social energy complementarity — slight differences create dynamic groups."""
-    if a.social_energy is None or b.social_energy is None:
-        return 0.0
-    diff = abs(a.social_energy - b.social_energy)
-    if diff == 0:
-        return 1.5
-    elif diff == 1:
-        return 2.5  # Sweet spot — dynamic groups
-    elif diff == 2:
-        return 1.0
+    # PersonalityDiv: count unique (values_vector, energy_bucket, role) combos
+    combos: set[tuple] = set()
+    for u in scores:
+        vv = tuple(u.values_vector) if u.values_vector else ()
+        eb = (u.social_energy or 3) // 2
+        gr = tuple(sorted(u.group_role)) if u.group_role else ()
+        combos.add((vv, eb, gr))
+    personality_div = (len(combos) / len(scores)) * 5 if scores else 0
+
+    # IntentAlignment
+    intents = [u.relationship_intent for u in scores if u.relationship_intent]
+    if len(set(intents)) == 1:
+        intent_align = 3.0
+    elif "open" in intents:
+        intent_align = 1.5
     else:
-        return -0.5
+        intent_align = 0.0
 
+    # ActivityFit
+    ideal = IDEAL_ENERGY_MAP.get(activity, 3.0)
+    mean_energy = mean(energies) if energies else 3.0
+    activity_fit = max(0, 3.0 - abs(mean_energy - ideal))
 
-def _compute_role_diversity(users: list[User]) -> float:
-    """Score group role diversity — diverse roles make better group dynamics."""
-    role_to_category = {
-        "starts_conversations": "connector",
-        "tells_jokes": "entertainer",
-        "listens_quietly": "listener",
-        "plans_everything": "planner",
-        "goes_with_the_flow": "flexible",
-        "gets_everyone_hyped": "energizer",
-        "the_photographer": "creative",
-        "the_dj": "creative",
-    }
-
-    categories: set[str] = set()
-    for u in users:
-        for role in (u.group_role or []):
-            cat = role_to_category.get(role)
-            if cat:
-                categories.add(cat)
-
-    score = len(categories) * 1.5
-
-    # Bonus for having the trifecta: planner + entertainer + connector
-    if {"planner", "entertainer", "connector"} <= categories:
-        score += 3.0
-
-    return score
-
-
-def _compute_location_bonus(a: User, b: User) -> float:
-    """Score location proximity. Returns -100.0 as hard filter if too far."""
-    if a.latitude is None or a.longitude is None:
-        return 0.0
-    if b.latitude is None or b.longitude is None:
-        return 0.0
-
-    dist = _haversine_km(a.latitude, a.longitude, b.latitude, b.longitude)
-
-    max_dist = min(
-        a.preferred_max_distance_km or 25,
-        b.preferred_max_distance_km or 25,
-    )
-    if dist > max_dist:
-        return -100.0
-
-    # Soft bonus
-    if dist <= 5:
-        return 3.0
-    elif dist <= 10:
-        return 2.0
-    elif dist <= 15:
-        return 1.0
-    return 0.0
-
-
-def _compute_diet_friction(a: User, b: User) -> float:
-    """Return penalty for diet incompatibility on group dates."""
-    da = a.diet
-    db_ = b.diet
-    if da is None or db_ is None:
-        return 0.0
-
-    # Normalise ordering so we only need to specify each pair once
-    pair = tuple(sorted([da, db_]))
-
-    lookup = {
-        ("no_restrictions", "vegan"): 1.5,
-        ("no_restrictions", "vegetarian"): 0.5,
-        ("halal", "no_restrictions"): 0.5,
-        ("kosher", "no_restrictions"): 0.5,
-        ("halal", "vegan"): 1.0,
-        ("kosher", "vegan"): 1.0,
-    }
-    return lookup.get(pair, 0.0)
-
-
-def _compute_activity_energy_fit(users: list[User], activity: str) -> float:
-    """Score how well the group's energy matches the activity type."""
-    activity_ideal_energy = {
-        "board_games": 2,
-        "dinner": 3,
-        "cooking_class": 3,
-        "trivia": 3,
-        "mini_golf": 3,
-        "escape_room": 3,
-        "bowling": 3,
-        "bar": 4,
-        "karaoke": 4,
-        "arcade": 4,
-    }
-
-    ideal = activity_ideal_energy.get(activity, 3)
-    energies = [u.social_energy if u.social_energy is not None else 3 for u in users]
-    avg_energy = sum(energies) / len(energies) if energies else 3
-    return max(3.0 - abs(avg_energy - ideal), 0)
-
-
-def compute_group_score(males: list[User], females: list[User], activity: str = "") -> float:
-    """Score a candidate group based on multiple compatibility dimensions."""
-    interest_score = 0.0
-    vibe_score = 0.0
-    personality_score = 0.0
-    lifestyle_score = 0.0
-    intent_score = 0.0
-    communication_score = 0.0
-    location_score = 0.0
-    diet_penalty = 0.0
-
+    # ValuesBaseline: moderate cross-gender Hamming distance
+    males = [u for u in scores if u.gender == "male"]
+    females = [u for u in scores if u.gender == "female"]
+    hamming_dists: list[int] = []
     for m in males:
-        m_interests = set(m.interests or [])
-        m_vibes = {va.question: va.answer for va in (m.vibe_answers or [])}
         for f in females:
-            f_interests = set(f.interests or [])
-            interest_score += len(m_interests & f_interests)
+            if m.values_vector and f.values_vector and len(m.values_vector) == 6 and len(f.values_vector) == 6:
+                hamming_dists.append(sum(a != b for a, b in zip(m.values_vector, f.values_vector)))
+    avg_hamming = mean(hamming_dists) if hamming_dists else 3.0
+    values_baseline = max(0, 3.0 - abs(avg_hamming - 2.5) * 1.5)
 
-            f_vibes = {va.question: va.answer for va in (f.vibe_answers or [])}
-            for q in m_vibes:
-                if q in f_vibes and m_vibes[q] == f_vibes[q]:
-                    vibe_score += 1
+    # FrictionScore
+    friction = 0.0
+    diets = [u.diet for u in scores if u.diet]
+    if "vegan" in diets and "no_restrictions" in diets:
+        friction += 1.0
+    if "halal" in diets and "no_restrictions" in diets:
+        friction += 0.5
 
-            personality_score += _compute_personality_score(m, f)
-            lifestyle_score += _compute_lifestyle_score(m, f)
-            intent_score += _compute_intent_bonus(m, f)
-            communication_score += _compute_communication_compat(m, f)
-            location_score += _compute_location_bonus(m, f)
-            diet_penalty += _compute_diet_friction(m, f)
+    # Weighted sum
+    w = weights
+    Q = (w.get("att_cohesion", 5.0) * att_cohesion
+       + w.get("role_diversity", 3.0) * role_div
+       + w.get("energy_balance", 1.5) * energy_balance
+       + w.get("personality_div", 2.5) * personality_div
+       + w.get("intent_alignment", 2.0) * intent_align
+       + w.get("activity_fit", 1.5) * activity_fit
+       + w.get("values_baseline", 1.5) * values_baseline
+       - w.get("friction", 1.5) * friction)
+    return Q
 
-    # Group-level scores
-    all_users = males + females
-    role_diversity = _compute_role_diversity(all_users)
-    activity_fit = _compute_activity_energy_fit(all_users, activity)
 
-    scores = [u.attractiveness_score for u in all_users]
-    attractiveness_variance = stdev(scores) if len(scores) > 1 else 0.0
+# ── Config Loading ──
 
-    # Program bonus: slight bonus if users share the same program
-    programs = [u.program for u in all_users if u.program]
-    program_bonus = 0.0
-    if programs:
-        from collections import Counter
-        prog_counts = Counter(programs)
-        most_common_count = prog_counts.most_common(1)[0][1]
-        if most_common_count >= 2:
-            program_bonus = 1.0
-
-    return (
-        interest_score * 1.0
-        + vibe_score * 1.5
-        + personality_score * 2.0
-        + lifestyle_score * 1.5
-        + communication_score * 1.5
-        + intent_score
-        + location_score
-        + program_bonus
-        + role_diversity * 2.0
-        + activity_fit * 1.5
-        - diet_penalty
-        - (attractiveness_variance * 5)
+async def load_weights(db: AsyncSession) -> dict:
+    """Load matching weights from algorithm_config table, fall back to defaults."""
+    result = await db.execute(
+        select(AlgorithmConfig).where(AlgorithmConfig.key == "matching_weights")
     )
+    config = result.scalar_one_or_none()
+    if config and isinstance(config.value, dict):
+        merged = dict(DEFAULT_WEIGHTS)
+        merged.update(config.value)
+        return merged
+    return dict(DEFAULT_WEIGHTS)
 
+
+# ── Pre-group Helpers ──
 
 def get_overlapping_slots(
     requests: list[DateRequest],
 ) -> dict[tuple, list[DateRequest]]:
-    """Group requests by (date, time_window) where they share availability.
-
-    Returns a dict mapping (date, time_window) -> list of DateRequests available at that slot.
-    """
+    """Group requests by (date, time_window) where they share availability."""
     slot_map: dict[tuple, list[DateRequest]] = defaultdict(list)
     for req in requests:
         for slot in req.availability_slots:
@@ -328,7 +251,6 @@ def _build_pregroup_map(
     for req in requests:
         for pg in req.pre_group_friends:
             pregroup[req.user_id].add(pg.friend_user_id)
-            # Symmetry: if A wants B, B should be with A
             pregroup[pg.friend_user_id].add(req.user_id)
     return pregroup
 
@@ -349,77 +271,283 @@ def _get_pregroup_cluster(
     return cluster
 
 
-def _generate_candidate_groups(
-    male_requests: list[DateRequest],
-    female_requests: list[DateRequest],
-    group_size: int,
+# ── Blocked Pairs Batch Loading ──
+
+async def _load_blocked_set(
+    user_ids: list[uuid.UUID], db: AsyncSession,
+) -> set[tuple[uuid.UUID, uuid.UUID]]:
+    """Pre-load all blocked pairs among the given users for O(1) lookups."""
+    if len(user_ids) < 2:
+        return set()
+    result = await db.execute(
+        select(BlockedPair).where(
+            or_(
+                BlockedPair.blocker_id.in_(user_ids),
+                BlockedPair.blocked_id.in_(user_ids),
+            )
+        )
+    )
+    pairs = result.scalars().all()
+    user_set = set(user_ids)
+    blocked: set[tuple[uuid.UUID, uuid.UUID]] = set()
+    for bp in pairs:
+        if bp.blocker_id in user_set and bp.blocked_id in user_set:
+            blocked.add((bp.blocker_id, bp.blocked_id))
+            blocked.add((bp.blocked_id, bp.blocker_id))
+    return blocked
+
+
+# ── Greedy Group Formation ──
+
+def _greedy_form_groups(
+    males: list[User],
+    females: list[User],
+    activity: str,
+    weights: dict,
+    blocked_set: set[tuple[uuid.UUID, uuid.UUID]],
     pregroup_map: dict[uuid.UUID, set[uuid.UUID]],
-    user_map: dict[uuid.UUID, User],
-) -> list[tuple[list[DateRequest], list[DateRequest]]]:
-    """Generate all valid candidate group compositions (male_reqs, female_reqs).
-
-    Returns list of (male_requests, female_requests) tuples for valid candidate groups.
+    epsilon: float,
+) -> list[tuple[list[User], bool]]:
     """
-    half = group_size // 2
-    candidates = []
+    Greedy group formation with epsilon-greedy exploration.
+    Returns list of (group_users, is_explore).
+    Groups of 4 (2M+2F) by default. Groups of 6 (3M+3F) only when pre-groups force it.
+    """
+    avail_males = list(males)
+    avail_females = list(females)
+    random.shuffle(avail_males)
+    random.shuffle(avail_females)
 
-    # Build clusters for pre-grouped users
-    male_clusters: list[list[DateRequest]] = []
-    used_males: set[uuid.UUID] = set()
-    for req in male_requests:
-        if req.user_id in used_males:
+    user_by_id: dict[uuid.UUID, User] = {u.id: u for u in males + females}
+    groups: list[tuple[list[User], bool]] = []
+    assigned: set[uuid.UUID] = set()
+
+    # Phase 1: Place pre-group clusters
+    seen_clusters: set[frozenset[uuid.UUID]] = set()
+
+    for uid in list(pregroup_map.keys()):
+        if uid not in user_by_id or uid in assigned:
             continue
-        cluster_ids = _get_pregroup_cluster(req.user_id, pregroup_map)
-        cluster_reqs = [r for r in male_requests if r.user_id in cluster_ids]
-        used_males.update(r.user_id for r in cluster_reqs)
-        male_clusters.append(cluster_reqs)
-
-    female_clusters: list[list[DateRequest]] = []
-    used_females: set[uuid.UUID] = set()
-    for req in female_requests:
-        if req.user_id in used_females:
+        cluster_ids = _get_pregroup_cluster(uid, pregroup_map)
+        key = frozenset(cluster_ids)
+        if key in seen_clusters:
             continue
-        cluster_ids = _get_pregroup_cluster(req.user_id, pregroup_map)
-        cluster_reqs = [r for r in female_requests if r.user_id in cluster_ids]
-        used_females.update(r.user_id for r in cluster_reqs)
-        female_clusters.append(cluster_reqs)
+        seen_clusters.add(key)
 
-    # Generate combinations of clusters that sum to exactly `half` per gender
-    male_combos = _cluster_combinations(male_clusters, half)
-    female_combos = _cluster_combinations(female_clusters, half)
+        cluster_males = [user_by_id[cid] for cid in cluster_ids
+                         if cid in user_by_id and user_by_id[cid].gender == "male" and cid not in assigned]
+        cluster_females = [user_by_id[cid] for cid in cluster_ids
+                           if cid in user_by_id and user_by_id[cid].gender == "female" and cid not in assigned]
 
-    for m_combo in male_combos:
-        for f_combo in female_combos:
-            candidates.append((m_combo, f_combo))
+        if not cluster_males and not cluster_females:
+            continue
 
-    return candidates
+        # Determine half-size: at least 2 per gender, more if cluster requires it
+        half = max(len(cluster_males), len(cluster_females), 2)
+        if half > 3:
+            continue  # Cannot fit cluster in any valid group (max 3M+3F)
+
+        needed_males = half - len(cluster_males)
+        needed_females = half - len(cluster_females)
+
+        fill_male_pool = [u for u in avail_males if u.id not in assigned and u.id not in cluster_ids]
+        fill_female_pool = [u for u in avail_females if u.id not in assigned and u.id not in cluster_ids]
+
+        if len(fill_male_pool) < needed_males or len(fill_female_pool) < needed_females:
+            continue
+
+        best_score = float('-inf')
+        best_fill: Optional[tuple[list[User], list[User]]] = None
+
+        attempts = min(50, max(1, len(fill_male_pool) * len(fill_female_pool)))
+        for _ in range(attempts):
+            fill_m = random.sample(fill_male_pool, needed_males) if needed_males > 0 else []
+            fill_f = random.sample(fill_female_pool, needed_females) if needed_females > 0 else []
+            group = cluster_males + fill_m + cluster_females + fill_f
+
+            if check_all_hard_constraints(group, blocked_set):
+                # Verify pre-group constraints are met within this group
+                group_ids = {u.id for u in group}
+                pregroup_ok = True
+                for u in group:
+                    required = pregroup_map.get(u.id)
+                    if required and not required.issubset(group_ids):
+                        pregroup_ok = False
+                        break
+                if not pregroup_ok:
+                    continue
+
+                score = compute_group_quality(group, activity, weights)
+                if score > best_score:
+                    best_score = score
+                    best_fill = (fill_m, fill_f)
+
+        if best_fill:
+            fill_m, fill_f = best_fill
+            group = cluster_males + fill_m + cluster_females + fill_f
+            groups.append((group, False))
+            for u in group:
+                assigned.add(u.id)
+
+    # Phase 2: Form groups of 4 (2M+2F) from remaining users
+    remaining_males = [u for u in avail_males if u.id not in assigned]
+    remaining_females = [u for u in avail_females if u.id not in assigned]
+    half = 2
+
+    while len(remaining_males) >= half and len(remaining_females) >= half:
+        is_explore = random.random() < epsilon
+
+        if is_explore:
+            m_sample = random.sample(remaining_males, half)
+            f_sample = random.sample(remaining_females, half)
+            group = m_sample + f_sample
+            if check_all_hard_constraints(group, blocked_set):
+                groups.append((group, True))
+                group_ids = {u.id for u in group}
+                remaining_males = [u for u in remaining_males if u.id not in group_ids]
+                remaining_females = [u for u in remaining_females if u.id not in group_ids]
+                continue
+            # Fall through to scored approach if random group is invalid
+
+        best_score = float('-inf')
+        best_group: Optional[list[User]] = None
+
+        if len(remaining_males) <= 6 and len(remaining_females) <= 6:
+            # Small pool: enumerate all combinations
+            for m_combo in combinations(remaining_males, half):
+                for f_combo in combinations(remaining_females, half):
+                    group = list(m_combo) + list(f_combo)
+                    if not check_all_hard_constraints(group, blocked_set):
+                        continue
+                    score = compute_group_quality(group, activity, weights)
+                    if score > best_score:
+                        best_score = score
+                        best_group = group
+        else:
+            # Larger pool: sample candidates
+            n_candidates = min(100, len(remaining_males) * len(remaining_females))
+            for _ in range(n_candidates):
+                m_sample = random.sample(remaining_males, half)
+                f_sample = random.sample(remaining_females, half)
+                group = m_sample + f_sample
+                if not check_all_hard_constraints(group, blocked_set):
+                    continue
+                score = compute_group_quality(group, activity, weights)
+                if score > best_score:
+                    best_score = score
+                    best_group = group
+
+        if best_group:
+            groups.append((best_group, False))
+            group_ids = {u.id for u in best_group}
+            remaining_males = [u for u in remaining_males if u.id not in group_ids]
+            remaining_females = [u for u in remaining_females if u.id not in group_ids]
+        else:
+            break
+
+    return groups
 
 
-def _cluster_combinations(
-    clusters: list[list[DateRequest]], target: int
-) -> list[list[DateRequest]]:
-    """Find all combinations of clusters that sum to exactly target count."""
-    results: list[list[DateRequest]] = []
+# ── Local Search (2-opt) ──
 
-    def backtrack(idx: int, current: list[DateRequest]):
-        if len(current) == target:
-            results.append(list(current))
-            return
-        if len(current) > target or idx >= len(clusters):
-            return
-        # Skip this cluster
-        backtrack(idx + 1, current)
-        # Include this cluster
-        if len(current) + len(clusters[idx]) <= target:
-            backtrack(idx + 1, current + clusters[idx])
+def _local_search_2opt(
+    groups: list[tuple[list[User], bool]],
+    activity: str,
+    weights: dict,
+    blocked_set: set[tuple[uuid.UUID, uuid.UUID]],
+    pregroup_map: dict[uuid.UUID, set[uuid.UUID]],
+) -> list[tuple[list[User], bool]]:
+    """Iteratively swap one male or one female between group pairs. Keep if total Q improves."""
+    groups = list(groups)
+    if len(groups) < 2:
+        return groups
 
-    backtrack(0, [])
-    return results
+    improved = True
+    while improved:
+        improved = False
+        for i in range(len(groups)):
+            if improved:
+                break
+            for j in range(i + 1, len(groups)):
+                if improved:
+                    break
+                g1_users, g1_explore = groups[i]
+                g2_users, g2_explore = groups[j]
 
+                current_q = (compute_group_quality(g1_users, activity, weights)
+                           + compute_group_quality(g2_users, activity, weights))
+
+                g1_males = [u for u in g1_users if u.gender == "male"]
+                g1_females = [u for u in g1_users if u.gender == "female"]
+                g2_males = [u for u in g2_users if u.gender == "male"]
+                g2_females = [u for u in g2_users if u.gender == "female"]
+
+                # Try swapping males
+                for m1 in g1_males:
+                    if pregroup_map.get(m1.id):
+                        continue
+                    for m2 in g2_males:
+                        if pregroup_map.get(m2.id):
+                            continue
+                        new_g1 = [u for u in g1_users if u.id != m1.id] + [m2]
+                        new_g2 = [u for u in g2_users if u.id != m2.id] + [m1]
+
+                        if not check_all_hard_constraints(new_g1, blocked_set):
+                            continue
+                        if not check_all_hard_constraints(new_g2, blocked_set):
+                            continue
+
+                        new_q = (compute_group_quality(new_g1, activity, weights)
+                               + compute_group_quality(new_g2, activity, weights))
+                        if new_q > current_q:
+                            groups[i] = (new_g1, g1_explore)
+                            groups[j] = (new_g2, g2_explore)
+                            improved = True
+                            break
+                    if improved:
+                        break
+
+                if improved:
+                    break
+
+                # Try swapping females
+                for f1 in g1_females:
+                    if pregroup_map.get(f1.id):
+                        continue
+                    for f2 in g2_females:
+                        if pregroup_map.get(f2.id):
+                            continue
+                        new_g1 = [u for u in g1_users if u.id != f1.id] + [f2]
+                        new_g2 = [u for u in g2_users if u.id != f2.id] + [f1]
+
+                        if not check_all_hard_constraints(new_g1, blocked_set):
+                            continue
+                        if not check_all_hard_constraints(new_g2, blocked_set):
+                            continue
+
+                        new_q = (compute_group_quality(new_g1, activity, weights)
+                               + compute_group_quality(new_g2, activity, weights))
+                        if new_q > current_q:
+                            groups[i] = (new_g1, g1_explore)
+                            groups[j] = (new_g2, g2_explore)
+                            improved = True
+                            break
+                    if improved:
+                        break
+
+    return groups
+
+
+# ── Main Entry Point ──
 
 async def run_batch_matching(db: AsyncSession) -> list[DateGroup]:
     """Run the batch matching algorithm to form date groups from pending requests."""
-    # 1. Fetch all pending requests with relationships
+    # 1. Load config weights
+    weights = await load_weights(db)
+    epsilon = weights.get("epsilon", 0.15)
+    num_restarts = int(weights.get("num_restarts", 20))
+
+    # 2. Fetch all pending requests with relationships
     result = await db.execute(
         select(DateRequest)
         .where(DateRequest.status == "pending")
@@ -434,14 +562,13 @@ async def run_batch_matching(db: AsyncSession) -> list[DateGroup]:
     if not all_requests:
         return []
 
-    # Build user map for quick lookup
     user_map: dict[uuid.UUID, User] = {}
     request_map: dict[uuid.UUID, DateRequest] = {}
     for req in all_requests:
         user_map[req.user_id] = req.user
         request_map[req.user_id] = req
 
-    # 2. Group by activity
+    # 3. Group by activity
     activity_groups: dict[str, list[DateRequest]] = defaultdict(list)
     for req in all_requests:
         activity_groups[req.activity].append(req)
@@ -449,140 +576,105 @@ async def run_batch_matching(db: AsyncSession) -> list[DateGroup]:
     formed_groups: list[DateGroup] = []
     assigned_user_ids: set[uuid.UUID] = set()
 
-    # 3. For each activity group
+    # 4. Process each activity
     for activity, requests in activity_groups.items():
-        # Group by overlapping availability slots
         slot_groups = get_overlapping_slots(requests)
 
-        # Collect all scored candidates across all time slots
-        scored_candidates: list[tuple[float, list[DateRequest], list[DateRequest], tuple]] = []
-
         for (slot_date, slot_time), slot_requests in slot_groups.items():
-            # Separate by gender
-            male_reqs = [r for r in slot_requests if user_map[r.user_id].gender == "male"]
-            female_reqs = [r for r in slot_requests if user_map[r.user_id].gender == "female"]
+            available_reqs = [r for r in slot_requests if r.user_id not in assigned_user_ids]
 
-            # Group by requested group_size
-            for group_size in (4, 6):
-                half = group_size // 2
-                size_male = [r for r in male_reqs if r.group_size == group_size]
-                size_female = [r for r in female_reqs if r.group_size == group_size]
+            male_users = [user_map[r.user_id] for r in available_reqs if user_map[r.user_id].gender == "male"]
+            female_users = [user_map[r.user_id] for r in available_reqs if user_map[r.user_id].gender == "female"]
 
-                if len(size_male) < half or len(size_female) < half:
+            if len(male_users) < 2 or len(female_users) < 2:
+                continue
+
+            all_pool_ids = [u.id for u in male_users + female_users]
+            blocked_set = await _load_blocked_set(all_pool_ids, db)
+            pregroup_map = _build_pregroup_map(available_reqs)
+
+            # 5. Run multiple restarts, keep best assignment
+            best_total_q = float('-inf')
+            best_assignment: Optional[list[tuple[list[User], bool]]] = None
+
+            for _ in range(num_restarts):
+                assignment = _greedy_form_groups(
+                    male_users, female_users, activity, weights,
+                    blocked_set, pregroup_map, epsilon,
+                )
+                assignment = _local_search_2opt(
+                    assignment, activity, weights, blocked_set, pregroup_map,
+                )
+                total_q = sum(compute_group_quality(g, activity, weights) for g, _ in assignment)
+                if total_q > best_total_q:
+                    best_total_q = total_q
+                    best_assignment = assignment
+
+            if not best_assignment:
+                continue
+
+            # 6. Create groups in DB
+            for group_users, is_explore in best_assignment:
+                group_uids = [u.id for u in group_users]
+
+                if any(uid in assigned_user_ids for uid in group_uids):
                     continue
 
-                pregroup_map = _build_pregroup_map(size_male + size_female)
-
-                candidates = _generate_candidate_groups(
-                    size_male, size_female, group_size, pregroup_map, user_map
+                date_group = DateGroup(
+                    activity=activity,
+                    scheduled_date=slot_date,
+                    scheduled_time=slot_time,
+                    status="upcoming",
+                    is_explore=is_explore,
                 )
+                db.add(date_group)
+                await db.flush()
 
-                for m_reqs, f_reqs in candidates:
-                    m_users = [user_map[r.user_id] for r in m_reqs]
-                    f_users = [user_map[r.user_id] for r in f_reqs]
-                    all_users = m_users + f_users
-
-                    # Check age compatibility
-                    if not check_age_compatibility(all_users):
-                        continue
-
-                    # Check dealbreakers
-                    if not check_dealbreakers(all_users):
-                        continue
-
-                    # Check pre-group constraints: all pre-grouped friends must be present
-                    all_user_ids = {u.id for u in all_users}
-                    pregroup_ok = True
-                    for u in all_users:
-                        required_friends = pregroup_map.get(u.id, set())
-                        if not required_friends.issubset(all_user_ids):
-                            pregroup_ok = False
-                            break
-                    if not pregroup_ok:
-                        continue
-
-                    score = compute_group_score(m_users, f_users, activity=activity)
-                    scored_candidates.append(
-                        (score, m_reqs, f_reqs, (slot_date, slot_time))
+                for uid in group_uids:
+                    req = request_map.get(uid)
+                    member = GroupMember(
+                        group_id=date_group.id,
+                        user_id=uid,
+                        date_request_id=req.id if req else None,
                     )
+                    db.add(member)
 
-        # 5. Greedy assignment: sort by score descending
-        scored_candidates.sort(key=lambda x: x[0], reverse=True)
+                for uid in group_uids:
+                    req = request_map.get(uid)
+                    if req:
+                        req.status = "matched"
 
-        for score, m_reqs, f_reqs, (slot_date, slot_time) in scored_candidates:
-            all_reqs = m_reqs + f_reqs
-            all_uids = [r.user_id for r in all_reqs]
-
-            # Skip if any user already assigned
-            if any(uid in assigned_user_ids for uid in all_uids):
-                continue
-
-            # Check blocked pairs (async)
-            if not await check_no_blocked_pairs(all_uids, db):
-                continue
-
-            # 6. Create the group
-            date_group = DateGroup(
-                activity=activity,
-                scheduled_date=slot_date,
-                scheduled_time=slot_time,
-                status="upcoming",
-            )
-            db.add(date_group)
-            await db.flush()
-
-            # Create GroupMember records
-            for req in all_reqs:
-                member = GroupMember(
+                chat_room = ChatRoom(
+                    room_type="group",
                     group_id=date_group.id,
-                    user_id=req.user_id,
-                    date_request_id=req.id,
                 )
-                db.add(member)
+                db.add(chat_room)
+                await db.flush()
 
-            # Update request statuses
-            for req in all_reqs:
-                req.status = "matched"
+                for uid in group_uids:
+                    participant = ChatParticipant(
+                        room_id=chat_room.id,
+                        user_id=uid,
+                    )
+                    db.add(participant)
 
-            # Create group chat room
-            chat_room = ChatRoom(
-                room_type="group",
-                group_id=date_group.id,
-            )
-            db.add(chat_room)
-            await db.flush()
+                member_names = [user_map[uid].first_name for uid in group_uids if uid in user_map]
 
-            for req in all_reqs:
-                participant = ChatParticipant(
+                from app.services.chat_ai_service import send_welcome_message
+                await send_welcome_message(
                     room_id=chat_room.id,
-                    user_id=req.user_id,
+                    activity=date_group.activity,
+                    member_names=member_names,
+                    scheduled_date=str(date_group.scheduled_date) if date_group.scheduled_date else "",
+                    scheduled_time=date_group.scheduled_time or "",
+                    db=db,
                 )
-                db.add(participant)
 
-            # Send Yuni AI welcome message
-            member_names = []
-            for req in all_reqs:
-                result = await db.execute(select(User).where(User.id == req.user_id))
-                u = result.scalar_one_or_none()
-                if u:
-                    member_names.append(u.first_name)
-
-            from app.services.chat_ai_service import send_welcome_message
-            await send_welcome_message(
-                room_id=chat_room.id,
-                activity=date_group.activity,
-                member_names=member_names,
-                scheduled_date=str(date_group.scheduled_date) if date_group.scheduled_date else "",
-                scheduled_time=date_group.scheduled_time or "",
-                db=db,
-            )
-
-            assigned_user_ids.update(all_uids)
-            formed_groups.append(date_group)
+                assigned_user_ids.update(group_uids)
+                formed_groups.append(date_group)
 
     await db.commit()
 
-    # Refresh groups with members loaded
     refreshed: list[DateGroup] = []
     for grp in formed_groups:
         result = await db.execute(
