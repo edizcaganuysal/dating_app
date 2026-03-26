@@ -293,3 +293,25 @@ export interface RegisterResponse {
   email: string;
   otp?: string;
 }
+
+export interface SecondDateSuggestion {
+  id: string;
+  match_id: string;
+  proposer_id: string | null;
+  activity: string;
+  venue_name: string | null;
+  venue_address: string | null;
+  proposed_date: string;
+  proposed_time: string;
+  status: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export type CheckInStatus = 'met_again' | 'still_chatting' | 'fizzled' | 'prefer_not_to_say';
+
+export interface CheckInResponse {
+  id: string;
+  match_id: string;
+  status: string;
+}

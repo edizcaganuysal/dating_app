@@ -16,11 +16,13 @@ import ChatRoomsScreen from "../screens/ChatRoomsScreen";
 import PostDateScreen from "../screens/PostDateScreen";
 import MatchRevealScreen from "../screens/MatchRevealScreen";
 import SoftMatchScreen from "../screens/SoftMatchScreen";
+import SecondDateProposalScreen from "../screens/SecondDateProposalScreen";
+import CheckInScreen from "../screens/CheckInScreen";
 import MyDatesScreen from "../screens/MyDatesScreen";
 import ProfileScreen from "../screens/ProfileScreen";
 import FriendsScreen from "../screens/FriendsScreen";
 import { getMyProfile } from "../api/profiles";
-import { Match, SoftMatch } from "../types";
+import { Match, SoftMatch, SecondDateSuggestion } from "../types";
 import useNotifications from "../hooks/useNotifications";
 import useUnreadCount from "../hooks/useUnreadCount";
 import { LoadingState } from "../components";
@@ -40,6 +42,13 @@ export type HomeStackParamList = {
   PostDate: { groupId: string };
   MatchReveal: { match: Match };
   SoftMatch: { softMatch: SoftMatch };
+  SecondDateProposal: {
+    suggestion: SecondDateSuggestion;
+    partnerName: string;
+    partnerPhoto?: string;
+    roomId?: string;
+  };
+  CheckIn: { matchId: string; partnerName: string };
 };
 
 export type ChatStackParamList = {
@@ -125,6 +134,16 @@ function HomeStackNavigator() {
         name="SoftMatch"
         component={SoftMatchScreen}
         options={{ headerShown: false }}
+      />
+      <HomeStack.Screen
+        name="SecondDateProposal"
+        component={SecondDateProposalScreen}
+        options={{ headerShown: false }}
+      />
+      <HomeStack.Screen
+        name="CheckIn"
+        component={CheckInScreen}
+        options={{ title: "Check In" }}
       />
     </HomeStack.Navigator>
   );

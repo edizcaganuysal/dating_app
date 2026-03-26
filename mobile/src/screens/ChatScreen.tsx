@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -10,15 +10,17 @@ import {
   Platform,
   Modal,
   Animated,
+  Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRoute } from '@react-navigation/native';
 import { useAuth } from '../context/AuthContext';
 import useChat from '../hooks/useChat';
 import { askYuniAi } from '../api/chat';
-import { ChatMessage, YUNI_AI_USER_ID } from '../types';
+import { getMyMatches, getSecondDateSuggestions, proposeSecondDate } from '../api/dates';
+import { ChatMessage, YUNI_AI_USER_ID, SecondDateSuggestion, Match } from '../types';
 import { colors, spacing, typography, radii } from '../theme';
-import { UserAvatar, RelativeTimestamp, PressableScale, BouncingDots } from '../components';
+import { UserAvatar, RelativeTimestamp, PressableScale, BouncingDots, DateSuggestionCard } from '../components';
 import { markRoomRead } from '../hooks/useUnreadCount';
 import { useFadeIn } from '../utils/animations';
 
@@ -46,6 +48,42 @@ export default function ChatScreen() {
   const [yuniMenuVisible, setYuniMenuVisible] = useState(false);
   const [yuniLoading, setYuniLoading] = useState(false);
   const flatListRef = useRef<FlatList>(null);
+
+  const [suggestions, setSuggestions] = useState<SecondDateSuggestion[]>([]);
+  const [suggestionIndex, setSuggestionIndex] = useState(0);
+  const [proposing, setProposing] = useState(false);
+
+  useEffect(() => {
+    getMyMatches()
+      .then((matches) => {
+        const match = matches.find((m) => m.chat_room_id === roomId);
+        if (match) {
+          getSecondDateSuggestions(match.id)
+            .then((s) => setSuggestions(s.filter((x) => x.status === 'suggested')))
+            .catch(() => {});
+        }
+      })
+      .catch(() => {});
+  }, [roomId]);
+
+  const handlePropose = async (secondDateId: string) => {
+    setProposing(true);
+    try {
+      await proposeSecondDate(secondDateId);
+      setSuggestions((prev) => prev.filter((s) => s.id !== secondDateId));
+      Alert.alert('Date Proposed!', 'Your match will be notified.');
+    } catch {
+      Alert.alert('Error', 'Could not propose date. Try again.');
+    } finally {
+      setProposing(false);
+    }
+  };
+
+  const handleSkipSuggestion = () => {
+    setSuggestionIndex((prev) => (prev + 1) % Math.max(suggestions.length, 1));
+  };
+
+  const currentSuggestion = suggestions.length > 0 ? suggestions[suggestionIndex % suggestions.length] : null;
 
   const handleSend = () => {
     const content = text.trim();
@@ -120,6 +158,15 @@ export default function ChatScreen() {
         <View style={styles.connectionBanner}>
           <Text style={styles.connectionText}>Connecting...</Text>
         </View>
+      )}
+
+      {currentSuggestion && (
+        <DateSuggestionCard
+          suggestion={currentSuggestion}
+          onPropose={handlePropose}
+          onSkip={handleSkipSuggestion}
+          loading={proposing}
+        />
       )}
 
       <FlatList

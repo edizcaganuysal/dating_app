@@ -1,5 +1,5 @@
 import apiClient from './client';
-import { ActivityType, AvailabilitySlot, DateRequest, DateRequestCreateData, DateGroup, Match } from '../types';
+import { ActivityType, AvailabilitySlot, DateRequest, DateRequestCreateData, DateGroup, Match, SecondDateSuggestion, CheckInResponse } from '../types';
 
 export interface DateRequestUpdateData {
   activity?: ActivityType;
@@ -69,4 +69,25 @@ export const saveTemplate = async (data: {
 
 export const deleteTemplate = async (id: string): Promise<void> => {
   await apiClient.delete(`/api/date-requests/templates/${id}`);
+};
+
+// Second dates
+export const getSecondDateSuggestions = async (matchId: string): Promise<SecondDateSuggestion[]> => {
+  const response = await apiClient.get(`/api/dates/second-date/suggestions/${matchId}`);
+  return response.data;
+};
+
+export const proposeSecondDate = async (secondDateId: string): Promise<SecondDateSuggestion> => {
+  const response = await apiClient.post(`/api/dates/second-date/${secondDateId}/propose`);
+  return response.data;
+};
+
+export const respondToSecondDate = async (secondDateId: string, accepted: boolean): Promise<SecondDateSuggestion> => {
+  const response = await apiClient.post(`/api/dates/second-date/${secondDateId}/respond`, { accepted });
+  return response.data;
+};
+
+export const submitCheckIn = async (matchId: string, status: string): Promise<CheckInResponse> => {
+  const response = await apiClient.post(`/api/matches/${matchId}/check-in`, { status });
+  return response.data;
 };
