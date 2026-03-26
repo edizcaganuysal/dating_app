@@ -154,6 +154,22 @@ export interface Match {
   created_at: string;
 }
 
+export interface SoftMatch {
+  id: string;
+  group_id: string;
+  activity: string;
+  interested_user: PublicProfile;
+  status: string;
+  reveal_at: string;
+  created_at: string;
+}
+
+export interface SoftMatchRespondResult {
+  status: string;
+  match_id?: string;
+  chat_room_id?: string;
+}
+
 export interface ParticipantInfo {
   user_id: string;
   first_name: string;

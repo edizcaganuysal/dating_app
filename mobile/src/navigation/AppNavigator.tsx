@@ -15,11 +15,12 @@ import ChatScreen from "../screens/ChatScreen";
 import ChatRoomsScreen from "../screens/ChatRoomsScreen";
 import PostDateScreen from "../screens/PostDateScreen";
 import MatchRevealScreen from "../screens/MatchRevealScreen";
+import SoftMatchScreen from "../screens/SoftMatchScreen";
 import MyDatesScreen from "../screens/MyDatesScreen";
 import ProfileScreen from "../screens/ProfileScreen";
 import FriendsScreen from "../screens/FriendsScreen";
 import { getMyProfile } from "../api/profiles";
-import { Match } from "../types";
+import { Match, SoftMatch } from "../types";
 import useNotifications from "../hooks/useNotifications";
 import useUnreadCount from "../hooks/useUnreadCount";
 import { LoadingState } from "../components";
@@ -38,6 +39,7 @@ export type HomeStackParamList = {
   ChatDetail: { roomId: string };
   PostDate: { groupId: string };
   MatchReveal: { match: Match };
+  SoftMatch: { softMatch: SoftMatch };
 };
 
 export type ChatStackParamList = {
@@ -117,6 +119,11 @@ function HomeStackNavigator() {
       <HomeStack.Screen
         name="MatchReveal"
         component={MatchRevealScreen}
+        options={{ headerShown: false }}
+      />
+      <HomeStack.Screen
+        name="SoftMatch"
+        component={SoftMatchScreen}
         options={{ headerShown: false }}
       />
     </HomeStack.Navigator>

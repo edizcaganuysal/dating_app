@@ -22,6 +22,28 @@ class FeedbackCreate(BaseModel):
     report_category: Optional[str] = None
 
 
+class SoftMatchRespondRequest(BaseModel):
+    accepted: bool
+
+
+class SoftMatchDetailResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    group_id: uuid.UUID
+    activity: str
+    interested_user: "PublicProfileResponse"
+    status: str
+    reveal_at: datetime
+    created_at: datetime
+
+
+class SoftMatchRespondResponse(BaseModel):
+    status: str
+    match_id: Optional[uuid.UUID] = None
+    chat_room_id: Optional[uuid.UUID] = None
+
+
 class FeedbackResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -32,3 +54,6 @@ class FeedbackResponse(BaseModel):
     activity_fit_rating: Optional[int] = None
     reflection_tags: list[str] = []
     submitted_at: datetime
+
+
+from app.schemas.profile import PublicProfileResponse  # noqa: E402
