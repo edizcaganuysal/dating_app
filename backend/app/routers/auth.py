@@ -188,45 +188,6 @@ async def verify_email(req: VerifyEmailRequest, db: AsyncSession = Depends(get_d
     return {"message": "Email verified"}
 
 
-@router.post("/init-seed", status_code=200)
-async def init_seed(db: AsyncSession = Depends(get_db)):
-    """Seed endpoint. Creates admin + demo users if admin@mail.utoronto.ca doesn't exist."""
-    result = await db.execute(select(User).where(User.email == "admin@mail.utoronto.ca"))
-    if result.scalar_one_or_none():
-        raise HTTPException(status_code=400, detail="Already seeded")
-    from app.seed import seed_database
-    await seed_database(session=db)
-    return {"detail": "Database seeded"}
-
-
-@router.post("/reset-admin-pw", status_code=200)
-async def reset_admin_pw(db: AsyncSession = Depends(get_db)):
-    """TEMPORARY: Create or reset admin user. Remove after first use."""
-    from app.services.auth_service import hash_password
-    result = await db.execute(select(User).where(User.email == "admin@mail.utoronto.ca"))
-    admin = result.scalar_one_or_none()
-    if admin:
-        admin.password_hash = hash_password("admin123")
-        admin.is_admin = True
-        admin.is_email_verified = True
-    else:
-        import uuid
-        admin = User(
-            id=uuid.uuid4(),
-            email="admin@mail.utoronto.ca",
-            password_hash=hash_password("admin123"),
-            first_name="Admin",
-            last_name="User",
-            gender="male",
-            age=25,
-            university_domain="mail.utoronto.ca",
-            is_email_verified=True,
-            is_admin=True,
-        )
-        db.add(admin)
-    await db.commit()
-    return {"detail": "Admin ready — admin@mail.utoronto.ca / admin123"}
-
 
 @router.post("/login", response_model=TokenResponse)
 async def login(req: LoginRequest, db: AsyncSession = Depends(get_db)):
