@@ -36,6 +36,10 @@ build.log
 htmlcov/
 coverage/
 
+# Build orchestrator
+.build-logs/
+.build-state
+
 # Docker
 pgdata/
 backend/uploads/*

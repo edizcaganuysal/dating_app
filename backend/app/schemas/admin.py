@@ -164,3 +164,26 @@ class AdminDateRequestCreate(BaseModel):
     activity: str
     availability_slots: list[dict] = Field(..., min_length=1)  # [{date: str, time_window: str}]
     pre_group_friend_ids: list[uuid.UUID] = Field(default_factory=list, max_length=2)
+
+
+class ExperimentCreate(BaseModel):
+    name: str = Field(..., max_length=100)
+    description: Optional[str] = None
+    variants: list[str]
+    variant_weights: list[float]
+    start_date: datetime
+    end_date: Optional[datetime] = None
+
+
+class ExperimentResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    name: str
+    description: Optional[str] = None
+    variants: list
+    variant_weights: list
+    start_date: datetime
+    end_date: Optional[datetime] = None
+    is_active: bool
+    created_at: datetime

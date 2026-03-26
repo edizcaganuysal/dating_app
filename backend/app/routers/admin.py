@@ -21,6 +21,7 @@ from app.schemas.matching_batch import (
     ProposedGroupMemberResponse,
     ProposedGroupResponse,
 )
+from app.models.experiment import Experiment
 from app.models.report import FeedbackRating, Report
 from app.models.user import User
 from app.models.date_request import AvailabilitySlot, PreGroupFriend
@@ -36,6 +37,8 @@ from app.schemas.admin import (
     AdminUserSummary,
     AdminUserUpdate,
     AnalyticsResponse,
+    ExperimentCreate,
+    ExperimentResponse,
     ManualGroupCreate,
     PendingDateRequestResponse,
     PendingRequestUser,
@@ -957,3 +960,84 @@ async def delete_waitlist_entry(
     await db.delete(entry)
     await db.commit()
     return {"detail": "Entry deleted"}
+
+
+# ── Analytics Sub-Endpoints ──
+
+
+@router.get("/api/admin/analytics/gender-ratio", status_code=200)
+async def get_gender_ratio(
+    current_user: User = Depends(get_admin_user),
+    db: AsyncSession = Depends(get_db),
+):
+    from app.services.analytics_service import get_gender_ratio as _get_gender_ratio
+
+    return await _get_gender_ratio(db)
+
+
+@router.get("/api/admin/analytics/baseline", status_code=200)
+async def get_baseline_metrics(
+    current_user: User = Depends(get_admin_user),
+    db: AsyncSession = Depends(get_db),
+):
+    from app.services.analytics_service import get_baseline_metrics as _get_baseline_metrics
+
+    return await _get_baseline_metrics(db)
+
+
+# ── Experiment Endpoints ──
+
+
+@router.get("/api/admin/experiments", response_model=list[ExperimentResponse], status_code=200)
+async def list_experiments(
+    current_user: User = Depends(get_admin_user),
+    db: AsyncSession = Depends(get_db),
+):
+    result = await db.execute(select(Experiment).order_by(Experiment.created_at.desc()))
+    return list(result.scalars().all())
+
+
+@router.post("/api/admin/experiments", response_model=ExperimentResponse, status_code=201)
+async def create_experiment(
+    body: ExperimentCreate,
+    current_user: User = Depends(get_admin_user),
+    db: AsyncSession = Depends(get_db),
+):
+    if len(body.variants) != len(body.variant_weights):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="variants and variant_weights must have the same length",
+        )
+
+    existing = await db.execute(select(Experiment).where(Experiment.name == body.name))
+    if existing.scalar_one_or_none():
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Experiment name already exists")
+
+    experiment = Experiment(
+        name=body.name,
+        description=body.description,
+        variants=body.variants,
+        variant_weights=body.variant_weights,
+        start_date=body.start_date,
+        end_date=body.end_date,
+    )
+    db.add(experiment)
+    await db.commit()
+    await db.refresh(experiment)
+    return experiment
+
+
+@router.get("/api/admin/experiments/{experiment_id}/results", status_code=200)
+async def get_experiment_results(
+    experiment_id: uuid.UUID,
+    current_user: User = Depends(get_admin_user),
+    db: AsyncSession = Depends(get_db),
+):
+    from app.services.experiment_service import compute_experiment_metrics
+
+    result = await db.execute(select(Experiment).where(Experiment.id == experiment_id))
+    experiment = result.scalar_one_or_none()
+    if not experiment:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Experiment not found")
+
+    return await compute_experiment_metrics(db, experiment.name)

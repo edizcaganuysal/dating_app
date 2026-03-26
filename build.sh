@@ -592,10 +592,11 @@ run_phase_3() {
    - reflection_tags: Mapped[list] = mapped_column(JSON, default=list)
 
 2. ROMANTICINTEREST MODEL (report.py): Change:
-   - REMOVE: interested: Mapped[bool]
-   - ADD: interest_level: Mapped[str] = mapped_column(String(20))
+   - KEEP the old "interested" column as: interested: Mapped[Optional[bool]] = mapped_column(nullable=True) for backward compat
+   - ADD: interest_level: Mapped[str] = mapped_column(String(20), default="not_interested")
      Valid values: "not_interested", "maybe", "interested", "very_interested"
    - ADD: friend_interest: Mapped[bool] = mapped_column(default=False)
+   - Update ALL code that reads "interested" to read "interest_level" instead. Search the entire codebase for RomanticInterest.interested and update each reference.
 
 3. NEW SOFTMATCH MODEL (add to report.py or create new file):
    class SoftMatch(Base):
