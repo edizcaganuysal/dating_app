@@ -53,6 +53,9 @@ async def submit_feedback(
         group_id=group_id,
         user_id=current_user.id,
         experience_rating=payload.experience_rating,
+        group_chemistry_rating=payload.group_chemistry_rating,
+        activity_fit_rating=payload.activity_fit_rating,
+        reflection_tags=payload.reflection_tags,
     )
     db.add(feedback)
 
@@ -62,7 +65,8 @@ async def submit_feedback(
             group_id=group_id,
             from_user_id=current_user.id,
             to_user_id=ri.user_id,
-            interested=ri.interested,
+            interest_level=ri.interest_level,
+            friend_interest=ri.friend_interest,
         ))
 
     # Create BlockedPair records
@@ -104,6 +108,9 @@ async def submit_feedback(
         id=feedback.id,
         group_id=feedback.group_id,
         experience_rating=feedback.experience_rating,
+        group_chemistry_rating=feedback.group_chemistry_rating,
+        activity_fit_rating=feedback.activity_fit_rating,
+        reflection_tags=feedback.reflection_tags,
         submitted_at=feedback.created_at,
     )
 
@@ -130,5 +137,8 @@ async def get_my_feedback(
         id=feedback.id,
         group_id=feedback.group_id,
         experience_rating=feedback.experience_rating,
+        group_chemistry_rating=feedback.group_chemistry_rating,
+        activity_fit_rating=feedback.activity_fit_rating,
+        reflection_tags=feedback.reflection_tags,
         submitted_at=feedback.created_at,
     )

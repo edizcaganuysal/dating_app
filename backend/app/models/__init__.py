@@ -3,7 +3,7 @@ from app.models.date_request import DateRequest, AvailabilitySlot, PreGroupFrien
 from app.models.group import DateGroup, GroupMember
 from app.models.match import Match
 from app.models.chat import ChatRoom, ChatParticipant, ChatMessage
-from app.models.report import FeedbackRating, RomanticInterest, BlockedPair, Report
+from app.models.report import FeedbackRating, RomanticInterest, BlockedPair, Report, SoftMatch
 from app.models.friendship import Friendship
 from app.models.matching_batch import MatchingBatch, ProposedGroup, ProposedGroupMember
 from app.models.waitlist import WaitlistEntry
@@ -27,6 +27,7 @@ __all__ = [
     "RomanticInterest",
     "BlockedPair",
     "Report",
+    "SoftMatch",
     "Friendship",
     "MatchingBatch",
     "ProposedGroup",
