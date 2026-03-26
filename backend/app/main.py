@@ -166,7 +166,15 @@ async def female_confirm_timeout_cron():
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Start background matching cron tasks."""
+    """Start background matching cron tasks and auto-seed if DB is empty."""
+    # Auto-seed on first deploy
+    try:
+        from app.seed import seed_database
+        await seed_database()
+        logger.info("Auto-seed check complete")
+    except Exception as e:
+        logger.warning(f"Auto-seed skipped: {e}")
+
     batch_task = asyncio.create_task(batch_formation_cron())
     match_task = asyncio.create_task(matching_cron())
     confirm_task = asyncio.create_task(female_confirm_timeout_cron())
