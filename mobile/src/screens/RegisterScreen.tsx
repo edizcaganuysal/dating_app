@@ -1,22 +1,24 @@
-import React, { useState, useCallback, useRef, useEffect } from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import {
   View,
   Text,
-  TextInput,
   TouchableOpacity,
   StyleSheet,
   ScrollView,
   KeyboardAvoidingView,
   Platform,
-  Animated,
-  Easing,
 } from "react-native";
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withSpring,
+} from "react-native-reanimated";
 import { Ionicons } from "@expo/vector-icons";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useAuth } from "../context/AuthContext";
 import { AuthStackParamList } from "../navigation/AppNavigator";
-import { colors, typography, spacing, radii, shadows } from "../theme";
-import { AnimatedButton } from "../components";
+import { colors, typography, spacing, radii, shadows, fontFamilies, animations } from "../theme";
+import { AnimatedButton, WarmInput } from "../components";
 import { haptic } from "../utils/haptics";
 
 type Props = NativeStackScreenProps<AuthStackParamList, "Register">;
@@ -51,21 +53,23 @@ const STRENGTH_CONFIG: Record<PasswordStrength, { color: string; width: string; 
   strong: { color: colors.success, width: "100%", label: "Strong" },
 };
 
-// ─── Animated progress bar ─────────────────────────────────────
+// ─── Animated progress bar (Reanimated) ─────────────────────────
 
 function ProgressBar({ step }: { step: number }) {
-  const width = useRef(new Animated.Value(step / TOTAL_STEPS)).current;
+  const progress = useSharedValue(step / TOTAL_STEPS);
 
   useEffect(() => {
-    Animated.spring(width, { toValue: step / TOTAL_STEPS, friction: 8, tension: 40, useNativeDriver: false }).start();
+    progress.value = withSpring(step / TOTAL_STEPS, animations.gentle);
   }, [step]);
 
-  const fillWidth = width.interpolate({ inputRange: [0, 1], outputRange: ['0%', '100%'] });
+  const fillStyle = useAnimatedStyle(() => ({
+    width: `${progress.value * 100}%` as any,
+  }));
 
   return (
     <View style={progressStyles.container}>
       <View style={progressStyles.track}>
-        <Animated.View style={[progressStyles.fill, { width: fillWidth }]} />
+        <Animated.View style={[progressStyles.fill, fillStyle]} />
       </View>
       <Text style={progressStyles.stepText}>Step {step} of {TOTAL_STEPS}</Text>
     </View>
@@ -76,7 +80,14 @@ const progressStyles = StyleSheet.create({
   container: { marginBottom: spacing.xxl },
   track: { height: 6, backgroundColor: colors.border, borderRadius: radii.full, overflow: "hidden" },
   fill: { height: "100%", backgroundColor: colors.primary, borderRadius: radii.full },
-  stepText: { ...typography.labelSmall, color: colors.gray, textAlign: "center", marginTop: spacing.sm },
+  stepText: {
+    fontFamily: fontFamilies.inter.semiBold,
+    fontSize: 12,
+    lineHeight: 16,
+    color: colors.gray,
+    textAlign: "center",
+    marginTop: spacing.sm,
+  },
 });
 
 // ─── Main component ────────────────────────────────────────────
@@ -96,14 +107,18 @@ export default function RegisterScreen({ navigation }: Props) {
   const [emailValid, setEmailValid] = useState(false);
   const [serverError, setServerError] = useState("");
 
-  // Step transition animation
-  const slideX = useRef(new Animated.Value(0)).current;
+  // Step transition animation (Reanimated)
+  const slideX = useSharedValue(0);
 
   const animateStepChange = (direction: 'forward' | 'back') => {
     const startVal = direction === 'forward' ? 300 : -300;
-    slideX.setValue(startVal);
-    Animated.spring(slideX, { toValue: 0, friction: 8, tension: 50, useNativeDriver: true }).start();
+    slideX.value = startVal;
+    slideX.value = withSpring(0, animations.snappy);
   };
+
+  const slideStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: slideX.value }],
+  }));
 
   const validateField = useCallback(
     (field: string): string => {
@@ -216,36 +231,55 @@ export default function RegisterScreen({ navigation }: Props) {
   }
 
   const showError = (field: string) => touched[field] && !!fieldErrors[field];
-  const renderFieldError = (field: string) =>
-    showError(field) ? <Text style={styles.fieldError}>{fieldErrors[field]}</Text> : null;
-  const inputBorderStyle = (field: string, extraValid?: boolean) => {
-    if (showError(field)) return styles.inputError;
-    if (extraValid) return styles.inputValid;
-    return undefined;
-  };
+  const getFieldError = (field: string) => (showError(field) ? fieldErrors[field] : undefined);
 
   const renderStep1 = () => (
     <View>
       <Text style={styles.stepTitle}>What's your name?</Text>
       <Text style={styles.stepSubtitle}>Use the name you go by -- this will be visible to your group.</Text>
 
-      <TextInput style={[styles.input, inputBorderStyle("firstName")]} placeholder="First Name" placeholderTextColor={colors.grayLight}
-        value={firstName} onChangeText={setFirstName} onBlur={() => handleBlur("firstName")} autoCorrect={false} autoFocus testID="first-name-input" />
-      {renderFieldError("firstName")}
+      <WarmInput
+        placeholder="First Name"
+        value={firstName}
+        onChangeText={setFirstName}
+        onBlur={() => handleBlur("firstName")}
+        autoCorrect={false}
+        autoFocus
+        testID="first-name-input"
+        error={getFieldError("firstName")}
+        leftIcon="person-outline"
+      />
 
-      <TextInput style={[styles.input, inputBorderStyle("lastName")]} placeholder="Last Name" placeholderTextColor={colors.grayLight}
-        value={lastName} onChangeText={setLastName} onBlur={() => handleBlur("lastName")} autoCorrect={false} testID="last-name-input" />
-      {renderFieldError("lastName")}
+      <WarmInput
+        placeholder="Last Name"
+        value={lastName}
+        onChangeText={setLastName}
+        onBlur={() => handleBlur("lastName")}
+        autoCorrect={false}
+        testID="last-name-input"
+        error={getFieldError("lastName")}
+        leftIcon="person-outline"
+      />
 
       <View style={styles.emailWrapper}>
-        <TextInput style={[styles.input, { marginBottom: 0 }, inputBorderStyle("email", emailValid)]}
-          placeholder="Email (e.g. you@mail.utoronto.ca)" placeholderTextColor={colors.grayLight}
-          value={email} onChangeText={(t) => { setEmail(t); setEmailValid(false); }}
-          onBlur={() => handleBlur("email")} keyboardType="email-address" autoCapitalize="none" autoCorrect={false} testID="email-input" />
-        {emailValid && <View style={styles.checkIcon}><Ionicons name="checkmark-circle" size={22} color={colors.success} /></View>}
+        <WarmInput
+          placeholder="Email (e.g. you@mail.utoronto.ca)"
+          value={email}
+          onChangeText={(t: string) => { setEmail(t); setEmailValid(false); }}
+          onBlur={() => handleBlur("email")}
+          keyboardType="email-address"
+          autoCapitalize="none"
+          autoCorrect={false}
+          testID="email-input"
+          error={getFieldError("email")}
+          leftIcon="mail-outline"
+          rightIcon={emailValid ? "checkmark-circle" : undefined}
+          containerStyle={{ marginBottom: 0 }}
+        />
       </View>
-      {renderFieldError("email")}
-      {!showError("email") && <Text style={styles.hint}>Must be a university email (.utoronto.ca, .yorku.ca, .edu, etc.)</Text>}
+      {!showError("email") && !getFieldError("email") && (
+        <Text style={styles.hint}>Must be a university email (.utoronto.ca, .yorku.ca, .edu, etc.)</Text>
+      )}
 
       <View style={styles.buttonRow}>
         <AnimatedButton label="Next" onPress={handleNext} variant="primary" size="lg" fullWidth iconRight="arrow-forward" />
@@ -262,8 +296,18 @@ export default function RegisterScreen({ navigation }: Props) {
         <Text style={styles.stepTitle}>Secure your account</Text>
         <Text style={styles.stepSubtitle}>Choose a strong password and tell us your age.</Text>
 
-        <TextInput style={[styles.input, inputBorderStyle("password")]} placeholder="Password" placeholderTextColor={colors.grayLight}
-          value={password} onChangeText={setPassword} onBlur={() => handleBlur("password")} secureTextEntry autoFocus testID="password-input" />
+        <WarmInput
+          placeholder="Password"
+          value={password}
+          onChangeText={setPassword}
+          onBlur={() => handleBlur("password")}
+          secureTextEntry
+          autoFocus
+          testID="password-input"
+          error={getFieldError("password")}
+          leftIcon="lock-closed-outline"
+          containerStyle={password.length > 0 && cfg ? { marginBottom: spacing.xs } : undefined}
+        />
 
         {password.length > 0 && cfg && (
           <View style={strengthStyles.container}>
@@ -273,12 +317,18 @@ export default function RegisterScreen({ navigation }: Props) {
             <Text style={[strengthStyles.label, { color: cfg.color }]}>{cfg.label}</Text>
           </View>
         )}
-        {renderFieldError("password")}
         {!showError("password") && password.length === 0 && <Text style={styles.hint}>Min 8 characters, at least one uppercase letter</Text>}
 
-        <TextInput style={[styles.input, inputBorderStyle("age")]} placeholder="Age" placeholderTextColor={colors.grayLight}
-          value={age} onChangeText={setAge} onBlur={() => handleBlur("age")} keyboardType="number-pad" testID="age-input" />
-        {renderFieldError("age")}
+        <WarmInput
+          placeholder="Age"
+          value={age}
+          onChangeText={setAge}
+          onBlur={() => handleBlur("age")}
+          keyboardType="number-pad"
+          testID="age-input"
+          error={getFieldError("age")}
+          leftIcon="calendar-outline"
+        />
 
         <View style={styles.buttonRow}>
           <TouchableOpacity style={styles.backButton} onPress={handleBack}>
@@ -334,7 +384,7 @@ export default function RegisterScreen({ navigation }: Props) {
       <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
         <Text style={styles.title}>Create Account</Text>
         <ProgressBar step={step} />
-        <Animated.View style={{ transform: [{ translateX: slideX }] }}>
+        <Animated.View style={slideStyle}>
           {step === 1 && renderStep1()}
           {step === 2 && renderStep2()}
           {step === 3 && renderStep3()}
@@ -348,30 +398,59 @@ export default function RegisterScreen({ navigation }: Props) {
 }
 
 const strengthStyles = StyleSheet.create({
-  container: { flexDirection: "row", alignItems: "center", marginBottom: spacing.md, marginTop: -spacing.xs, gap: spacing.sm },
+  container: { flexDirection: "row", alignItems: "center", marginBottom: spacing.md, gap: spacing.sm },
   track: { flex: 1, height: 4, backgroundColor: colors.border, borderRadius: radii.full, overflow: "hidden" },
   fill: { height: "100%", borderRadius: radii.full },
-  label: { ...typography.captionSmall, fontWeight: "600", minWidth: 48 },
+  label: {
+    fontFamily: fontFamilies.inter.semiBold,
+    fontSize: 10,
+    lineHeight: 14,
+    minWidth: 48,
+  },
 });
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.surface },
   scrollContent: { flexGrow: 1, paddingHorizontal: spacing.xxxl, paddingVertical: spacing.xxxxl },
-  title: { ...typography.displaySmall, textAlign: "center", color: colors.primary, marginBottom: spacing.xxl },
-  stepTitle: { ...typography.headlineLarge, color: colors.dark, marginBottom: spacing.xs },
-  stepSubtitle: { ...typography.bodySmall, color: colors.gray, marginBottom: spacing.xxl },
-  input: {
-    borderWidth: 1, borderColor: colors.border, borderRadius: radii.md,
-    padding: spacing.lg - 2, fontSize: 16, marginBottom: spacing.md,
-    backgroundColor: colors.surfaceElevated, color: colors.dark,
+  title: {
+    fontFamily: fontFamilies.playfair.bold,
+    fontSize: 28,
+    lineHeight: 34,
+    textAlign: "center",
+    color: colors.primary,
+    marginBottom: spacing.xxl,
   },
-  inputError: { borderColor: colors.error, backgroundColor: colors.errorLight },
-  inputValid: { borderColor: colors.success, backgroundColor: colors.successLight },
-  fieldError: { ...typography.caption, color: colors.error, marginTop: -spacing.sm, marginBottom: spacing.md, paddingLeft: spacing.xs },
-  hint: { ...typography.caption, color: colors.gray, marginBottom: spacing.md, marginTop: -spacing.sm, paddingLeft: spacing.xs },
-  emailWrapper: { position: "relative", marginBottom: spacing.md },
-  checkIcon: { position: "absolute", right: spacing.md, top: 14 },
-  label: { ...typography.labelLarge, color: colors.dark, marginBottom: spacing.sm },
+  stepTitle: {
+    fontFamily: fontFamilies.playfair.semiBold,
+    fontSize: 24,
+    lineHeight: 30,
+    color: colors.dark,
+    marginBottom: spacing.xs,
+  },
+  stepSubtitle: {
+    fontFamily: fontFamilies.inter.regular,
+    fontSize: 14,
+    lineHeight: 19,
+    color: colors.gray,
+    marginBottom: spacing.xxl,
+  },
+  hint: {
+    fontFamily: fontFamilies.inter.regular,
+    fontSize: 12,
+    lineHeight: 16,
+    color: colors.gray,
+    marginBottom: spacing.md,
+    marginTop: spacing.xs,
+    paddingLeft: spacing.xs,
+  },
+  emailWrapper: { marginBottom: spacing.md },
+  label: {
+    fontFamily: fontFamilies.inter.semiBold,
+    fontSize: 16,
+    lineHeight: 22,
+    color: colors.dark,
+    marginBottom: spacing.sm,
+  },
   genderRow: { flexDirection: "row", marginBottom: spacing.xxl, gap: spacing.md },
   genderButton: {
     flex: 1, paddingVertical: spacing.lg, borderRadius: radii.md,
@@ -379,18 +458,40 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surfaceElevated,
   },
   genderButtonActive: { borderColor: colors.primary, backgroundColor: colors.surfaceSelected, ...shadows.sm },
-  genderText: { ...typography.bodyLarge, color: colors.darkSecondary },
-  genderTextActive: { color: colors.primary, fontWeight: "600" },
+  genderText: {
+    fontFamily: fontFamilies.inter.regular,
+    fontSize: 16,
+    lineHeight: 22,
+    color: colors.darkSecondary,
+  },
+  genderTextActive: { color: colors.primary, fontFamily: fontFamilies.inter.semiBold },
   buttonRow: { flexDirection: "row", alignItems: "center", gap: spacing.md, marginTop: spacing.lg },
   backButton: { flexDirection: "row", alignItems: "center", paddingVertical: spacing.md, paddingHorizontal: spacing.lg, gap: spacing.xs },
-  backText: { ...typography.labelMedium, color: colors.primary },
+  backText: {
+    fontFamily: fontFamilies.inter.semiBold,
+    fontSize: 14,
+    lineHeight: 18,
+    color: colors.primary,
+  },
   nextButtonWrapper: { flex: 1 },
   serverErrorBox: {
     flexDirection: "row", alignItems: "center", gap: spacing.sm,
     backgroundColor: colors.errorLight, borderRadius: radii.sm, padding: spacing.md, marginBottom: spacing.md,
   },
-  serverErrorText: { ...typography.bodySmall, color: colors.error, flex: 1 },
+  serverErrorText: {
+    fontFamily: fontFamilies.inter.regular,
+    fontSize: 14,
+    lineHeight: 19,
+    color: colors.error,
+    flex: 1,
+  },
   loginLink: { marginTop: spacing.xxl },
-  linkText: { textAlign: "center", color: colors.darkSecondary, ...typography.bodySmall },
-  link: { color: colors.primary, fontWeight: "600" },
+  linkText: {
+    textAlign: "center",
+    color: colors.darkSecondary,
+    fontFamily: fontFamilies.inter.regular,
+    fontSize: 14,
+    lineHeight: 19,
+  },
+  link: { color: colors.primary, fontFamily: fontFamilies.inter.semiBold },
 });

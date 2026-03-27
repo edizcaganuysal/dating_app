@@ -12,6 +12,7 @@ import {
   RefreshControl,
   Share,
 } from 'react-native';
+import Animated from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import {
   getFriends,
@@ -27,9 +28,14 @@ import {
   PendingRequest,
   SearchResult,
 } from '../api/friends';
-import { Animated } from 'react-native';
-import { colors } from '../theme';
+import { colors, fontFamilies, spacing, radii } from '../theme';
 import { PressableScale } from '../components';
+import { useStaggerItem } from '../utils/animations';
+
+function StaggeredItem({ index, children }: { index: number; children: React.ReactNode }) {
+  const style = useStaggerItem(index, 60, 'up');
+  return <Animated.View style={style}>{children}</Animated.View>;
+}
 
 export default function FriendsScreen() {
   const [friends, setFriends] = useState<Friend[]>([]);
@@ -264,7 +270,7 @@ export default function FriendsScreen() {
         <View style={styles.card}>
           <Text style={styles.cardTitle}>Pending Requests</Text>
           {pending.map((req, index) => (
-            <Animated.View key={req.id} >
+            <StaggeredItem key={req.id} index={index}>
               <View style={styles.pendingRow}>
                 <Text style={styles.friendName}>{req.friend_name}</Text>
                 <View style={styles.pendingActions}>
@@ -282,7 +288,7 @@ export default function FriendsScreen() {
                   </PressableScale>
                 </View>
               </View>
-            </Animated.View>
+            </StaggeredItem>
           ))}
         </View>
       )}
@@ -296,7 +302,7 @@ export default function FriendsScreen() {
           <Text style={styles.emptyText}>No friends yet. Add some above!</Text>
         ) : (
           friends.map((friend, index) => (
-            <Animated.View key={friend.id} >
+            <StaggeredItem key={friend.id} index={index}>
               <View style={styles.friendRow}>
                 {friend.photo_urls?.[0] ? (
                   <Image source={{ uri: friend.photo_urls[0] }} style={styles.friendAvatar} />
@@ -325,7 +331,7 @@ export default function FriendsScreen() {
                   <Ionicons name="close-circle-outline" size={22} color={colors.error} />
                 </PressableScale>
               </View>
-            </Animated.View>
+            </StaggeredItem>
           ))
         )}
       </View>
@@ -344,28 +350,52 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: colors.surfaceElevated, borderRadius: 12, padding: 16, marginBottom: 12,
   },
-  cardTitle: { fontSize: 16, fontWeight: '700', color: colors.dark, marginBottom: 12 },
-  subLabel: { fontSize: 13, fontWeight: '600', color: colors.darkSecondary, marginBottom: 6 },
+  cardTitle: {
+    fontFamily: fontFamilies.inter.bold,
+    fontSize: 16,
+    color: colors.dark,
+    marginBottom: 12,
+  },
+  subLabel: {
+    fontFamily: fontFamilies.inter.semiBold,
+    fontSize: 13,
+    color: colors.darkSecondary,
+    marginBottom: 6,
+  },
   codeRow: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
   },
   codeText: {
-    fontSize: 24, fontWeight: 'bold', color: colors.primary, letterSpacing: 2,
+    fontFamily: fontFamilies.inter.bold,
+    fontSize: 24,
+    color: colors.primary,
+    letterSpacing: 2,
   },
   shareButton: {
     backgroundColor: colors.primary, flexDirection: 'row', alignItems: 'center', gap: 6,
     paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20,
   },
-  shareButtonText: { color: '#fff', fontWeight: '600', fontSize: 14 },
+  shareButtonText: {
+    color: '#fff',
+    fontFamily: fontFamilies.inter.semiBold,
+    fontSize: 14,
+  },
   inputRow: { flexDirection: 'row', gap: 8, alignItems: 'center' },
   input: {
     borderWidth: 1, borderColor: colors.border, borderRadius: 8,
-    padding: 10, fontSize: 15, backgroundColor: colors.surfaceElevated,
+    padding: 10,
+    fontFamily: fontFamilies.inter.regular,
+    fontSize: 15,
+    backgroundColor: colors.surfaceElevated,
   },
   addButton: {
     backgroundColor: colors.primary, paddingHorizontal: 20, paddingVertical: 10, borderRadius: 8,
   },
-  addButtonText: { color: '#fff', fontWeight: '600', fontSize: 15 },
+  addButtonText: {
+    color: '#fff',
+    fontFamily: fontFamilies.inter.semiBold,
+    fontSize: 15,
+  },
   buttonDisabled: { opacity: 0.5 },
   searchButton: {
     backgroundColor: colors.primary, padding: 10, borderRadius: 8,
@@ -386,12 +416,26 @@ const styles = StyleSheet.create({
   acceptButton: {
     backgroundColor: colors.primary, paddingHorizontal: 14, paddingVertical: 6, borderRadius: 16,
   },
-  acceptText: { color: '#fff', fontWeight: '600', fontSize: 13 },
+  acceptText: {
+    color: '#fff',
+    fontFamily: fontFamilies.inter.semiBold,
+    fontSize: 13,
+  },
   rejectButton: {
     borderWidth: 1, borderColor: colors.border, paddingHorizontal: 14, paddingVertical: 6, borderRadius: 16,
   },
-  rejectText: { color: colors.darkSecondary, fontSize: 13 },
-  emptyText: { fontSize: 14, color: colors.gray, textAlign: 'center', paddingVertical: 16 },
+  rejectText: {
+    fontFamily: fontFamilies.inter.regular,
+    fontSize: 13,
+    color: colors.darkSecondary,
+  },
+  emptyText: {
+    fontFamily: fontFamilies.inter.regular,
+    fontSize: 14,
+    color: colors.gray,
+    textAlign: 'center',
+    paddingVertical: 16,
+  },
   friendRow: {
     flexDirection: 'row', alignItems: 'center', paddingVertical: 10,
     borderBottomWidth: 1, borderBottomColor: colors.border,
@@ -401,11 +445,23 @@ const styles = StyleSheet.create({
     backgroundColor: colors.border, justifyContent: 'center', alignItems: 'center',
   },
   friendInfo: { flex: 1, marginLeft: 12 },
-  friendName: { fontSize: 15, fontWeight: '600', color: colors.dark },
+  friendName: {
+    fontFamily: fontFamilies.inter.semiBold,
+    fontSize: 15,
+    color: colors.dark,
+  },
   friendMeta: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 2 },
-  friendSub: { fontSize: 13, color: colors.darkSecondary },
+  friendSub: {
+    fontFamily: fontFamilies.inter.regular,
+    fontSize: 13,
+    color: colors.darkSecondary,
+  },
   genderBadge: {
     width: 20, height: 20, borderRadius: 10, justifyContent: 'center', alignItems: 'center',
   },
-  genderText: { color: '#fff', fontSize: 10, fontWeight: 'bold' },
+  genderText: {
+    color: '#fff',
+    fontFamily: fontFamilies.inter.bold,
+    fontSize: 10,
+  },
 });

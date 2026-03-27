@@ -1,14 +1,24 @@
-import React, { useRef, useEffect } from 'react';
-import { View, Text, StyleSheet, Dimensions, Animated, Easing } from 'react-native';
+import React, { useEffect } from 'react';
+import { View, Text, StyleSheet, Dimensions } from 'react-native';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withTiming,
+  withSpring,
+  withDelay,
+  withSequence,
+  interpolate,
+} from 'react-native-reanimated';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import LottieView from 'lottie-react-native';
 import { Match } from '../types';
-import { colors, typography, spacing, radii, shadows } from '../theme';
-import { UserAvatar, AnimatedButton } from '../components';
+import { colors, typography, spacing, radii, shadows, fontFamilies } from '../theme';
+import { UserAvatar, AnimatedButton, ParticleEffect } from '../components';
 import { haptic } from '../utils/haptics';
 import { useFadeIn, usePulse } from '../utils/animations';
+import { sounds } from '../utils/sounds';
 
 const { width: SCREEN_W } = Dimensions.get('window');
 
@@ -26,72 +36,88 @@ export default function MatchRevealScreen() {
   const route = useRoute<any>();
   const match: Match = route.params.match;
 
-  // Animation values
-  const bgOpacity = useRef(new Animated.Value(0)).current;
-  const titleScale = useRef(new Animated.Value(0)).current;
-  const titleOpacity = useRef(new Animated.Value(0)).current;
-  const titleRotation = useRef(new Animated.Value(-3)).current;
-  const leftPhotoX = useRef(new Animated.Value(-SCREEN_W * 0.5)).current;
-  const leftPhotoOpacity = useRef(new Animated.Value(0)).current;
-  const nameOpacity = useRef(new Animated.Value(0)).current;
-  const buttonsY = useRef(new Animated.Value(60)).current;
-  const buttonsOpacity = useRef(new Animated.Value(0)).current;
+  // Animation values (Reanimated shared values)
+  const bgOpacity = useSharedValue(0);
+  const titleScale = useSharedValue(0);
+  const titleOpacity = useSharedValue(0);
+  const titleRotation = useSharedValue(-3);
+  const leftPhotoX = useSharedValue(-SCREEN_W * 0.5);
+  const leftPhotoOpacity = useSharedValue(0);
+  const nameOpacity = useSharedValue(0);
+  const buttonsY = useSharedValue(60);
+  const buttonsOpacity = useSharedValue(0);
 
   // Pulsing CTA
   const ctaPulseStyle = usePulse(1, 1.03, 800, 1800);
 
   useEffect(() => {
     // 0ms — Background fades in
-    Animated.timing(bgOpacity, { toValue: 1, duration: 300, useNativeDriver: true }).start();
+    bgOpacity.value = withTiming(1, { duration: 300 });
 
     // 300ms — Haptic + Title bounces in
     setTimeout(() => {
       haptic.heavy();
-      Animated.parallel([
-        Animated.timing(titleOpacity, { toValue: 1, duration: 200, useNativeDriver: true }),
-        Animated.spring(titleScale, { toValue: 1, friction: 5, tension: 80, useNativeDriver: true }),
-        Animated.sequence([
-          Animated.timing(titleRotation, { toValue: 3, duration: 100, useNativeDriver: true }),
-          Animated.timing(titleRotation, { toValue: -2, duration: 80, useNativeDriver: true }),
-          Animated.timing(titleRotation, { toValue: 0, duration: 120, useNativeDriver: true }),
-        ]),
-      ]).start();
+      sounds.celebration();
+      titleOpacity.value = withTiming(1, { duration: 200 });
+      titleScale.value = withSpring(1, { damping: 5, stiffness: 80 });
+      titleRotation.value = withSequence(
+        withTiming(3, { duration: 100 }),
+        withTiming(-2, { duration: 80 }),
+        withTiming(0, { duration: 120 }),
+      );
     }, 300);
 
     // 600ms — Haptic + Photos slide in
     setTimeout(() => {
       haptic.success();
-      Animated.parallel([
-        Animated.spring(leftPhotoX, { toValue: 0, friction: 8, tension: 40, useNativeDriver: true }),
-        Animated.timing(leftPhotoOpacity, { toValue: 1, duration: 300, useNativeDriver: true }),
-      ]).start();
+      leftPhotoX.value = withSpring(0, { damping: 8, stiffness: 40 });
+      leftPhotoOpacity.value = withTiming(1, { duration: 300 });
     }, 600);
 
     // 900ms — Name + text
     setTimeout(() => {
-      Animated.timing(nameOpacity, { toValue: 1, duration: 400, useNativeDriver: true }).start();
+      nameOpacity.value = withTiming(1, { duration: 400 });
     }, 900);
 
     // 1500ms — Buttons slide up
     setTimeout(() => {
-      Animated.parallel([
-        Animated.spring(buttonsY, { toValue: 0, friction: 8, tension: 40, useNativeDriver: true }),
-        Animated.timing(buttonsOpacity, { toValue: 1, duration: 300, useNativeDriver: true }),
-      ]).start();
+      buttonsY.value = withSpring(0, { damping: 8, stiffness: 40 });
+      buttonsOpacity.value = withTiming(1, { duration: 300 });
     }, 1500);
   }, []);
 
-  const titleRotateDeg = titleRotation.interpolate({
-    inputRange: [-10, 10],
-    outputRange: ['-10deg', '10deg'],
-  });
+  const bgAnimStyle = useAnimatedStyle(() => ({
+    opacity: bgOpacity.value,
+  }));
+
+  const titleAnimStyle = useAnimatedStyle(() => ({
+    opacity: titleOpacity.value,
+    transform: [
+      { scale: titleScale.value },
+      { rotate: `${interpolate(titleRotation.value, [-10, 10], [-10, 10])}deg` },
+    ],
+  }));
+
+  const photoAnimStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: leftPhotoX.value }, { rotate: '-5deg' }],
+    opacity: leftPhotoOpacity.value,
+  }));
+
+  const nameAnimStyle = useAnimatedStyle(() => ({
+    opacity: nameOpacity.value,
+  }));
+
+  const buttonsAnimStyle = useAnimatedStyle(() => ({
+    opacity: buttonsOpacity.value,
+    transform: [{ translateY: buttonsY.value }],
+  }));
 
   const partnerInterests = match.partner.interests || [];
 
   return (
-    <Animated.View style={[styles.container, { opacity: bgOpacity }]}>
+    <Animated.View style={[styles.container, bgAnimStyle]}>
       <LinearGradient
-        colors={[colors.primaryDark, colors.primary, colors.secondary, '#FFF5F0']}
+        colors={['#241C1A', '#4A1A15', '#C40018', '#F7F0E7']}
         start={{ x: 0.5, y: 0 }}
         end={{ x: 0.5, y: 1 }}
         style={StyleSheet.absoluteFill}
@@ -107,20 +133,16 @@ export default function MatchRevealScreen() {
         style={styles.confetti}
       />
 
+      <ParticleEffect count={15} intensity="high" />
+
       {/* Title */}
-      <Animated.View style={[styles.titleContainer, {
-        opacity: titleOpacity,
-        transform: [{ scale: titleScale }, { rotate: titleRotateDeg }],
-      }]}>
+      <Animated.View style={[styles.titleContainer, titleAnimStyle]}>
         <Text style={styles.celebration}>It's a Match!</Text>
       </Animated.View>
 
       {/* Photo */}
       <View style={styles.photosRow}>
-        <Animated.View style={{
-          transform: [{ translateX: leftPhotoX }, { rotate: '-5deg' }],
-          opacity: leftPhotoOpacity,
-        }}>
+        <Animated.View style={photoAnimStyle}>
           <View style={styles.photoRing}>
             <UserAvatar
               photoUrl={match.partner.photo_urls?.[0]}
@@ -134,7 +156,7 @@ export default function MatchRevealScreen() {
       </View>
 
       {/* Name + Activity */}
-      <Animated.View style={[styles.nameSection, { opacity: nameOpacity }]}>
+      <Animated.View style={[styles.nameSection, nameAnimStyle]}>
         <Text style={styles.name}>{match.partner.first_name}</Text>
         {match.partner.program && (
           <Text style={styles.program}>{match.partner.program}</Text>
@@ -156,10 +178,7 @@ export default function MatchRevealScreen() {
       )}
 
       {/* Buttons */}
-      <Animated.View style={[styles.buttonsSection, {
-        opacity: buttonsOpacity,
-        transform: [{ translateY: buttonsY }],
-      }]}>
+      <Animated.View style={[styles.buttonsSection, buttonsAnimStyle]}>
         <Animated.View style={ctaPulseStyle}>
           <AnimatedButton
             label="Send a Message"
@@ -204,8 +223,9 @@ const styles = StyleSheet.create({
     zIndex: 10,
   },
   celebration: {
-    ...typography.displayLarge,
+    fontFamily: fontFamilies.playfair.bold,
     fontSize: 40,
+    lineHeight: 48,
     color: '#fff',
     textAlign: 'center',
     textShadowColor: 'rgba(0,0,0,0.2)',
@@ -231,14 +251,18 @@ const styles = StyleSheet.create({
     zIndex: 10,
   },
   name: {
-    ...typography.displaySmall,
+    fontFamily: fontFamilies.playfair.semiBold,
+    fontSize: 28,
+    lineHeight: 34,
     color: '#fff',
     textShadowColor: 'rgba(0,0,0,0.15)',
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 6,
   },
   program: {
-    ...typography.bodyLarge,
+    fontFamily: fontFamilies.inter.regular,
+    fontSize: 16,
+    lineHeight: 22,
     color: 'rgba(255,255,255,0.85)',
     marginTop: spacing.xs,
   },
@@ -250,7 +274,9 @@ const styles = StyleSheet.create({
     borderRadius: radii.md,
   },
   bio: {
-    ...typography.bodySmall,
+    fontFamily: fontFamilies.inter.regular,
+    fontSize: 14,
+    lineHeight: 19,
     color: '#fff',
     textAlign: 'center',
   },
@@ -271,7 +297,9 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255,255,255,0.3)',
   },
   interestText: {
-    ...typography.labelSmall,
+    fontFamily: fontFamilies.inter.semiBold,
+    fontSize: 12,
+    lineHeight: 16,
     color: '#fff',
   },
   buttonsSection: {

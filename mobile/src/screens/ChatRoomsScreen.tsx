@@ -5,8 +5,8 @@ import {
   StyleSheet,
   FlatList,
   RefreshControl,
-  Animated,
 } from 'react-native';
+import Animated from 'react-native-reanimated';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { getChatRooms } from '../api/chat';
 import { ChatRoom } from '../types';
@@ -110,7 +110,7 @@ export default function ChatRoomsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.surface },
+  container: { flex: 1, backgroundColor: colors.cream },
   roomItem: {
     flexDirection: 'row', padding: spacing.lg, borderBottomWidth: 1,
     borderBottomColor: colors.borderLight, alignItems: 'center',

@@ -9,6 +9,11 @@
       "ios",
       "android"
     ],
+    "splash": {
+      "image": "./assets/logo.jpeg",
+      "resizeMode": "contain",
+      "backgroundColor": "#F7F0E7"
+    },
     "plugins": [
       "expo-asset",
       [
@@ -20,8 +25,16 @@
       ]
     ],
     "newArchEnabled": true,
+    "ios": {
+      "splash": {
+        "backgroundColor": "#F7F0E7"
+      }
+    },
     "android": {
-      "package": "com.yuni.app"
+      "package": "com.yuni.app",
+      "splash": {
+        "backgroundColor": "#F7F0E7"
+      }
     }
   }
 }

@@ -9,8 +9,8 @@ import {
   Alert,
   TextInput,
   Modal,
-  Animated,
 } from 'react-native';
+import Animated from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useAuth } from '../context/AuthContext';
@@ -18,7 +18,7 @@ import { getGroupDetail } from '../api/chat';
 import { submitFeedback } from '../api/feedback';
 import { getMyMatches } from '../api/dates';
 import { GroupDetail, GroupMember, IndividualImpression, InterestLevel } from '../types';
-import { colors, radii, shadows, spacing } from '../theme';
+import { colors, radii, shadows, spacing, fontFamilies } from '../theme';
 import { UserAvatar, LoadingState, PressableScale } from '../components';
 import { haptic } from '../utils/haptics';
 import { useStaggerItem } from '../utils/animations';
@@ -42,7 +42,7 @@ const CHEMISTRY_LABELS = ['Awkward', 'Meh', 'Fine', 'Great', 'Amazing'];
 const POSITIVE_TAGS = ['Good conversation', 'Fun activity', 'Felt comfortable', 'Someone caught my eye'];
 const NEGATIVE_TAGS = ['Awkward silences', 'Bad activity fit', 'Felt left out', 'Someone dominated'];
 
-// ─── Section 1: Group Experience ────────────────────────────────
+// --- Section 1: Group Experience ---
 
 function StarRating({ value, onChange }: { value: number; onChange: (v: number) => void }) {
   return (
@@ -58,7 +58,7 @@ function StarRating({ value, onChange }: { value: number; onChange: (v: number) 
           <Ionicons
             name={value >= star ? 'star' : 'star-outline'}
             size={36}
-            color={value >= star ? '#FFD700' : colors.grayLight}
+            color={value >= star ? colors.firelight : colors.grayLight}
           />
         </Pressable>
       ))}
@@ -87,7 +87,7 @@ function ScaleButtons({ value, onChange, labels }: {
   );
 }
 
-// ─── Section 2: Individual Impression Card ──────────────────────
+// --- Section 2: Individual Impression Card ---
 
 function MemberImpressionCard({ member, index, impression, onChangeInterest, onToggleFriend, onBlock, onReport, isBlocked }: {
   member: GroupMember;
@@ -176,7 +176,7 @@ function MemberImpressionCard({ member, index, impression, onChangeInterest, onT
   );
 }
 
-// ─── Section 3: Reflection Tags ─────────────────────────────────
+// --- Section 3: Reflection Tags ---
 
 function ReflectionChips({ selected, onToggle }: { selected: string[]; onToggle: (tag: string) => void }) {
   return (
@@ -209,7 +209,7 @@ function ReflectionChips({ selected, onToggle }: { selected: string[]; onToggle:
   );
 }
 
-// ─── Main Screen ────────────────────────────────────────────────
+// --- Main Screen ---
 
 export default function PostDateScreen() {
   const navigation = useNavigation<any>();
@@ -344,7 +344,7 @@ export default function PostDateScreen() {
       <Text style={styles.title}>How was your date?</Text>
       <Text style={styles.subtitle}>{activityLabel} on {group.scheduled_date}</Text>
 
-      {/* ── SECTION 1: Group Experience ────────────────────── */}
+      {/* SECTION 1: Group Experience */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Group Experience</Text>
 
@@ -362,7 +362,7 @@ export default function PostDateScreen() {
         />
       </View>
 
-      {/* ── SECTION 2: Individual Impressions ─────────────── */}
+      {/* SECTION 2: Individual Impressions */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Individual Impressions</Text>
         {crossGenderMembers.map((member, index) => (
@@ -390,7 +390,7 @@ export default function PostDateScreen() {
         ))}
       </View>
 
-      {/* ── SECTION 3: Quick Reflection ───────────────────── */}
+      {/* SECTION 3: Quick Reflection */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Quick Reflection</Text>
         <Text style={styles.optionalLabel}>Optional — you can skip this</Text>
@@ -407,7 +407,7 @@ export default function PostDateScreen() {
         <Text style={styles.submitButtonText}>{submitting ? 'Submitting...' : 'Submit Feedback'}</Text>
       </PressableScale>
 
-      {/* ── Report Modal ──────────────────────────────────── */}
+      {/* Report Modal */}
       <Modal visible={reportModalVisible} animationType="slide" transparent>
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
@@ -419,7 +419,7 @@ export default function PostDateScreen() {
                 style={[styles.modalOption, reportUserId === member.user_id && styles.modalOptionActive]}
                 onPress={() => setReportUserId(member.user_id)}
               >
-                <Text>{member.profile.first_name}</Text>
+                <Text style={styles.modalOptionText}>{member.profile.first_name}</Text>
               </TouchableOpacity>
             ))}
             <Text style={styles.modalLabel}>Category</Text>
@@ -429,7 +429,7 @@ export default function PostDateScreen() {
                 style={[styles.modalOption, reportCategory === cat.key && styles.modalOptionActive]}
                 onPress={() => setReportCategory(cat.key)}
               >
-                <Text>{cat.label}</Text>
+                <Text style={styles.modalOptionText}>{cat.label}</Text>
               </TouchableOpacity>
             ))}
             <Text style={styles.modalLabel}>Description (optional)</Text>
@@ -442,7 +442,7 @@ export default function PostDateScreen() {
             />
             <View style={styles.modalActions}>
               <TouchableOpacity style={styles.modalCancel} onPress={() => setReportModalVisible(false)}>
-                <Text>Cancel</Text>
+                <Text style={styles.modalCancelText}>Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.modalSubmit} onPress={() => setReportModalVisible(false)}>
                 <Text style={styles.modalSubmitText}>Done</Text>
@@ -455,13 +455,26 @@ export default function PostDateScreen() {
   );
 }
 
-// ─── Styles ─────────────────────────────────────────────────────
+// --- Styles ---
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.surface },
   contentContainer: { padding: spacing.xl, paddingBottom: 60 },
-  title: { fontSize: 24, fontWeight: 'bold', color: colors.primary },
-  subtitle: { fontSize: 14, color: colors.darkSecondary, marginTop: 4, marginBottom: spacing.lg, textTransform: 'capitalize' },
+  title: {
+    fontFamily: fontFamilies.playfair.bold,
+    fontSize: 24,
+    lineHeight: 30,
+    color: colors.primary,
+  },
+  subtitle: {
+    fontFamily: fontFamilies.inter.regular,
+    fontSize: 14,
+    lineHeight: 19,
+    color: colors.darkSecondary,
+    marginTop: 4,
+    marginBottom: spacing.lg,
+    textTransform: 'capitalize',
+  },
 
   section: {
     backgroundColor: colors.surfaceElevated,
@@ -470,10 +483,29 @@ const styles = StyleSheet.create({
     marginBottom: spacing.lg,
     ...shadows.sm,
   },
-  sectionTitle: { fontSize: 18, fontWeight: '700', color: colors.dark, marginBottom: spacing.md },
-  optionalLabel: { fontSize: 12, color: colors.grayLight, marginBottom: spacing.sm },
+  sectionTitle: {
+    fontFamily: fontFamilies.inter.bold,
+    fontSize: 18,
+    lineHeight: 24,
+    color: colors.dark,
+    marginBottom: spacing.md,
+  },
+  optionalLabel: {
+    fontFamily: fontFamilies.inter.regular,
+    fontSize: 12,
+    lineHeight: 16,
+    color: colors.grayLight,
+    marginBottom: spacing.sm,
+  },
 
-  questionText: { fontSize: 15, fontWeight: '500', color: colors.darkSecondary, marginTop: spacing.lg, marginBottom: spacing.sm },
+  questionText: {
+    fontFamily: fontFamilies.inter.medium,
+    fontSize: 15,
+    lineHeight: 20,
+    color: colors.darkSecondary,
+    marginTop: spacing.lg,
+    marginBottom: spacing.sm,
+  },
 
   // Star rating
   starsRow: { flexDirection: 'row', gap: 4 },
@@ -494,9 +526,18 @@ const styles = StyleSheet.create({
     borderColor: colors.primary,
     backgroundColor: colors.surfaceSelected,
   },
-  scaleNumber: { fontSize: 16, fontWeight: '700', color: colors.gray },
+  scaleNumber: {
+    fontFamily: fontFamilies.inter.bold,
+    fontSize: 16,
+    color: colors.gray,
+  },
   scaleNumberActive: { color: colors.primary },
-  scaleLabel: { fontSize: 9, color: colors.grayLight, marginTop: 2 },
+  scaleLabel: {
+    fontFamily: fontFamilies.inter.regular,
+    fontSize: 9,
+    color: colors.grayLight,
+    marginTop: 2,
+  },
   scaleLabelActive: { color: colors.primaryDark },
 
   // Impression card
@@ -509,7 +550,12 @@ const styles = StyleSheet.create({
     borderColor: colors.borderLight,
   },
   memberHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: spacing.sm },
-  memberName: { fontSize: 18, fontWeight: '600', color: colors.dark },
+  memberName: {
+    fontFamily: fontFamilies.inter.semiBold,
+    fontSize: 18,
+    lineHeight: 24,
+    color: colors.dark,
+  },
 
   // Interest option cards
   interestCard: {
@@ -526,8 +572,17 @@ const styles = StyleSheet.create({
     borderColor: colors.primary,
     backgroundColor: colors.surfaceSelected,
   },
-  interestLabel: { fontSize: 14, color: colors.darkSecondary, flex: 1 },
-  interestLabelActive: { color: colors.primaryDark, fontWeight: '600' },
+  interestLabel: {
+    fontFamily: fontFamilies.inter.regular,
+    fontSize: 14,
+    lineHeight: 19,
+    color: colors.darkSecondary,
+    flex: 1,
+  },
+  interestLabelActive: {
+    color: colors.primaryDark,
+    fontFamily: fontFamilies.inter.semiBold,
+  },
 
   // Friend toggle
   friendToggleRow: { flexDirection: 'row', gap: spacing.sm },
@@ -545,18 +600,32 @@ const styles = StyleSheet.create({
   },
   friendToggleActive: { backgroundColor: colors.success, borderColor: colors.success },
   friendToggleNo: { backgroundColor: colors.gray, borderColor: colors.gray },
-  friendToggleText: { fontSize: 14, fontWeight: '600', color: colors.dark },
+  friendToggleText: {
+    fontFamily: fontFamilies.inter.semiBold,
+    fontSize: 14,
+    color: colors.dark,
+  },
   friendToggleTextActive: { color: '#fff' },
 
   // Card footer actions
   cardFooterActions: { flexDirection: 'row', justifyContent: 'flex-end', marginTop: spacing.md, gap: spacing.lg },
   footerAction: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   footerActionDanger: {},
-  footerActionText: { fontSize: 12, color: colors.gray },
+  footerActionText: {
+    fontFamily: fontFamilies.inter.regular,
+    fontSize: 12,
+    color: colors.gray,
+  },
   footerActionTextDanger: { color: colors.error },
 
   // Reflection chips
-  chipGroupLabel: { fontSize: 13, fontWeight: '600', color: colors.darkSecondary, marginTop: spacing.sm, marginBottom: spacing.xs },
+  chipGroupLabel: {
+    fontFamily: fontFamilies.inter.semiBold,
+    fontSize: 13,
+    color: colors.darkSecondary,
+    marginTop: spacing.sm,
+    marginBottom: spacing.xs,
+  },
   chipGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   chip: {
     paddingHorizontal: spacing.md,
@@ -568,9 +637,19 @@ const styles = StyleSheet.create({
   },
   chipPositiveActive: { borderColor: colors.success, backgroundColor: colors.successLight },
   chipNegativeActive: { borderColor: colors.warning, backgroundColor: colors.warningLight },
-  chipText: { fontSize: 13, color: colors.darkSecondary },
-  chipTextActive: { color: colors.success, fontWeight: '600' },
-  chipTextNegActive: { color: colors.warning, fontWeight: '600' },
+  chipText: {
+    fontFamily: fontFamilies.inter.regular,
+    fontSize: 13,
+    color: colors.darkSecondary,
+  },
+  chipTextActive: {
+    color: colors.success,
+    fontFamily: fontFamilies.inter.semiBold,
+  },
+  chipTextNegActive: {
+    color: colors.warning,
+    fontFamily: fontFamilies.inter.semiBold,
+  },
 
   // Submit
   submitButton: {
@@ -582,10 +661,14 @@ const styles = StyleSheet.create({
     ...shadows.md,
   },
   submitButtonDisabled: { backgroundColor: colors.grayLight },
-  submitButtonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
+  submitButtonText: {
+    color: '#fff',
+    fontFamily: fontFamilies.inter.semiBold,
+    fontSize: 16,
+  },
 
   // Report modal
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
+  modalOverlay: { flex: 1, backgroundColor: colors.overlay, justifyContent: 'flex-end' },
   modalContent: {
     backgroundColor: colors.surfaceElevated,
     borderTopLeftRadius: 20,
@@ -593,13 +676,48 @@ const styles = StyleSheet.create({
     padding: 20,
     maxHeight: '80%',
   },
-  modalTitle: { fontSize: 20, fontWeight: 'bold', marginBottom: 16 },
-  modalLabel: { fontSize: 14, fontWeight: '600', color: colors.darkSecondary, marginTop: 12, marginBottom: 8 },
+  modalTitle: {
+    fontFamily: fontFamilies.inter.bold,
+    fontSize: 20,
+    lineHeight: 26,
+    color: colors.dark,
+    marginBottom: 16,
+  },
+  modalLabel: {
+    fontFamily: fontFamilies.inter.semiBold,
+    fontSize: 14,
+    color: colors.darkSecondary,
+    marginTop: 12,
+    marginBottom: 8,
+  },
   modalOption: { padding: 10, borderWidth: 1, borderColor: colors.border, borderRadius: 8, marginBottom: 6 },
   modalOptionActive: { borderColor: colors.primary, backgroundColor: colors.surfaceSelected },
-  modalInput: { borderWidth: 1, borderColor: colors.border, borderRadius: 8, padding: 10, minHeight: 60, textAlignVertical: 'top' },
+  modalOptionText: {
+    fontFamily: fontFamilies.inter.regular,
+    fontSize: 14,
+    color: colors.dark,
+  },
+  modalInput: {
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 8,
+    padding: 10,
+    minHeight: 60,
+    textAlignVertical: 'top',
+    fontFamily: fontFamilies.inter.regular,
+    fontSize: 14,
+  },
   modalActions: { flexDirection: 'row', justifyContent: 'flex-end', marginTop: 16, gap: 12 },
   modalCancel: { padding: 10 },
+  modalCancelText: {
+    fontFamily: fontFamilies.inter.regular,
+    fontSize: 14,
+    color: colors.darkSecondary,
+  },
   modalSubmit: { padding: 10, backgroundColor: colors.primary, borderRadius: 8, paddingHorizontal: 20 },
-  modalSubmitText: { color: '#fff', fontWeight: '600' },
+  modalSubmitText: {
+    color: '#fff',
+    fontFamily: fontFamilies.inter.semiBold,
+    fontSize: 14,
+  },
 });

@@ -1,7 +1,17 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { View, Text, StyleSheet, Animated, Easing, Dimensions } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, StyleSheet, Dimensions } from 'react-native';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withTiming,
+  withSpring,
+  withRepeat,
+  withSequence,
+  Easing,
+  runOnJS,
+} from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
-import { colors, typography, spacing } from '../theme';
+import { colors, fontFamilies, spacing } from '../theme';
 
 const { width: SCREEN_W } = Dimensions.get('window');
 
@@ -15,9 +25,9 @@ interface PhaseTransitionProps {
 
 const PHASE_ICONS = ['📸', '🧠', '✨'];
 const PHASE_GRADIENTS: [string, string][] = [
-  [colors.primary, colors.secondary],
-  ['#7B1FA2', '#E040FB'],
-  [colors.primary, '#FFD93D'],
+  [colors.yuniRed, colors.ember],
+  [colors.yuniAiPrimary, colors.ember],
+  [colors.yuniRed, colors.firelight],
 ];
 
 export default function PhaseTransitionScreen({
@@ -28,126 +38,99 @@ export default function PhaseTransitionScreen({
   duration = 3500,
 }: PhaseTransitionProps) {
   const [currentMessageIndex, setCurrentMessageIndex] = useState(0);
-  const screenOpacity = useRef(new Animated.Value(0)).current;
-  const progressWidth = useRef(new Animated.Value(0)).current;
-  const messageOpacity = useRef(new Animated.Value(0)).current;
-  const iconScale = useRef(new Animated.Value(0.5)).current;
-  const dotPulse = useRef(new Animated.Value(1)).current;
+  const screenOpacity = useSharedValue(0);
+  const progressWidth = useSharedValue(0);
+  const messageOpacity = useSharedValue(0);
+  const iconScale = useSharedValue(0.5);
+  const dotPulse = useSharedValue(1);
 
   useEffect(() => {
-    // Fade in screen
-    Animated.timing(screenOpacity, {
-      toValue: 1,
-      duration: 300,
-      useNativeDriver: true,
-    }).start();
+    // Fade in
+    screenOpacity.value = withTiming(1, { duration: 300 });
 
-    // Icon bounce in
-    Animated.spring(iconScale, {
-      toValue: 1,
-      friction: 5,
-      tension: 80,
-      useNativeDriver: true,
-    }).start();
+    // Icon spring in
+    iconScale.value = withSpring(1, { damping: 8, stiffness: 80 });
 
-    // Progress bar fills over duration
-    Animated.timing(progressWidth, {
-      toValue: 1,
+    // Progress fill
+    progressWidth.value = withTiming(1, {
       duration: duration - 500,
       easing: Easing.out(Easing.cubic),
-      useNativeDriver: false,
-    }).start();
+    });
 
-    // Pulsing dot animation
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(dotPulse, { toValue: 1.2, duration: 600, useNativeDriver: true }),
-        Animated.timing(dotPulse, { toValue: 1, duration: 600, useNativeDriver: true }),
-      ])
-    ).start();
+    // Pulsing dot
+    dotPulse.value = withRepeat(
+      withSequence(
+        withTiming(1.2, { duration: 600 }),
+        withTiming(1, { duration: 600 }),
+      ),
+      -1, true,
+    );
 
-    // Cycle through messages
+    // First message in
+    messageOpacity.value = withTiming(1, { duration: 300 });
+
+    // Cycle messages
     const messageInterval = Math.floor((duration - 800) / messages.length);
     let msgIndex = 0;
-
-    // First message fade in
-    Animated.timing(messageOpacity, { toValue: 1, duration: 300, useNativeDriver: true }).start();
-
     const timer = setInterval(() => {
       msgIndex++;
-      if (msgIndex >= messages.length) {
-        clearInterval(timer);
-        return;
-      }
-      // Fade out current, change, fade in new
-      Animated.timing(messageOpacity, { toValue: 0, duration: 150, useNativeDriver: true }).start(() => {
-        setCurrentMessageIndex(msgIndex);
-        Animated.timing(messageOpacity, { toValue: 1, duration: 200, useNativeDriver: true }).start();
+      if (msgIndex >= messages.length) { clearInterval(timer); return; }
+      messageOpacity.value = withTiming(0, { duration: 150 }, () => {
+        runOnJS(setCurrentMessageIndex)(msgIndex);
+        messageOpacity.value = withTiming(1, { duration: 200 });
       });
     }, messageInterval);
 
-    // Complete after duration
+    // Complete
     const completeTimer = setTimeout(() => {
-      Animated.timing(screenOpacity, {
-        toValue: 0,
-        duration: 300,
-        useNativeDriver: true,
-      }).start(() => {
-        onComplete();
+      screenOpacity.value = withTiming(0, { duration: 300 }, () => {
+        runOnJS(onComplete)();
       });
     }, duration);
 
-    return () => {
-      clearInterval(timer);
-      clearTimeout(completeTimer);
-    };
+    return () => { clearInterval(timer); clearTimeout(completeTimer); };
   }, []);
 
-  const fillWidth = progressWidth.interpolate({
-    inputRange: [0, 1],
-    outputRange: ['0%', '100%'],
-  });
+  const screenStyle = useAnimatedStyle(() => ({ opacity: screenOpacity.value }));
+  const iconStyle = useAnimatedStyle(() => ({ transform: [{ scale: iconScale.value }] }));
+  const msgStyle = useAnimatedStyle(() => ({ opacity: messageOpacity.value }));
+  const dotStyle = useAnimatedStyle(() => ({ transform: [{ scale: dotPulse.value }] }));
+  const progressStyle = useAnimatedStyle(() => ({
+    width: `${progressWidth.value * 100}%` as any,
+  }));
 
   const gradientColors = PHASE_GRADIENTS[(phaseNumber - 1) % 3];
-  const icon = PHASE_ICONS[(phaseNumber - 1) % 3];
 
   return (
-    <Animated.View style={[styles.container, { opacity: screenOpacity }]}>
+    <Animated.View style={[styles.container, screenStyle]}>
       <LinearGradient
-        colors={[gradientColors[0], gradientColors[1], '#FFF5F0']}
+        colors={[gradientColors[0], gradientColors[1], colors.cream]}
         start={{ x: 0.5, y: 0 }}
         end={{ x: 0.5, y: 1 }}
         style={StyleSheet.absoluteFill}
       />
-
       <View style={styles.content}>
-        {/* Phase icon */}
-        <Animated.View style={[styles.iconContainer, { transform: [{ scale: iconScale }] }]}>
-          <Text style={styles.icon}>{icon}</Text>
+        <Animated.View style={[styles.iconContainer, iconStyle]}>
+          <Text style={styles.icon}>{PHASE_ICONS[(phaseNumber - 1) % 3]}</Text>
         </Animated.View>
 
-        {/* Phase name */}
         <Text style={styles.phaseName}>Phase {phaseNumber}: {phaseName}</Text>
 
-        {/* Cycling message */}
-        <Animated.View style={[styles.messageContainer, { opacity: messageOpacity }]}>
-          <Animated.View style={[styles.dotIndicator, { transform: [{ scale: dotPulse }] }]} />
+        <Animated.View style={[styles.messageContainer, msgStyle]}>
+          <Animated.View style={[styles.dotIndicator, dotStyle]} />
           <Text style={styles.message}>{messages[currentMessageIndex]}</Text>
         </Animated.View>
 
-        {/* Progress bar */}
         <View style={styles.progressTrack}>
-          <Animated.View style={[styles.progressFill, { width: fillWidth }]}>
+          <Animated.View style={[styles.progressFill, progressStyle]}>
             <LinearGradient
               colors={['rgba(255,255,255,0.8)', 'rgba(255,255,255,0.4)']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
+              start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
               style={StyleSheet.absoluteFill}
             />
           </Animated.View>
         </View>
 
-        {/* Step counter */}
         <View style={styles.phaseDotsRow}>
           {[1, 2, 3].map(p => (
             <View key={p} style={[styles.phaseDot, p === phaseNumber && styles.phaseDotActive, p < phaseNumber && styles.phaseDotDone]} />
@@ -165,77 +148,47 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  content: {
-    alignItems: 'center',
-    paddingHorizontal: 40,
-  },
+  content: { alignItems: 'center', paddingHorizontal: 40 },
   iconContainer: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+    width: 80, height: 80, borderRadius: 40,
     backgroundColor: 'rgba(255,255,255,0.25)',
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: 'center', justifyContent: 'center',
     marginBottom: spacing.xxl,
   },
-  icon: {
-    fontSize: 40,
-  },
+  icon: { fontSize: 40 },
   phaseName: {
-    ...typography.headlineMedium,
-    color: '#fff',
-    textAlign: 'center',
+    fontFamily: fontFamilies.inter.semiBold,
+    fontSize: 20, lineHeight: 26,
+    color: '#fff', textAlign: 'center',
     marginBottom: spacing.lg,
     textShadowColor: 'rgba(0,0,0,0.15)',
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 4,
   },
   messageContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: spacing.xxxl,
-    minHeight: 24,
+    flexDirection: 'row', alignItems: 'center',
+    marginBottom: spacing.xxxl, minHeight: 24,
   },
   dotIndicator: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: '#fff',
-    marginRight: spacing.sm,
+    width: 8, height: 8, borderRadius: 4,
+    backgroundColor: '#fff', marginRight: spacing.sm,
   },
   message: {
-    ...typography.bodyLarge,
-    color: 'rgba(255,255,255,0.9)',
-    textAlign: 'center',
+    fontFamily: fontFamilies.inter.regular,
+    fontSize: 16, lineHeight: 22,
+    color: 'rgba(255,255,255,0.9)', textAlign: 'center',
   },
   progressTrack: {
-    width: SCREEN_W * 0.6,
-    height: 6,
-    borderRadius: 3,
+    width: SCREEN_W * 0.6, height: 6, borderRadius: 3,
     backgroundColor: 'rgba(255,255,255,0.2)',
-    overflow: 'hidden',
-    marginBottom: spacing.xxl,
+    overflow: 'hidden', marginBottom: spacing.xxl,
   },
-  progressFill: {
-    height: '100%',
-    borderRadius: 3,
-  },
-  phaseDotsRow: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-  },
+  progressFill: { height: '100%', borderRadius: 3 },
+  phaseDotsRow: { flexDirection: 'row', gap: spacing.sm },
   phaseDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
+    width: 10, height: 10, borderRadius: 5,
     backgroundColor: 'rgba(255,255,255,0.3)',
   },
-  phaseDotActive: {
-    backgroundColor: '#fff',
-    width: 24,
-    borderRadius: 5,
-  },
-  phaseDotDone: {
-    backgroundColor: 'rgba(255,255,255,0.7)',
-  },
+  phaseDotActive: { backgroundColor: '#fff', width: 24, borderRadius: 5 },
+  phaseDotDone: { backgroundColor: 'rgba(255,255,255,0.7)' },
 });

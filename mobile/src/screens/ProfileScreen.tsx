@@ -23,6 +23,7 @@ import { API_BASE_URL } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import { PrivateProfile } from '../types';
 import { colors } from '../theme';
+import { fontFamilies } from '../theme';
 
 const { width } = Dimensions.get('window');
 const PHOTO_SIZE = (width - 48) / 2;
@@ -445,7 +446,7 @@ export default function ProfileScreen() {
               ) : (
                 <View style={styles.emptyPhotoSlot}>
                   <Ionicons name="add" size={28} color={colors.grayLight} />
-                  <Text style={{ fontSize: 10, color: colors.grayLight, marginTop: 4 }}>Add</Text>
+                  <Text style={{ fontSize: 10, color: colors.grayLight, marginTop: 4, fontFamily: fontFamilies.inter.regular }}>Add</Text>
                 </View>
               )}
             </TouchableOpacity>
@@ -747,38 +748,38 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.surfaceElevated },
   content: { padding: 16, paddingBottom: 40 },
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.surfaceElevated },
-  errorText: { fontSize: 16, color: colors.gray, marginBottom: 12 },
+  errorText: { fontSize: 16, color: colors.gray, marginBottom: 12, fontFamily: fontFamilies.inter.regular },
   retryButton: { backgroundColor: colors.primary, paddingHorizontal: 24, paddingVertical: 10, borderRadius: 8 },
-  retryButtonText: { color: '#fff', fontWeight: '600' },
+  retryButtonText: { color: '#fff', fontFamily: fontFamilies.inter.semiBold },
 
   // Saving indicator
-  savingBar: { flexDirection: 'row', alignItems: 'center', gap: 8, padding: 10, backgroundColor: '#FFF3E0', borderRadius: 8, marginBottom: 12 },
-  savingText: { fontSize: 13, color: '#E65100' },
+  savingBar: { flexDirection: 'row', alignItems: 'center', gap: 8, padding: 10, backgroundColor: colors.warningLight, borderRadius: 8, marginBottom: 12 },
+  savingText: { fontSize: 13, color: colors.ember, fontFamily: fontFamilies.inter.regular },
 
   // Cards
   card: { backgroundColor: colors.surfaceElevated, borderRadius: 12, padding: 16, marginBottom: 12 },
   cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
-  cardTitle: { fontSize: 16, fontWeight: '700', color: colors.dark, marginBottom: 4 },
-  cardHint: { fontSize: 12, color: colors.gray },
-  editText: { fontSize: 14, color: colors.primary, fontWeight: '600' },
-  valueText: { fontSize: 15, color: colors.dark },
+  cardTitle: { fontSize: 16, fontFamily: fontFamilies.inter.bold, color: colors.dark, marginBottom: 4 },
+  cardHint: { fontSize: 12, color: colors.gray, fontFamily: fontFamilies.inter.regular },
+  editText: { fontSize: 14, color: colors.primary, fontFamily: fontFamilies.inter.semiBold },
+  valueText: { fontSize: 15, color: colors.dark, fontFamily: fontFamilies.inter.regular },
 
   // Header
   headerRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
   avatar: { width: 80, height: 80, borderRadius: 40 },
-  avatarPlaceholder: { backgroundColor: '#f0f0f0', justifyContent: 'center', alignItems: 'center' },
+  avatarPlaceholder: { backgroundColor: colors.borderLight, justifyContent: 'center', alignItems: 'center' },
   headerInfo: { marginLeft: 16, flex: 1 },
-  nameText: { fontSize: 22, fontWeight: 'bold', color: colors.dark },
-  programText: { fontSize: 14, color: colors.darkSecondary, marginTop: 2 },
+  nameText: { fontSize: 22, fontFamily: fontFamilies.inter.bold, color: colors.dark },
+  programText: { fontSize: 14, color: colors.darkSecondary, marginTop: 2, fontFamily: fontFamilies.inter.regular },
   badgeRow: { flexDirection: 'row', marginTop: 6 },
   badge: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  badgeText: { fontSize: 12, color: colors.success, fontWeight: '600' },
+  badgeText: { fontSize: 12, color: colors.success, fontFamily: fontFamilies.inter.semiBold },
 
   // Photos
   photoGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, justifyContent: 'center' },
   photoSlot: { width: PHOTO_SIZE, height: PHOTO_SIZE * 1.25, borderRadius: 12, overflow: 'hidden' },
   photo: { width: '100%', height: '100%', borderRadius: 10 },
-  emptyPhotoSlot: { flex: 1, borderWidth: 2, borderColor: colors.border, borderStyle: 'dashed', borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: '#fafafa' },
+  emptyPhotoSlot: { flex: 1, borderWidth: 2, borderColor: colors.border, borderStyle: 'dashed', borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.surface },
   photoEditBadge: { position: 'absolute', bottom: 6, right: 6, width: 24, height: 24, borderRadius: 12, backgroundColor: 'rgba(0,0,0,0.6)', alignItems: 'center', justifyContent: 'center' },
 
   // Chips
@@ -786,50 +787,50 @@ const styles = StyleSheet.create({
   chip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surfaceElevated },
   chipSelected: { backgroundColor: colors.primary, borderColor: colors.primary },
   chipDisabled: { opacity: 0.3 },
-  chipText: { fontSize: 13, color: colors.dark },
-  chipTextSelected: { color: '#fff', fontSize: 13 },
+  chipText: { fontSize: 13, color: colors.dark, fontFamily: fontFamilies.inter.regular },
+  chipTextSelected: { color: '#fff', fontSize: 13, fontFamily: fontFamilies.inter.regular },
 
   // Editable rows
-  editRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#f0f0f0' },
+  editRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: colors.borderLight },
   editRowRight: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   detailRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 6 },
-  detailLabel: { fontSize: 14, color: colors.darkSecondary },
-  detailValue: { fontSize: 14, color: colors.dark, fontWeight: '600' },
+  detailLabel: { fontSize: 14, color: colors.darkSecondary, fontFamily: fontFamilies.inter.regular },
+  detailValue: { fontSize: 14, color: colors.dark, fontFamily: fontFamilies.inter.semiBold },
 
   // Prompts
   promptCard: { backgroundColor: colors.surfaceElevated, borderRadius: 8, padding: 12, marginBottom: 8, position: 'relative' },
-  promptQuestion: { fontSize: 13, color: colors.primary, fontWeight: '600', marginBottom: 4 },
-  promptAnswer: { fontSize: 14, color: colors.dark, paddingRight: 20 },
+  promptQuestion: { fontSize: 13, color: colors.primary, fontFamily: fontFamilies.inter.semiBold, marginBottom: 4 },
+  promptAnswer: { fontSize: 14, color: colors.dark, paddingRight: 20, fontFamily: fontFamilies.inter.regular },
   pencilIcon: { position: 'absolute', top: 12, right: 12 },
 
   // Friends & Logout
   friendsRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  friendsText: { fontSize: 16, fontWeight: '600', color: colors.dark, flex: 1 },
+  friendsText: { fontSize: 16, fontFamily: fontFamilies.inter.semiBold, color: colors.dark, flex: 1 },
   redoOnboardingButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 14, borderRadius: 12, borderWidth: 1.5, borderColor: colors.primary, marginTop: 4 },
-  redoOnboardingText: { fontSize: 15, fontWeight: '600', color: colors.primary },
+  redoOnboardingText: { fontSize: 15, fontFamily: fontFamilies.inter.semiBold, color: colors.primary },
   logoutButton: { backgroundColor: colors.error, paddingVertical: 14, borderRadius: 12, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 8, marginTop: 12 },
-  logoutText: { color: '#fff', fontSize: 16, fontWeight: '600' },
+  logoutText: { color: '#fff', fontSize: 16, fontFamily: fontFamilies.inter.semiBold },
 
   // Modals
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' },
   modalContent: { backgroundColor: colors.surfaceElevated, borderRadius: 16, padding: 24, width: '90%', maxHeight: '80%' },
-  modalTitle: { fontSize: 18, fontWeight: 'bold', color: colors.dark, marginBottom: 4 },
-  modalSub: { fontSize: 13, color: colors.gray, marginBottom: 16 },
+  modalTitle: { fontSize: 18, fontFamily: fontFamilies.inter.bold, color: colors.dark, marginBottom: 4 },
+  modalSub: { fontSize: 13, color: colors.gray, marginBottom: 16, fontFamily: fontFamilies.inter.regular },
   modalOption: { paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: colors.border, borderRadius: 8 },
-  modalOptionActive: { backgroundColor: '#FFF5F7' },
-  modalOptionText: { fontSize: 16, color: colors.dark },
-  modalOptionTextActive: { color: colors.primary, fontWeight: '600' },
+  modalOptionActive: { backgroundColor: colors.surfaceSelected },
+  modalOptionText: { fontSize: 16, color: colors.dark, fontFamily: fontFamilies.inter.regular },
+  modalOptionTextActive: { color: colors.primary, fontFamily: fontFamilies.inter.semiBold },
   modalActions: { flexDirection: 'row', justifyContent: 'flex-end', gap: 12, marginTop: 16 },
   modalCancelBtn: { paddingVertical: 10, paddingHorizontal: 16 },
-  modalCancelText: { fontSize: 16, color: colors.gray, textAlign: 'center' },
+  modalCancelText: { fontSize: 16, color: colors.gray, textAlign: 'center', fontFamily: fontFamilies.inter.regular },
   modalSaveBtn: { backgroundColor: colors.primary, paddingVertical: 10, paddingHorizontal: 24, borderRadius: 8 },
-  modalSaveBtnText: { color: '#fff', fontWeight: '600', fontSize: 15 },
-  promptQuestionModal: { fontSize: 14, color: colors.primary, marginBottom: 12 },
-  modalInput: { borderWidth: 1, borderColor: colors.border, borderRadius: 8, padding: 12, fontSize: 16, minHeight: 80, textAlignVertical: 'top', marginBottom: 8 },
+  modalSaveBtnText: { color: '#fff', fontFamily: fontFamilies.inter.semiBold, fontSize: 15 },
+  promptQuestionModal: { fontSize: 14, color: colors.primary, marginBottom: 12, fontFamily: fontFamilies.inter.regular },
+  modalInput: { borderWidth: 1, borderColor: colors.border, borderRadius: 8, padding: 12, fontSize: 16, minHeight: 80, textAlignVertical: 'top', marginBottom: 8, fontFamily: fontFamilies.inter.regular },
 
   // Age modal
   ageRow: { flexDirection: 'row', gap: 16, marginTop: 12 },
   ageField: { flex: 1 },
-  ageLabel: { fontSize: 14, color: colors.darkSecondary, marginBottom: 6 },
-  ageInput: { borderWidth: 1, borderColor: colors.border, borderRadius: 8, padding: 12, fontSize: 18, textAlign: 'center', backgroundColor: colors.surfaceElevated },
+  ageLabel: { fontSize: 14, color: colors.darkSecondary, marginBottom: 6, fontFamily: fontFamilies.inter.regular },
+  ageInput: { borderWidth: 1, borderColor: colors.border, borderRadius: 8, padding: 12, fontSize: 18, textAlign: 'center', backgroundColor: colors.surfaceElevated, fontFamily: fontFamilies.inter.regular },
 });

@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, StyleSheet, Animated } from 'react-native';
+import { View, StyleSheet } from 'react-native';
+import Animated from 'react-native-reanimated';
 import { colors, spacing } from '../theme';
 import { useBounce } from '../utils/animations';
 

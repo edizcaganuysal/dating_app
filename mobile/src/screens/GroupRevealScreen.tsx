@@ -7,13 +7,13 @@ import {
   TouchableOpacity,
   Share,
   Linking,
-  Animated,
 } from 'react-native';
+import Animated from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { getGroupDetail, getIcebreakers, getVenueSuggestions } from '../api/chat';
 import { GroupDetail, Venue } from '../types';
-import { colors } from '../theme';
+import { colors, fontFamilies, spacing, radii, shadows } from '../theme';
 import { UserAvatar, LoadingState, PressableScale } from '../components';
 import { useFadeIn, useStaggerItem } from '../utils/animations';
 
@@ -155,7 +155,7 @@ export default function GroupRevealScreen() {
           </PressableScale>
         )}
         {group.status === 'completed' && (
-          <PressableScale testID="post-date-button" style={[styles.primaryButton, { backgroundColor: '#9C27B0' }]}
+          <PressableScale testID="post-date-button" style={[styles.primaryButton, { backgroundColor: colors.yuniAiPrimary }]}
             onPress={() => navigation.navigate('PostDate', { groupId: group.id })}>
             <Text style={styles.primaryButtonText}>Leave Feedback</Text>
           </PressableScale>
@@ -174,33 +174,99 @@ export default function GroupRevealScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.surface },
   header: { padding: 20, alignItems: 'center', borderBottomWidth: 1, borderBottomColor: colors.border },
-  activity: { fontSize: 24, fontWeight: 'bold', color: colors.primary, textTransform: 'capitalize' },
-  dateTime: { fontSize: 16, color: colors.darkSecondary, marginTop: 4 },
+  activity: {
+    fontFamily: fontFamilies.playfair.bold,
+    fontSize: 24,
+    lineHeight: 30,
+    color: colors.primary,
+    textTransform: 'capitalize',
+  },
+  dateTime: {
+    fontFamily: fontFamilies.inter.regular,
+    fontSize: 16,
+    lineHeight: 22,
+    color: colors.darkSecondary,
+    marginTop: 4,
+  },
   statusBadge: { marginTop: 8, paddingHorizontal: 12, paddingVertical: 4, borderRadius: 12 },
-  statusText: { color: '#fff', fontSize: 12, fontWeight: '600' },
-  sectionTitle: { fontSize: 18, fontWeight: '600', paddingHorizontal: 20, paddingTop: 20, paddingBottom: 8 },
+  statusText: {
+    color: '#fff',
+    fontFamily: fontFamilies.inter.semiBold,
+    fontSize: 12,
+  },
+  sectionTitle: {
+    fontFamily: fontFamilies.inter.semiBold,
+    fontSize: 18,
+    lineHeight: 24,
+    color: colors.dark,
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 8,
+  },
   membersScroll: { paddingHorizontal: 12 },
   memberCard: {
     width: 120, alignItems: 'center', padding: 12, marginHorizontal: 8,
     backgroundColor: colors.surfaceElevated, borderRadius: 12, borderWidth: 1, borderColor: colors.border,
   },
-  memberName: { fontSize: 14, fontWeight: '600', textAlign: 'center', marginTop: 8 },
-  memberDetail: { fontSize: 12, color: colors.gray, textAlign: 'center', marginTop: 2 },
+  memberName: {
+    fontFamily: fontFamilies.inter.semiBold,
+    fontSize: 14,
+    textAlign: 'center',
+    marginTop: 8,
+    color: colors.dark,
+  },
+  memberDetail: {
+    fontFamily: fontFamilies.inter.regular,
+    fontSize: 12,
+    color: colors.gray,
+    textAlign: 'center',
+    marginTop: 2,
+  },
   venueCard: {
     marginHorizontal: 20, marginBottom: 8, padding: 12,
     backgroundColor: colors.surfaceElevated, borderRadius: 8, borderWidth: 1, borderColor: colors.border,
   },
-  venueName: { fontSize: 14, fontWeight: '600' },
+  venueName: {
+    fontFamily: fontFamilies.inter.semiBold,
+    fontSize: 14,
+    color: colors.dark,
+  },
   venueAddressRow: { flexDirection: 'row', alignItems: 'center', marginTop: 2, gap: 8 },
-  venueAddress: { fontSize: 12, color: colors.darkSecondary },
-  mapsLink: { fontSize: 12, color: colors.info, fontWeight: '600' },
-  venuePrice: { fontSize: 12, color: colors.primary, marginTop: 2 },
+  venueAddress: {
+    fontFamily: fontFamilies.inter.regular,
+    fontSize: 12,
+    color: colors.darkSecondary,
+  },
+  mapsLink: {
+    fontFamily: fontFamilies.inter.semiBold,
+    fontSize: 12,
+    color: colors.info,
+  },
+  venuePrice: {
+    fontFamily: fontFamilies.inter.regular,
+    fontSize: 12,
+    color: colors.primary,
+    marginTop: 2,
+  },
   icebreakerCard: { marginHorizontal: 20, marginBottom: 8, padding: 12, backgroundColor: colors.surfaceSelected, borderRadius: 8 },
-  icebreakerText: { fontSize: 14, color: colors.dark, fontStyle: 'italic' },
+  icebreakerText: {
+    fontFamily: fontFamilies.playfair.italic,
+    fontSize: 14,
+    lineHeight: 20,
+    color: colors.dark,
+  },
   actions: { padding: 20, gap: 12 },
   primaryButton: { backgroundColor: colors.primary, paddingVertical: 14, borderRadius: 25, alignItems: 'center' },
-  primaryButtonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
+  primaryButtonText: {
+    color: '#fff',
+    fontFamily: fontFamilies.inter.semiBold,
+    fontSize: 16,
+  },
   shareButton: { backgroundColor: colors.info, paddingVertical: 14, borderRadius: 25, alignItems: 'center' },
   shareButtonContent: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  shareButtonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
+  shareButtonText: {
+    color: '#fff',
+    fontFamily: fontFamilies.inter.semiBold,
+    fontSize: 16,
+  },
 });

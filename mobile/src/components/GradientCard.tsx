@@ -1,5 +1,5 @@
 import React from 'react';
-import { Pressable, StyleSheet, ViewStyle } from 'react-native';
+import { View, Pressable, StyleSheet, ViewStyle } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { colors, radii, shadows, spacing } from '../theme';
 
@@ -20,11 +20,27 @@ export default function GradientCard({
   style,
   onPress,
 }: GradientCardProps) {
-  const finalColors = gradientColors ?? [colors.surfaceElevated, colors.surfaceElevated] as const;
+  // Default: flat warm card (no gradient) per brand guidelines "simple over cluttered"
+  if (!gradientColors) {
+    const card = (
+      <View style={[styles.card, styles.warmCard, style]}>
+        {children}
+      </View>
+    );
+    if (onPress) {
+      return (
+        <Pressable onPress={onPress} style={({ pressed }) => pressed ? { opacity: 0.9 } : undefined}>
+          {card}
+        </Pressable>
+      );
+    }
+    return card;
+  }
 
+  // Explicit gradient (for reveal screens etc.)
   const content = (
     <LinearGradient
-      colors={finalColors as unknown as [string, string, ...string[]]}
+      colors={gradientColors as unknown as [string, string, ...string[]]}
       start={gradientStart}
       end={gradientEnd}
       style={[styles.card, style]}
@@ -49,5 +65,10 @@ const styles = StyleSheet.create({
     borderRadius: radii.lg,
     padding: spacing.lg,
     ...shadows.sm,
+  },
+  warmCard: {
+    backgroundColor: colors.surfaceElevated,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
   },
 });

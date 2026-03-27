@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, Alert, Animated } from 'react-native';
+import { View, Text, StyleSheet, Alert } from 'react-native';
+import Animated from 'react-native-reanimated';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { submitCheckIn } from '../api/dates';
-import { colors, spacing, typography, radii, shadows } from '../theme';
+import { colors, spacing, typography, radii, shadows, fontFamilies } from '../theme';
 import { PressableScale } from '../components';
 import { useFadeIn, useStaggerItem } from '../utils/animations';
 import { haptic } from '../utils/haptics';
@@ -14,28 +15,28 @@ const CHECK_IN_OPTIONS = [
     label: 'We met up again!',
     icon: 'heart-circle' as const,
     color: colors.primary,
-    bg: '#FFF0EB',
+    bg: colors.surfaceSelected,
   },
   {
     key: 'still_chatting',
     label: 'Still chatting, good vibes',
     icon: 'chatbubbles' as const,
     color: colors.info,
-    bg: '#E3F2FD',
+    bg: colors.infoLight,
   },
   {
     key: 'fizzled',
     label: 'Conversation fizzled',
     icon: 'water' as const,
     color: colors.gray,
-    bg: '#F5F5F5',
+    bg: colors.surface,
   },
   {
     key: 'prefer_not_to_say',
     label: 'Prefer not to say',
     icon: 'ellipsis-horizontal-circle' as const,
     color: colors.darkSecondary,
-    bg: '#F5F5F5',
+    bg: colors.surface,
   },
 ];
 
@@ -128,11 +129,15 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xxxl,
   },
   headerTitle: {
-    ...typography.displaySmall,
+    fontFamily: fontFamilies.playfair.bold,
+    fontSize: 28,
+    lineHeight: 34,
     color: colors.dark,
   },
   headerSub: {
-    ...typography.bodyLarge,
+    fontFamily: fontFamilies.inter.regular,
+    fontSize: 16,
+    lineHeight: 22,
     color: colors.darkSecondary,
     marginTop: spacing.sm,
   },
@@ -155,7 +160,9 @@ const styles = StyleSheet.create({
     marginRight: spacing.lg,
   },
   cardLabel: {
-    ...typography.labelLarge,
+    fontFamily: fontFamilies.inter.semiBold,
+    fontSize: 16,
+    lineHeight: 22,
     color: colors.dark,
     flex: 1,
   },

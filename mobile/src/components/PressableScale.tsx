@@ -1,5 +1,6 @@
 import React from 'react';
-import { Animated, Pressable, StyleProp, ViewStyle } from 'react-native';
+import { Pressable, StyleProp, ViewStyle } from 'react-native';
+import Animated from 'react-native-reanimated';
 import { haptic } from '../utils/haptics';
 import { usePressScale } from '../utils/animations';
 

@@ -1,7 +1,8 @@
 import React from 'react';
-import { Text, ActivityIndicator, StyleSheet, View, Animated, Pressable } from 'react-native';
+import { Text, ActivityIndicator, StyleSheet, View, Pressable } from 'react-native';
+import Animated from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, spacing, radii, shadows } from '../theme';
+import { colors, fontFamilies, spacing, radii, shadows } from '../theme';
 import { haptic } from '../utils/haptics';
 import { usePressScale } from '../utils/animations';
 
@@ -18,6 +19,7 @@ interface AnimatedButtonProps {
   disabled?: boolean;
   icon?: string;
   iconRight?: string;
+  children?: React.ReactNode;
 }
 
 const VARIANT_STYLES: Record<Variant, { bg: string; text: string; border?: string }> = {
@@ -44,6 +46,7 @@ export default function AnimatedButton({
   disabled = false,
   icon,
   iconRight,
+  children,
 }: AnimatedButtonProps) {
   const { onPressIn, onPressOut, animatedStyle } = usePressScale(0.96);
   const v = VARIANT_STYLES[variant];
@@ -78,6 +81,10 @@ export default function AnimatedButton({
       >
         {loading ? (
           <ActivityIndicator size="small" color={v.text} />
+        ) : children ? (
+          <Text style={[styles.label, { fontSize: s.fontSize, color: isDisabled ? colors.gray : v.text }]}>
+            {children}
+          </Text>
         ) : (
           <View style={styles.content}>
             {icon && (
@@ -121,7 +128,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   label: {
-    fontWeight: '600',
+    fontFamily: fontFamilies.inter.semiBold,
   },
   iconLeft: {
     marginRight: spacing.sm,

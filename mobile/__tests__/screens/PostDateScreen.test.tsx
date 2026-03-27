@@ -67,11 +67,11 @@ describe('PostDateScreen', () => {
     });
   });
 
-  it('renders interest toggles for each other member', async () => {
+  it('renders impression cards for each other member', async () => {
     const { getByTestId } = render(<PostDateScreen />);
     await waitFor(() => {
-      expect(getByTestId('heart-user-2')).toBeTruthy();
-      expect(getByTestId('heart-user-3')).toBeTruthy();
+      expect(getByTestId('impression-user-2')).toBeTruthy();
+      expect(getByTestId('impression-user-3')).toBeTruthy();
     });
   });
 
@@ -79,13 +79,6 @@ describe('PostDateScreen', () => {
     const { getByTestId } = render(<PostDateScreen />);
     await waitFor(() => {
       expect(getByTestId('submit-button')).toBeTruthy();
-    });
-  });
-
-  it('renders report button', async () => {
-    const { getByTestId } = render(<PostDateScreen />);
-    await waitFor(() => {
-      expect(getByTestId('report-button')).toBeTruthy();
     });
   });
 });

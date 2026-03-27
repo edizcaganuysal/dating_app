@@ -1,6 +1,7 @@
 import React from 'react';
-import { View, ActivityIndicator, Text, StyleSheet } from 'react-native';
-import { colors, typography, spacing } from '../theme';
+import { View, Text, StyleSheet } from 'react-native';
+import { colors, typography, fontFamilies, spacing } from '../theme';
+import BouncingDots from './BouncingDots';
 
 interface LoadingStateProps {
   message?: string;
@@ -10,7 +11,7 @@ interface LoadingStateProps {
 export default function LoadingState({ message, fullScreen = true }: LoadingStateProps) {
   return (
     <View style={[styles.container, fullScreen && styles.fullScreen]}>
-      <ActivityIndicator size="large" color={colors.primary} />
+      <BouncingDots color={colors.primary} size={10} />
       {message && <Text style={styles.message}>{message}</Text>}
     </View>
   );
@@ -24,10 +25,12 @@ const styles = StyleSheet.create({
   },
   fullScreen: {
     flex: 1,
-    backgroundColor: colors.surface,
+    backgroundColor: colors.cream,
   },
   message: {
-    ...typography.bodySmall,
+    fontFamily: fontFamilies.inter.regular,
+    fontSize: 14,
+    lineHeight: 19,
     color: colors.gray,
     marginTop: spacing.md,
   },

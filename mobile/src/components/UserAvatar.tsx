@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Image, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, radii } from '../theme';
+import { colors, fontFamilies, radii } from '../theme';
 
 const SIZE_MAP = { xs: 24, sm: 36, md: 48, lg: 64, xl: 120 } as const;
 const FONT_MAP = { xs: 10, sm: 14, md: 18, lg: 24, xl: 44 } as const;
@@ -44,7 +44,10 @@ export default function UserAvatar({
     width: dim,
     height: dim,
     borderRadius: dim / 2,
-    ...(borderColor ? { borderColor, borderWidth: borderWidth ?? 2 } : {}),
+    ...(borderColor ? { borderColor, borderWidth: borderWidth ?? 2 } : {
+      borderColor: 'rgba(229, 90, 43, 0.2)', // Subtle warm Ember border
+      borderWidth: 1,
+    }),
   };
 
   return (
@@ -80,11 +83,11 @@ const styles = StyleSheet.create({
   },
   initial: {
     color: '#fff',
-    fontWeight: 'bold',
+    fontFamily: fontFamilies.inter.bold,
   },
   badge: {
     position: 'absolute',
-    backgroundColor: colors.success,
+    backgroundColor: colors.firelight,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1.5,

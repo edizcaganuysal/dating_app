@@ -24,7 +24,7 @@ import {
 } from '../api/dates';
 import { getFriends, Friend } from '../api/friends';
 import { ActivityType, TimeWindow, AvailabilitySlot, TIME_WINDOW_HOURS } from '../types';
-import { colors } from '../theme';
+import { colors, fontFamilies, spacing, radii } from '../theme';
 
 const { width } = Dimensions.get('window');
 const CARD_SIZE = (width - 56) / 3;
@@ -397,7 +397,7 @@ export default function DateRequestScreen() {
                 </Text>
               </TouchableOpacity>
             )}
-            {isEditMode && <Text style={{ fontSize: 14, color: colors.darkSecondary, marginBottom: 12 }}>Pick one activity for this request</Text>}
+            {isEditMode && <Text style={styles.editModeHint}>Pick one activity for this request</Text>}
             <View style={styles.activityGrid}>
               {ACTIVITIES.map((a, idx) => {
                 const isSelected = selectedActivities.includes(a.value);
@@ -727,11 +727,29 @@ const styles = StyleSheet.create({
   stepLine: { flex: 1, height: 2, backgroundColor: colors.border, marginHorizontal: 4 },
   stepLineActive: { backgroundColor: colors.primary },
 
-  stepTitle: { fontSize: 20, fontWeight: 'bold', color: colors.dark, marginBottom: 16 },
+  stepTitle: {
+    fontFamily: fontFamilies.inter.bold,
+    fontSize: 20,
+    lineHeight: 26,
+    color: colors.dark,
+    marginBottom: 16,
+  },
+
+  editModeHint: {
+    fontFamily: fontFamilies.inter.regular,
+    fontSize: 14,
+    lineHeight: 19,
+    color: colors.darkSecondary,
+    marginBottom: 12,
+  },
 
   // Activities
   selectAllButton: { alignSelf: 'flex-end', marginBottom: 12 },
-  selectAllText: { color: colors.primary, fontWeight: '600', fontSize: 14 },
+  selectAllText: {
+    color: colors.primary,
+    fontFamily: fontFamilies.inter.semiBold,
+    fontSize: 14,
+  },
   activityGrid: {
     flexDirection: 'row', flexWrap: 'wrap', gap: 8, justifyContent: 'flex-start',
   },
@@ -742,13 +760,25 @@ const styles = StyleSheet.create({
   },
   activityCardSelected: { borderColor: colors.primary, backgroundColor: colors.surfaceSelected },
   activityEmoji: { fontSize: 28, marginBottom: 6 },
-  activityLabel: { fontSize: 12, color: colors.dark, textAlign: 'center', fontWeight: '500' },
-  activityLabelSelected: { color: colors.primary, fontWeight: '700' },
+  activityLabel: {
+    fontFamily: fontFamilies.inter.medium,
+    fontSize: 12,
+    color: colors.dark,
+    textAlign: 'center',
+  },
+  activityLabelSelected: {
+    color: colors.primary,
+    fontFamily: fontFamilies.inter.bold,
+  },
   popularBadge: {
     position: 'absolute', top: 4, right: -2,
     backgroundColor: colors.warning, paddingHorizontal: 5, paddingVertical: 1, borderRadius: 6,
   },
-  popularBadgeText: { fontSize: 7, color: '#fff', fontWeight: '700' },
+  popularBadgeText: {
+    fontFamily: fontFamilies.inter.bold,
+    fontSize: 7,
+    color: '#fff',
+  },
 
   // Group size
   toggleRow: { flexDirection: 'row', gap: 12, marginBottom: 8 },
@@ -757,32 +787,58 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: colors.border, alignItems: 'center', backgroundColor: colors.surfaceElevated,
   },
   toggleSelected: { backgroundColor: colors.primary, borderColor: colors.primary },
-  toggleText: { fontSize: 15, color: colors.dark, fontWeight: '600' },
+  toggleText: {
+    fontFamily: fontFamilies.inter.semiBold,
+    fontSize: 15,
+    color: colors.dark,
+  },
   toggleTextSelected: { color: '#fff' },
 
-  constraintNote: { fontSize: 13, color: colors.gray, marginBottom: 12 },
+  constraintNote: {
+    fontFamily: fontFamilies.inter.regular,
+    fontSize: 13,
+    color: colors.gray,
+    marginBottom: 12,
+  },
 
   noFriendsBox: {
     alignItems: 'center', paddingVertical: 24, backgroundColor: colors.surfaceElevated, borderRadius: 12,
   },
-  noFriendsText: { fontSize: 14, color: colors.gray, marginTop: 8 },
+  noFriendsText: {
+    fontFamily: fontFamilies.inter.regular,
+    fontSize: 14,
+    color: colors.gray,
+    marginTop: 8,
+  },
 
   friendCheckRow: {
     flexDirection: 'row', alignItems: 'center', gap: 12,
     paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: colors.border,
   },
-  friendCheckName: { flex: 1, fontSize: 15, fontWeight: '500', color: colors.dark },
+  friendCheckName: {
+    flex: 1,
+    fontFamily: fontFamilies.inter.medium,
+    fontSize: 15,
+    color: colors.dark,
+  },
   genderBadge: {
     width: 22, height: 22, borderRadius: 11, justifyContent: 'center', alignItems: 'center',
   },
-  genderText: { color: '#fff', fontSize: 11, fontWeight: 'bold' },
+  genderText: {
+    color: '#fff',
+    fontFamily: fontFamilies.inter.bold,
+    fontSize: 11,
+  },
 
   // Calendar
   calendarHeader: {
     flexDirection: 'row', marginBottom: 8,
   },
   dayName: {
-    flex: 1, textAlign: 'center', fontSize: 12, fontWeight: '600', color: colors.gray,
+    flex: 1, textAlign: 'center',
+    fontFamily: fontFamilies.inter.semiBold,
+    fontSize: 12,
+    color: colors.gray,
   },
   calendarRow: { flexDirection: 'row', marginBottom: 6 },
   calendarCell: {
@@ -791,9 +847,17 @@ const styles = StyleSheet.create({
   },
   calendarCellSelected: { backgroundColor: colors.primary },
   calendarCellToday: { borderWidth: 1, borderColor: colors.primary },
-  calendarDateNum: { fontSize: 16, fontWeight: '600', color: colors.dark },
+  calendarDateNum: {
+    fontFamily: fontFamilies.inter.semiBold,
+    fontSize: 16,
+    color: colors.dark,
+  },
   calendarDateNumSelected: { color: '#fff' },
-  calendarMonth: { fontSize: 10, color: colors.gray },
+  calendarMonth: {
+    fontFamily: fontFamilies.inter.regular,
+    fontSize: 10,
+    color: colors.gray,
+  },
   calendarMonthSelected: { color: '#fff' },
 
   // Time sections
@@ -803,56 +867,116 @@ const styles = StyleSheet.create({
   timeSectionHeader: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8,
   },
-  timeSectionDate: { fontSize: 14, fontWeight: '600', color: colors.dark },
-  allDayText: { fontSize: 13, color: colors.gray, fontWeight: '600' },
+  timeSectionDate: {
+    fontFamily: fontFamilies.inter.semiBold,
+    fontSize: 14,
+    color: colors.dark,
+  },
+  allDayText: {
+    fontFamily: fontFamilies.inter.semiBold,
+    fontSize: 13,
+    color: colors.gray,
+  },
   allDayTextActive: { color: colors.primary },
-  hoursSelectedText: { fontSize: 12, color: colors.gray },
+  hoursSelectedText: {
+    fontFamily: fontFamilies.inter.regular,
+    fontSize: 12,
+    color: colors.gray,
+  },
   presetRow: { flexDirection: 'row', gap: 6, marginBottom: 8 },
   presetChip: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 12, backgroundColor: colors.surfaceSelected, borderWidth: 1, borderColor: colors.borderLight },
-  presetChipText: { fontSize: 11, color: colors.dark },
+  presetChipText: {
+    fontFamily: fontFamilies.inter.regular,
+    fontSize: 11,
+    color: colors.dark,
+  },
   hourScroll: { marginBottom: 4 },
-  hourBlock: { width: 38, height: 36, borderRadius: 8, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center', marginRight: 4, backgroundColor: colors.surfaceElevated },
+  hourBlock: {
+    width: 38, height: 36, borderRadius: 8, borderWidth: 1, borderColor: colors.border,
+    alignItems: 'center', justifyContent: 'center', marginRight: 4, backgroundColor: colors.surfaceElevated,
+  },
   hourBlockActive: { backgroundColor: colors.primary, borderColor: colors.primary },
-  hourText: { fontSize: 11, color: colors.dark, fontWeight: '500' },
-  hourTextActive: { color: '#fff', fontWeight: '600' },
+  hourText: {
+    fontFamily: fontFamilies.inter.medium,
+    fontSize: 11,
+    color: colors.dark,
+  },
+  hourTextActive: {
+    color: '#fff',
+    fontFamily: fontFamilies.inter.semiBold,
+  },
 
   // Templates
   templateSection: { marginBottom: 16 },
-  templateLabel: { fontSize: 14, fontWeight: '600', color: colors.darkSecondary, marginBottom: 8 },
+  templateLabel: {
+    fontFamily: fontFamilies.inter.semiBold,
+    fontSize: 14,
+    color: colors.darkSecondary,
+    marginBottom: 8,
+  },
   templateRow: { flexDirection: 'row', gap: 8 },
   templateChip: {
     paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20,
     backgroundColor: colors.surfaceElevated, borderWidth: 1, borderColor: colors.border,
   },
-  templateChipText: { fontSize: 13, color: colors.dark, fontWeight: '500' },
+  templateChipText: {
+    fontFamily: fontFamilies.inter.medium,
+    fontSize: 13,
+    color: colors.dark,
+  },
 
   // Summary
   summaryCard: {
     backgroundColor: colors.surfaceElevated, borderRadius: 12, padding: 16, marginBottom: 16,
   },
-  summaryLabel: { fontSize: 13, fontWeight: '600', color: colors.gray, marginTop: 12, marginBottom: 4 },
-  summaryValue: { fontSize: 15, color: colors.dark },
+  summaryLabel: {
+    fontFamily: fontFamilies.inter.semiBold,
+    fontSize: 13,
+    color: colors.gray,
+    marginTop: 12,
+    marginBottom: 4,
+  },
+  summaryValue: {
+    fontFamily: fontFamilies.inter.regular,
+    fontSize: 15,
+    color: colors.dark,
+  },
   summaryChipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
   summaryChip: {
     backgroundColor: colors.surfaceSelected, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 16,
   },
-  summaryChipText: { fontSize: 13, color: colors.primary, fontWeight: '500' },
+  summaryChipText: {
+    fontFamily: fontFamilies.inter.medium,
+    fontSize: 13,
+    color: colors.primary,
+  },
 
   templateSaveRow: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
     marginBottom: 8,
   },
-  templateSaveLabel: { fontSize: 15, color: colors.dark, fontWeight: '500' },
+  templateSaveLabel: {
+    fontFamily: fontFamilies.inter.medium,
+    fontSize: 15,
+    color: colors.dark,
+  },
   templateNameInput: {
     borderWidth: 1, borderColor: colors.border, borderRadius: 8,
-    padding: 12, fontSize: 15, marginBottom: 16, backgroundColor: colors.surfaceElevated,
+    padding: 12,
+    fontFamily: fontFamilies.inter.regular,
+    fontSize: 15,
+    marginBottom: 16, backgroundColor: colors.surfaceElevated,
   },
 
   submitButton: {
     backgroundColor: colors.primary, paddingVertical: 16, borderRadius: 12,
     alignItems: 'center', marginTop: 8,
   },
-  submitButtonText: { color: '#fff', fontSize: 17, fontWeight: '700' },
+  submitButtonText: {
+    color: '#fff',
+    fontFamily: fontFamilies.inter.bold,
+    fontSize: 17,
+  },
   buttonDisabled: { opacity: 0.5 },
 
   // Navigation
@@ -863,10 +987,18 @@ const styles = StyleSheet.create({
   navButton: {
     flexDirection: 'row', alignItems: 'center', gap: 4, paddingVertical: 8, paddingHorizontal: 4,
   },
-  navButtonText: { color: colors.primary, fontSize: 15, fontWeight: '600' },
+  navButtonText: {
+    color: colors.primary,
+    fontFamily: fontFamilies.inter.semiBold,
+    fontSize: 15,
+  },
   navButtonPrimary: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
     backgroundColor: colors.primary, paddingVertical: 10, paddingHorizontal: 20, borderRadius: 20,
   },
-  navButtonPrimaryText: { color: '#fff', fontSize: 15, fontWeight: '600' },
+  navButtonPrimaryText: {
+    color: '#fff',
+    fontFamily: fontFamilies.inter.semiBold,
+    fontSize: 15,
+  },
 });

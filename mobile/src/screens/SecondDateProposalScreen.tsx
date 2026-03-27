@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, Alert, Animated } from 'react-native';
+import { View, Text, StyleSheet, Alert } from 'react-native';
+import Animated from 'react-native-reanimated';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { SecondDateSuggestion, PublicProfile } from '../types';
 import { respondToSecondDate } from '../api/dates';
-import { colors, spacing, typography, radii, shadows } from '../theme';
+import { colors, spacing, typography, radii, shadows, fontFamilies } from '../theme';
 import { AnimatedButton, UserAvatar } from '../components';
 import { useFadeIn } from '../utils/animations';
 import { haptic } from '../utils/haptics';
@@ -117,7 +118,7 @@ export default function SecondDateProposalScreen() {
   return (
     <View style={styles.container}>
       <LinearGradient
-        colors={['#FFF5F0', '#FFE8E0', '#FFF0EB']}
+        colors={[colors.cream, colors.surfacePressed, colors.surfaceSelected]}
         style={StyleSheet.absoluteFill}
       />
 
@@ -202,13 +203,17 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xxxl,
   },
   title: {
-    ...typography.headlineMedium,
+    fontFamily: fontFamilies.inter.semiBold,
+    fontSize: 20,
+    lineHeight: 26,
     color: colors.darkSecondary,
     marginTop: spacing.lg,
     textAlign: 'center',
   },
   titleBold: {
-    ...typography.headlineLarge,
+    fontFamily: fontFamilies.playfair.bold,
+    fontSize: 24,
+    lineHeight: 30,
     color: colors.dark,
     textAlign: 'center',
     marginTop: spacing.xs,
@@ -226,7 +231,9 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
   },
   cardActivity: {
-    ...typography.headlineLarge,
+    fontFamily: fontFamilies.playfair.semiBold,
+    fontSize: 24,
+    lineHeight: 30,
     color: colors.dark,
     marginBottom: spacing.lg,
     textAlign: 'center',
@@ -238,7 +245,9 @@ const styles = StyleSheet.create({
     marginBottom: spacing.sm,
   },
   detailText: {
-    ...typography.bodyLarge,
+    fontFamily: fontFamilies.inter.regular,
+    fontSize: 16,
+    lineHeight: 22,
     color: colors.darkSecondary,
   },
   buttonsSection: {

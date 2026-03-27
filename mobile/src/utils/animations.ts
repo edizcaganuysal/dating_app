@@ -1,9 +1,20 @@
 /**
- * Animation utilities using React Native's built-in Animated API.
- * Replaces react-native-reanimated for Expo Go compatibility.
+ * Animation utilities using react-native-reanimated.
+ * All hooks return Reanimated shared values and animated styles.
  */
-import { useRef, useEffect, useCallback } from 'react';
-import { Animated, Easing } from 'react-native';
+import { useEffect, useCallback } from 'react';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withTiming,
+  withSpring,
+  withDelay,
+  withSequence,
+  withRepeat,
+  Easing,
+  SharedValue,
+  runOnJS,
+} from 'react-native-reanimated';
 
 // ─── Fade-in with directional slide ───────────────────────────
 
@@ -24,57 +35,41 @@ export function useFadeIn({
   duration = 400,
   useSpring: spring = true,
 }: FadeInOptions = {}) {
-  const opacity = useRef(new Animated.Value(0)).current;
-  const translate = useRef(new Animated.Value(
+  const opacity = useSharedValue(0);
+  const translate = useSharedValue(
     direction === 'up' || direction === 'left' ? -distance : distance
-  )).current;
+  );
 
   useEffect(() => {
-    const animations = [
-      Animated.timing(opacity, {
-        toValue: 1,
-        duration: duration * 0.6,
-        useNativeDriver: true,
-      }),
-      spring
-        ? Animated.spring(translate, {
-            toValue: 0,
-            friction: 8,
-            tension: 40,
-            useNativeDriver: true,
-          })
-        : Animated.timing(translate, {
-            toValue: 0,
-            duration,
-            easing: Easing.out(Easing.cubic),
-            useNativeDriver: true,
-          }),
-    ];
+    const translateTarget = 0;
 
-    if (delay > 0) {
-      const timer = setTimeout(() => {
-        Animated.parallel(animations).start();
-      }, delay);
-      return () => clearTimeout(timer);
+    if (spring) {
+      opacity.value = withDelay(delay, withTiming(1, { duration: duration * 0.6 }));
+      translate.value = withDelay(delay, withSpring(translateTarget, { damping: 12, stiffness: 100 }));
     } else {
-      Animated.parallel(animations).start();
+      opacity.value = withDelay(delay, withTiming(1, { duration: duration * 0.6 }));
+      translate.value = withDelay(delay, withTiming(translateTarget, {
+        duration,
+        easing: Easing.out(Easing.cubic),
+      }));
     }
   }, []);
 
   const isHorizontal = direction === 'right' || direction === 'left';
-  const style = {
-    opacity,
+
+  const style = useAnimatedStyle(() => ({
+    opacity: opacity.value,
     transform: direction === 'none'
       ? []
       : isHorizontal
-        ? [{ translateX: translate }]
-        : [{ translateY: translate }],
-  };
+        ? [{ translateX: translate.value }]
+        : [{ translateY: translate.value }],
+  }));
 
   return style;
 }
 
-// ─── Stagger: returns a factory for staggered fade-in ──────────
+// ─── Stagger: returns animated style for staggered fade-in ──────
 
 export function useStaggerItem(index: number, staggerMs = 60, direction: Direction = 'down') {
   return useFadeIn({ delay: index * staggerMs, direction });
@@ -83,176 +78,142 @@ export function useStaggerItem(index: number, staggerMs = 60, direction: Directi
 // ─── Press scale (for buttons / cards) ─────────────────────────
 
 export function usePressScale(targetScale = 0.96) {
-  const scale = useRef(new Animated.Value(1)).current;
+  const scale = useSharedValue(1);
 
   const onPressIn = useCallback(() => {
-    Animated.spring(scale, {
-      toValue: targetScale,
-      friction: 5,
-      tension: 300,
-      useNativeDriver: true,
-    }).start();
+    scale.value = withSpring(targetScale, { damping: 15, stiffness: 300 });
   }, []);
 
   const onPressOut = useCallback(() => {
-    Animated.spring(scale, {
-      toValue: 1,
-      friction: 4,
-      tension: 200,
-      useNativeDriver: true,
-    }).start();
+    scale.value = withSpring(1, { damping: 12, stiffness: 200 });
   }, []);
 
-  return { scale, onPressIn, onPressOut, animatedStyle: { transform: [{ scale }] } };
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+  }));
+
+  return { onPressIn, onPressOut, animatedStyle };
 }
 
 // ─── Shimmer (for skeleton loading) ────────────────────────────
 
 export function useShimmer() {
-  const shimmer = useRef(new Animated.Value(0)).current;
+  const translateX = useSharedValue(-200);
 
   useEffect(() => {
-    const loop = Animated.loop(
-      Animated.timing(shimmer, {
-        toValue: 1,
-        duration: 1200,
-        easing: Easing.linear,
-        useNativeDriver: true,
-      })
+    translateX.value = withRepeat(
+      withTiming(200, { duration: 1200, easing: Easing.linear }),
+      -1, // infinite
+      false,
     );
-    loop.start();
-    return () => loop.stop();
   }, []);
 
-  const translateX = shimmer.interpolate({
-    inputRange: [0, 1],
-    outputRange: [-200, 200],
-  });
+  const style = useAnimatedStyle(() => ({
+    transform: [{ translateX: translateX.value }],
+  }));
 
-  return { transform: [{ translateX }] };
+  return style;
 }
 
 // ─── Bounce (for dots, pulsing elements) ───────────────────────
 
 export function useBounce(delay = 0) {
-  const translateY = useRef(new Animated.Value(0)).current;
+  const translateY = useSharedValue(0);
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      const loop = Animated.loop(
-        Animated.sequence([
-          Animated.timing(translateY, {
-            toValue: -6,
-            duration: 300,
-            easing: Easing.inOut(Easing.ease),
-            useNativeDriver: true,
-          }),
-          Animated.timing(translateY, {
-            toValue: 0,
-            duration: 300,
-            easing: Easing.inOut(Easing.ease),
-            useNativeDriver: true,
-          }),
-        ])
-      );
-      loop.start();
-    }, delay);
-    return () => clearTimeout(timer);
+    translateY.value = withDelay(
+      delay,
+      withRepeat(
+        withSequence(
+          withTiming(-6, { duration: 300, easing: Easing.inOut(Easing.ease) }),
+          withTiming(0, { duration: 300, easing: Easing.inOut(Easing.ease) }),
+        ),
+        -1, // infinite
+        true,
+      ),
+    );
   }, []);
 
-  return { transform: [{ translateY }] };
+  const style = useAnimatedStyle(() => ({
+    transform: [{ translateY: translateY.value }],
+  }));
+
+  return style;
 }
 
 // ─── Pulse (scale in/out loop) ─────────────────────────────────
 
 export function usePulse(minScale = 1.0, maxScale = 1.05, duration = 800, delay = 0) {
-  const scale = useRef(new Animated.Value(minScale)).current;
+  const scale = useSharedValue(minScale);
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      const loop = Animated.loop(
-        Animated.sequence([
-          Animated.timing(scale, {
-            toValue: maxScale,
-            duration,
-            easing: Easing.inOut(Easing.ease),
-            useNativeDriver: true,
-          }),
-          Animated.timing(scale, {
-            toValue: minScale,
-            duration,
-            easing: Easing.inOut(Easing.ease),
-            useNativeDriver: true,
-          }),
-        ])
-      );
-      loop.start();
-    }, delay);
-    return () => clearTimeout(timer);
+    scale.value = withDelay(
+      delay,
+      withRepeat(
+        withSequence(
+          withTiming(maxScale, { duration, easing: Easing.inOut(Easing.ease) }),
+          withTiming(minScale, { duration, easing: Easing.inOut(Easing.ease) }),
+        ),
+        -1,
+        true,
+      ),
+    );
   }, []);
 
-  return { transform: [{ scale }] };
+  const style = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+  }));
+
+  return style;
 }
 
 // ─── Spring pop-in (for FAB, modals) ───────────────────────────
 
 export function useSpringIn(delay = 0) {
-  const scale = useRef(new Animated.Value(0)).current;
+  const scale = useSharedValue(0);
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      Animated.spring(scale, {
-        toValue: 1,
-        friction: 6,
-        tension: 100,
-        useNativeDriver: true,
-      }).start();
-    }, delay);
-    return () => clearTimeout(timer);
+    scale.value = withDelay(delay, withSpring(1, { damping: 8, stiffness: 100 }));
   }, []);
 
-  return { transform: [{ scale }] };
+  const style = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+  }));
+
+  return style;
 }
 
 // ─── Animated progress bar ─────────────────────────────────────
 
 export function useAnimatedWidth(value: number, max: number) {
-  const width = useRef(new Animated.Value(value / max)).current;
+  const progress = useSharedValue(value / max);
 
   useEffect(() => {
-    Animated.spring(width, {
-      toValue: value / max,
-      friction: 8,
-      tension: 40,
-      useNativeDriver: false, // width can't use native driver
-    }).start();
+    progress.value = withSpring(value / max, { damping: 15, stiffness: 100 });
   }, [value, max]);
 
-  return width;
+  return progress;
 }
 
-// ─── Sequence animation helper (for MatchReveal etc.) ──────────
+// ─── Warm glow effect (animated shadow on press) ───────────────
 
-export function createSequence(steps: Array<{ value: Animated.Value; toValue: number; delay: number; config?: any }>) {
-  return () => {
-    steps.forEach(({ value, toValue, delay: d, config }) => {
-      setTimeout(() => {
-        if (config?.spring) {
-          Animated.spring(value, {
-            toValue,
-            friction: config.friction ?? 6,
-            tension: config.tension ?? 80,
-            useNativeDriver: config.useNativeDriver ?? true,
-          }).start();
-        } else {
-          Animated.timing(value, {
-            toValue,
-            duration: config?.duration ?? 300,
-            easing: config?.easing ?? Easing.out(Easing.cubic),
-            useNativeDriver: config?.useNativeDriver ?? true,
-          }).start();
-        }
-      }, d);
-    });
-  };
+export function useWarmGlow() {
+  const glowOpacity = useSharedValue(0);
+
+  const activate = useCallback(() => {
+    glowOpacity.value = withSpring(1, { damping: 15, stiffness: 200 });
+  }, []);
+
+  const deactivate = useCallback(() => {
+    glowOpacity.value = withTiming(0, { duration: 200 });
+  }, []);
+
+  const style = useAnimatedStyle(() => ({
+    shadowOpacity: glowOpacity.value * 0.3,
+    shadowRadius: glowOpacity.value * 12,
+    shadowColor: '#C40018',
+    shadowOffset: { width: 0, height: 4 },
+  }));
+
+  return { activate, deactivate, style };
 }

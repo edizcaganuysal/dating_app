@@ -8,12 +8,12 @@ import {
   Alert,
   RefreshControl,
 } from 'react-native';
+import Animated from 'react-native-reanimated';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { getMyDateRequests, getMyGroups, cancelDateRequest } from '../api/dates';
 import { DateRequest, DateGroup, ActivityType } from '../types';
-import { Animated } from 'react-native';
-import { colors } from '../theme';
+import { colors, typography, spacing, fontFamilies } from '../theme';
 import { LoadingState, EmptyState, PressableScale, SkeletonCard } from '../components';
 
 const ACTIVITY_EMOJI: Record<string, string> = {
@@ -252,33 +252,33 @@ export default function MyDatesScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.surface },
-  content: { padding: 16, paddingBottom: 40 },
+  container: { flex: 1, backgroundColor: colors.cream },
+  content: { padding: spacing.lg, paddingBottom: spacing.xxxxl },
   sectionTitle: {
-    fontSize: 18, fontWeight: '700', color: colors.dark, marginBottom: 12, marginTop: 8,
+    ...typography.headlineSmall, color: colors.dark, marginBottom: spacing.md, marginTop: spacing.sm,
   },
   card: {
     backgroundColor: colors.surfaceElevated, borderRadius: 12, padding: 14, marginBottom: 10,
   },
   cardRow: { flexDirection: 'row', alignItems: 'center' },
-  activityEmoji: { fontSize: 28, marginRight: 12 },
+  activityEmoji: { fontSize: 28, marginRight: spacing.md },
   cardInfo: { flex: 1 },
-  activityLabel: { fontSize: 16, fontWeight: '600', color: colors.dark },
-  detailText: { fontSize: 13, color: colors.darkSecondary, marginTop: 2 },
-  metaText: { fontSize: 12, color: colors.gray, marginTop: 2 },
+  activityLabel: { ...typography.labelLarge, color: colors.dark },
+  detailText: { ...typography.bodySmall, color: colors.darkSecondary, marginTop: spacing.xxs },
+  metaText: { ...typography.caption, color: colors.gray, marginTop: spacing.xxs },
   actionRow: { flexDirection: 'column', gap: 6, alignItems: 'flex-end' },
   editButton: {
     borderWidth: 1, borderColor: colors.primary, paddingHorizontal: 14, paddingVertical: 6,
     borderRadius: 16,
   },
-  editText: { color: colors.primary, fontSize: 13, fontWeight: '600' },
+  editText: { color: colors.primary, fontFamily: fontFamilies.inter.semiBold, fontSize: 13 },
   cancelButton: {
     borderWidth: 1, borderColor: colors.error, paddingHorizontal: 14, paddingVertical: 6,
     borderRadius: 16,
   },
-  cancelText: { color: colors.error, fontSize: 13, fontWeight: '600' },
+  cancelText: { color: colors.error, fontFamily: fontFamilies.inter.semiBold, fontSize: 13 },
   statusBadge: {
-    backgroundColor: '#E8F5E9', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12,
+    backgroundColor: colors.successLight, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12,
   },
-  statusText: { color: colors.success, fontSize: 12, fontWeight: '600' },
+  statusText: { color: colors.success, fontFamily: fontFamilies.inter.semiBold, fontSize: 12 },
 });

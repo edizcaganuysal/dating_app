@@ -9,13 +9,17 @@ import {
   KeyboardAvoidingView,
   Platform,
   Pressable,
-  Animated,
 } from "react-native";
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withSpring,
+} from "react-native-reanimated";
 import { Ionicons } from "@expo/vector-icons";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useAuth } from "../context/AuthContext";
 import { AuthStackParamList } from "../navigation/AppNavigator";
-import { colors, typography, spacing, radii } from "../theme";
+import { colors, typography, spacing, radii, fontFamilies } from "../theme";
 import { AnimatedButton } from "../components";
 import { haptic } from "../utils/haptics";
 
@@ -25,16 +29,18 @@ const RESEND_COOLDOWN = 60;
 type Props = NativeStackScreenProps<AuthStackParamList, "VerifyEmail">;
 
 function OtpBox({ digit, isFocused, isFilled }: { digit: string; isFocused: boolean; isFilled: boolean }) {
-  const scale = useRef(new Animated.Value(1)).current;
+  const scale = useSharedValue(1);
 
   useEffect(() => {
-    Animated.spring(scale, {
-      toValue: isFocused ? 1.05 : 1,
-      friction: 8,
-      tension: 100,
-      useNativeDriver: true,
-    }).start();
+    scale.value = withSpring(isFocused ? 1.05 : 1, {
+      damping: 8,
+      stiffness: 100,
+    });
   }, [isFocused]);
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+  }));
 
   return (
     <Animated.View
@@ -42,7 +48,7 @@ function OtpBox({ digit, isFocused, isFilled }: { digit: string; isFocused: bool
         styles.otpBox,
         isFocused && styles.otpBoxFocused,
         isFilled && styles.otpBoxFilled,
-        { transform: [{ scale }] },
+        animatedStyle,
       ]}
     >
       <Text style={[styles.otpDigit, isFilled && styles.otpDigitFilled]}>{digit}</Text>
@@ -169,7 +175,7 @@ export default function VerifyEmailScreen({ navigation, route }: Props) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.surface },
+  container: { flex: 1, backgroundColor: colors.cream },
   inner: { flex: 1, justifyContent: "center", paddingHorizontal: spacing.xxxl },
   iconContainer: { alignItems: "center", marginBottom: spacing.xl },
   iconCircle: { width: 72, height: 72, borderRadius: radii.full, backgroundColor: colors.surfaceSelected, alignItems: "center", justifyContent: "center" },
@@ -177,8 +183,8 @@ const styles = StyleSheet.create({
   subtitle: { ...typography.bodyLarge, textAlign: "center", color: colors.darkSecondary },
   email: { ...typography.labelLarge, textAlign: "center", color: colors.primary, marginBottom: spacing.xxl },
   devBox: { backgroundColor: colors.warningLight, borderRadius: radii.md, padding: spacing.md, marginBottom: spacing.xl, alignItems: "center" },
-  devLabel: { ...typography.captionSmall, color: "#E65100", marginBottom: spacing.xs, textTransform: "uppercase", letterSpacing: 0.5 },
-  devOtp: { fontSize: 24, fontWeight: "bold", color: "#E65100", letterSpacing: 4 },
+  devLabel: { ...typography.captionSmall, color: colors.ember, marginBottom: spacing.xs, textTransform: "uppercase", letterSpacing: 0.5 },
+  devOtp: { fontSize: 24, fontFamily: fontFamilies.inter.bold, color: colors.ember, letterSpacing: 4 },
   hiddenInput: { position: "absolute", width: 1, height: 1, opacity: 0 },
   otpContainer: { flexDirection: "row", justifyContent: "center", gap: spacing.sm, marginBottom: spacing.xxl },
   otpBox: { width: 48, height: 48, borderRadius: radii.sm, borderWidth: 1.5, borderColor: colors.border, backgroundColor: colors.surfaceElevated, alignItems: "center", justifyContent: "center" },

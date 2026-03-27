@@ -5,13 +5,13 @@ import {
   StyleSheet,
   FlatList,
   RefreshControl,
-  Animated,
 } from 'react-native';
+import Animated from 'react-native-reanimated';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { useAuth } from '../context/AuthContext';
 import { getMyGroups, getMyMatches } from '../api/dates';
 import { DateGroup, Match } from '../types';
-import { colors, typography, spacing, shadows } from '../theme';
+import { colors, typography, spacing, shadows, fontFamilies } from '../theme';
 import {
   UserAvatar,
   ErrorState,
@@ -99,7 +99,7 @@ function GroupCard({ group, index, onPress }: { group: DateGroup; index: number;
   return (
     <Animated.View style={fadeStyle}>
       <PressableScale onPress={onPress}>
-        <GradientCard gradientColors={[colors.surfaceElevated, '#FFF8F5']} style={styles.groupCard}>
+        <GradientCard gradientColors={[colors.surfaceElevated, colors.cream]} style={styles.groupCard}>
           <View style={styles.cardHeader}>
             <Text style={styles.emoji}>{emoji}</Text>
             <View style={{ flex: 1 }}>
@@ -288,7 +288,7 @@ export default function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.surface },
+  container: { flex: 1, backgroundColor: colors.cream },
   listContent: { paddingBottom: 100, flexGrow: 1 },
   skeletonContainer: { padding: spacing.xl, paddingTop: spacing.xxxxl },
   // welcome style removed
@@ -304,7 +304,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surfacePressed, paddingHorizontal: spacing.sm,
     paddingVertical: spacing.xs, borderRadius: 999,
   },
-  countdownText: { ...typography.captionSmall, color: colors.primary, fontWeight: '600' },
+  countdownText: { ...typography.captionSmall, color: colors.primary, fontFamily: fontFamilies.inter.semiBold },
   avatarRow: {
     flexDirection: 'row', alignItems: 'center', marginTop: spacing.md,
     paddingTop: spacing.md, borderTopWidth: 1, borderTopColor: colors.borderLight,

@@ -1,9 +1,15 @@
-import React, { useRef, useEffect, useState } from 'react';
-import { View, Text, StyleSheet, Dimensions, Animated, Alert } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, StyleSheet, Dimensions, Alert } from 'react-native';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withTiming,
+  withSpring,
+} from 'react-native-reanimated';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SoftMatch } from '../types';
-import { colors, typography, spacing, radii, shadows } from '../theme';
+import { colors, typography, spacing, radii, shadows, fontFamilies } from '../theme';
 import { UserAvatar, AnimatedButton } from '../components';
 import { haptic } from '../utils/haptics';
 import { useFadeIn, usePulse } from '../utils/animations';
@@ -40,22 +46,22 @@ export default function SoftMatchScreen() {
   const [submitting, setSubmitting] = useState(false);
 
   // Mystery phase animations
-  const bgOpacity = useRef(new Animated.Value(0)).current;
-  const iconScale = useRef(new Animated.Value(0)).current;
-  const iconOpacity = useRef(new Animated.Value(0)).current;
-  const teaserOpacity = useRef(new Animated.Value(0)).current;
-  const teaserY = useRef(new Animated.Value(20)).current;
-  const photoOpacity = useRef(new Animated.Value(0)).current;
-  const photoScale = useRef(new Animated.Value(0.8)).current;
-  const buttonsOpacity = useRef(new Animated.Value(0)).current;
-  const buttonsY = useRef(new Animated.Value(40)).current;
+  const bgOpacity = useSharedValue(0);
+  const iconScale = useSharedValue(0);
+  const iconOpacity = useSharedValue(0);
+  const teaserOpacity = useSharedValue(0);
+  const teaserY = useSharedValue(20);
+  const photoOpacity = useSharedValue(0);
+  const photoScale = useSharedValue(0.8);
+  const buttonsOpacity = useSharedValue(0);
+  const buttonsY = useSharedValue(40);
 
   // Reveal phase animations
-  const blurOpacity = useRef(new Animated.Value(1)).current;
-  const revealNameOpacity = useRef(new Animated.Value(0)).current;
-  const revealNameY = useRef(new Animated.Value(20)).current;
-  const connectButtonsOpacity = useRef(new Animated.Value(0)).current;
-  const connectButtonsY = useRef(new Animated.Value(40)).current;
+  const blurOpacity = useSharedValue(1);
+  const revealNameOpacity = useSharedValue(0);
+  const revealNameY = useSharedValue(20);
+  const connectButtonsOpacity = useSharedValue(0);
+  const connectButtonsY = useSharedValue(40);
 
   const ctaPulseStyle = usePulse(1, 1.03, 800, 1800);
 
@@ -65,35 +71,27 @@ export default function SoftMatchScreen() {
 
   // Mystery phase entrance animation
   useEffect(() => {
-    Animated.timing(bgOpacity, { toValue: 1, duration: 300, useNativeDriver: true }).start();
+    bgOpacity.value = withTiming(1, { duration: 300 });
 
     setTimeout(() => {
       haptic.medium();
-      Animated.parallel([
-        Animated.timing(iconOpacity, { toValue: 1, duration: 200, useNativeDriver: true }),
-        Animated.spring(iconScale, { toValue: 1, friction: 5, tension: 80, useNativeDriver: true }),
-      ]).start();
+      iconOpacity.value = withTiming(1, { duration: 200 });
+      iconScale.value = withSpring(1, { damping: 5, stiffness: 80 });
     }, 300);
 
     setTimeout(() => {
-      Animated.parallel([
-        Animated.timing(teaserOpacity, { toValue: 1, duration: 400, useNativeDriver: true }),
-        Animated.spring(teaserY, { toValue: 0, friction: 8, tension: 40, useNativeDriver: true }),
-      ]).start();
+      teaserOpacity.value = withTiming(1, { duration: 400 });
+      teaserY.value = withSpring(0, { damping: 8, stiffness: 40 });
     }, 500);
 
     setTimeout(() => {
-      Animated.parallel([
-        Animated.timing(photoOpacity, { toValue: 1, duration: 400, useNativeDriver: true }),
-        Animated.spring(photoScale, { toValue: 1, friction: 8, tension: 40, useNativeDriver: true }),
-      ]).start();
+      photoOpacity.value = withTiming(1, { duration: 400 });
+      photoScale.value = withSpring(1, { damping: 8, stiffness: 40 });
     }, 700);
 
     setTimeout(() => {
-      Animated.parallel([
-        Animated.timing(buttonsOpacity, { toValue: 1, duration: 300, useNativeDriver: true }),
-        Animated.spring(buttonsY, { toValue: 0, friction: 8, tension: 40, useNativeDriver: true }),
-      ]).start();
+      buttonsOpacity.value = withTiming(1, { duration: 300 });
+      buttonsY.value = withSpring(0, { damping: 8, stiffness: 40 });
     }, 1000);
   }, []);
 
@@ -102,23 +100,19 @@ export default function SoftMatchScreen() {
     setPhase('revealed');
 
     // Animate blur away and reveal details
-    Animated.timing(blurOpacity, { toValue: 0, duration: 500, useNativeDriver: true }).start();
+    blurOpacity.value = withTiming(0, { duration: 500 });
 
     // Fade out mystery buttons
-    Animated.timing(buttonsOpacity, { toValue: 0, duration: 200, useNativeDriver: true }).start();
+    buttonsOpacity.value = withTiming(0, { duration: 200 });
 
     setTimeout(() => {
-      Animated.parallel([
-        Animated.timing(revealNameOpacity, { toValue: 1, duration: 400, useNativeDriver: true }),
-        Animated.spring(revealNameY, { toValue: 0, friction: 8, tension: 40, useNativeDriver: true }),
-      ]).start();
+      revealNameOpacity.value = withTiming(1, { duration: 400 });
+      revealNameY.value = withSpring(0, { damping: 8, stiffness: 40 });
     }, 300);
 
     setTimeout(() => {
-      Animated.parallel([
-        Animated.timing(connectButtonsOpacity, { toValue: 1, duration: 300, useNativeDriver: true }),
-        Animated.spring(connectButtonsY, { toValue: 0, friction: 8, tension: 40, useNativeDriver: true }),
-      ]).start();
+      connectButtonsOpacity.value = withTiming(1, { duration: 300 });
+      connectButtonsY.value = withSpring(0, { damping: 8, stiffness: 40 });
     }, 800);
   };
 
@@ -157,28 +151,52 @@ export default function SoftMatchScreen() {
     navigation.goBack();
   };
 
+  // Animated styles
+  const bgAnimStyle = useAnimatedStyle(() => ({ opacity: bgOpacity.value }));
+  const iconAnimStyle = useAnimatedStyle(() => ({
+    opacity: iconOpacity.value,
+    transform: [{ scale: iconScale.value }],
+  }));
+  const teaserAnimStyle = useAnimatedStyle(() => ({
+    opacity: teaserOpacity.value,
+    transform: [{ translateY: teaserY.value }],
+  }));
+  const photoAnimStyle = useAnimatedStyle(() => ({
+    opacity: photoOpacity.value,
+    transform: [{ scale: photoScale.value }],
+  }));
+  const buttonsAnimStyle = useAnimatedStyle(() => ({
+    opacity: buttonsOpacity.value,
+    transform: [{ translateY: buttonsY.value }],
+  }));
+  const blurAnimStyle = useAnimatedStyle(() => ({
+    opacity: blurOpacity.value,
+  }));
+  const revealNameAnimStyle = useAnimatedStyle(() => ({
+    opacity: revealNameOpacity.value,
+    transform: [{ translateY: revealNameY.value }],
+  }));
+  const connectButtonsAnimStyle = useAnimatedStyle(() => ({
+    opacity: connectButtonsOpacity.value,
+    transform: [{ translateY: connectButtonsY.value }],
+  }));
+
   return (
-    <Animated.View style={[styles.container, { opacity: bgOpacity }]}>
+    <Animated.View style={[styles.container, bgAnimStyle]}>
       <LinearGradient
-        colors={['#6C5CE7', '#A29BFE', '#FD79A8', '#FFF5F0']}
+        colors={['#241C1A', '#6B2D5B', '#C40018', '#F7F0E7']}
         start={{ x: 0.5, y: 0 }}
         end={{ x: 0.5, y: 1 }}
         style={StyleSheet.absoluteFill}
       />
 
       {/* Mystery icon */}
-      <Animated.View style={[styles.iconContainer, {
-        opacity: iconOpacity,
-        transform: [{ scale: iconScale }],
-      }]}>
+      <Animated.View style={[styles.iconContainer, iconAnimStyle]}>
         <Text style={styles.mysteryIcon}>?</Text>
       </Animated.View>
 
       {/* Teaser text */}
-      <Animated.View style={[styles.teaserSection, {
-        opacity: teaserOpacity,
-        transform: [{ translateY: teaserY }],
-      }]}>
+      <Animated.View style={[styles.teaserSection, teaserAnimStyle]}>
         <Text style={styles.teaserTitle}>Someone is interested!</Text>
         <Text style={styles.teaserSubtitle}>
           A person from your {activityLabel} group{'\n'}wants to see you again
@@ -186,10 +204,7 @@ export default function SoftMatchScreen() {
       </Animated.View>
 
       {/* Photo with blur overlay */}
-      <Animated.View style={[styles.photoContainer, {
-        opacity: photoOpacity,
-        transform: [{ scale: photoScale }],
-      }]}>
+      <Animated.View style={[styles.photoContainer, photoAnimStyle]}>
         <View style={styles.photoRing}>
           <UserAvatar
             photoUrl={person.photo_urls?.[0]}
@@ -200,9 +215,9 @@ export default function SoftMatchScreen() {
           />
         </View>
         {/* Gradient blur overlay */}
-        <Animated.View style={[styles.blurOverlay, { opacity: blurOpacity }]}>
+        <Animated.View style={[styles.blurOverlay, blurAnimStyle]}>
           <LinearGradient
-            colors={['rgba(108,92,231,0.85)', 'rgba(162,155,254,0.9)', 'rgba(108,92,231,0.85)']}
+            colors={['rgba(36,28,26,0.85)', 'rgba(107,45,91,0.9)', 'rgba(36,28,26,0.85)']}
             style={styles.blurGradient}
           >
             <Text style={styles.blurQuestion}>?</Text>
@@ -212,10 +227,7 @@ export default function SoftMatchScreen() {
 
       {/* Revealed name + details (visible after reveal) */}
       {phase === 'revealed' && (
-        <Animated.View style={[styles.nameSection, {
-          opacity: revealNameOpacity,
-          transform: [{ translateY: revealNameY }],
-        }]}>
+        <Animated.View style={[styles.nameSection, revealNameAnimStyle]}>
           <Text style={styles.name}>{person.first_name}</Text>
           {person.program && (
             <Text style={styles.program}>{person.program}</Text>
@@ -234,10 +246,7 @@ export default function SoftMatchScreen() {
 
       {/* Mystery buttons (Reveal / Not now) */}
       {phase === 'mystery' && (
-        <Animated.View style={[styles.buttonsSection, {
-          opacity: buttonsOpacity,
-          transform: [{ translateY: buttonsY }],
-        }]}>
+        <Animated.View style={[styles.buttonsSection, buttonsAnimStyle]}>
           <Animated.View style={ctaPulseStyle}>
             <AnimatedButton
               label="Reveal"
@@ -261,10 +270,7 @@ export default function SoftMatchScreen() {
 
       {/* Connect buttons (after reveal) */}
       {phase === 'revealed' && (
-        <Animated.View style={[styles.buttonsSection, {
-          opacity: connectButtonsOpacity,
-          transform: [{ translateY: connectButtonsY }],
-        }]}>
+        <Animated.View style={[styles.buttonsSection, connectButtonsAnimStyle]}>
           <Text style={styles.connectPrompt}>
             Want to connect with {person.first_name}?
           </Text>
@@ -309,8 +315,9 @@ const styles = StyleSheet.create({
     zIndex: 10,
   },
   mysteryIcon: {
-    ...typography.displayLarge,
+    fontFamily: fontFamilies.playfair.bold,
     fontSize: 32,
+    lineHeight: 40,
     color: '#fff',
   },
   teaserSection: {
@@ -319,7 +326,9 @@ const styles = StyleSheet.create({
     zIndex: 10,
   },
   teaserTitle: {
-    ...typography.displaySmall,
+    fontFamily: fontFamilies.playfair.bold,
+    fontSize: 28,
+    lineHeight: 34,
     color: '#fff',
     textAlign: 'center',
     textShadowColor: 'rgba(0,0,0,0.2)',
@@ -327,7 +336,9 @@ const styles = StyleSheet.create({
     textShadowRadius: 8,
   },
   teaserSubtitle: {
-    ...typography.bodyLarge,
+    fontFamily: fontFamilies.inter.regular,
+    fontSize: 16,
+    lineHeight: 22,
     color: 'rgba(255,255,255,0.85)',
     textAlign: 'center',
     marginTop: spacing.sm,
@@ -356,8 +367,9 @@ const styles = StyleSheet.create({
     borderRadius: 68,
   },
   blurQuestion: {
-    ...typography.displayLarge,
+    fontFamily: fontFamilies.playfair.bold,
     fontSize: 48,
+    lineHeight: 56,
     color: 'rgba(255,255,255,0.6)',
   },
   nameSection: {
@@ -366,14 +378,18 @@ const styles = StyleSheet.create({
     zIndex: 10,
   },
   name: {
-    ...typography.displaySmall,
+    fontFamily: fontFamilies.playfair.semiBold,
+    fontSize: 28,
+    lineHeight: 34,
     color: '#fff',
     textShadowColor: 'rgba(0,0,0,0.15)',
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 6,
   },
   program: {
-    ...typography.bodyLarge,
+    fontFamily: fontFamilies.inter.regular,
+    fontSize: 16,
+    lineHeight: 22,
     color: 'rgba(255,255,255,0.85)',
     marginTop: spacing.xs,
   },
@@ -394,7 +410,9 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255,255,255,0.3)',
   },
   interestText: {
-    ...typography.labelSmall,
+    fontFamily: fontFamilies.inter.semiBold,
+    fontSize: 12,
+    lineHeight: 16,
     color: '#fff',
   },
   buttonsSection: {
@@ -403,7 +421,9 @@ const styles = StyleSheet.create({
     zIndex: 10,
   },
   connectPrompt: {
-    ...typography.headlineMedium,
+    fontFamily: fontFamilies.inter.semiBold,
+    fontSize: 20,
+    lineHeight: 26,
     color: '#fff',
     textAlign: 'center',
     textShadowColor: 'rgba(0,0,0,0.15)',

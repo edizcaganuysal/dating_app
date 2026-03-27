@@ -2,12 +2,11 @@ import React, { useEffect, useState, useCallback } from "react";
 import { View, StyleSheet, BackHandler } from "react-native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
-import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "../context/AuthContext";
 import LoginScreen from "../screens/LoginScreen";
 import RegisterScreen from "../screens/RegisterScreen";
 import VerifyEmailScreen from "../screens/VerifyEmailScreen";
-import ProfileSetupScreen from "../screens/ProfileSetupScreen";
+import OnboardingScreen from "../screens/onboarding/OnboardingScreen";
 import HomeScreen from "../screens/HomeScreen";
 import DateRequestScreen from "../screens/DateRequestScreen";
 import GroupRevealScreen from "../screens/GroupRevealScreen";
@@ -26,7 +25,9 @@ import { Match, SoftMatch, SecondDateSuggestion } from "../types";
 import useNotifications from "../hooks/useNotifications";
 import useUnreadCount from "../hooks/useUnreadCount";
 import { LoadingState } from "../components";
-import { colors } from "../theme";
+import { CustomTabBar } from "../components";
+import { colors, fontFamilies } from "../theme";
+import { revealScreenOptions } from "./transitions";
 
 export type AuthStackParamList = {
   Login: { message?: string } | undefined;
@@ -83,7 +84,11 @@ const RootStack = createNativeStackNavigator<RootStackParamList>();
 const headerOptions = {
   headerStyle: { backgroundColor: colors.surfaceElevated },
   headerTintColor: colors.dark,
-  headerTitleStyle: { color: colors.dark, fontWeight: '600' as const },
+  headerTitleStyle: {
+    color: colors.dark,
+    fontFamily: fontFamilies.inter.semiBold,
+    fontSize: 17,
+  },
   headerShadowVisible: false,
 };
 
@@ -128,17 +133,17 @@ function HomeStackNavigator() {
       <HomeStack.Screen
         name="MatchReveal"
         component={MatchRevealScreen}
-        options={{ headerShown: false }}
+        options={revealScreenOptions}
       />
       <HomeStack.Screen
         name="SoftMatch"
         component={SoftMatchScreen}
-        options={{ headerShown: false }}
+        options={revealScreenOptions}
       />
       <HomeStack.Screen
         name="SecondDateProposal"
         component={SecondDateProposalScreen}
-        options={{ headerShown: false }}
+        options={revealScreenOptions}
       />
       <HomeStack.Screen
         name="CheckIn"
@@ -187,92 +192,41 @@ function MainNavigator() {
   useNotifications();
   const unreadCount = useUnreadCount();
 
-  // Android back handler: prevent exiting app from tab screens
   useEffect(() => {
-    const handler = BackHandler.addEventListener('hardwareBackPress', () => {
-      // Return false to let default behavior (navigate back in stack)
-      // Only prevent exit if we're at the root of a tab
-      return false;
-    });
+    const handler = BackHandler.addEventListener('hardwareBackPress', () => false);
     return () => handler.remove();
   }, []);
 
   return (
     <MainTab.Navigator
+      tabBar={(props) => <CustomTabBar {...props} />}
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: colors.primary,
-        tabBarInactiveTintColor: colors.gray,
-        tabBarStyle: {
-          backgroundColor: colors.surfaceElevated,
-          borderTopColor: colors.borderLight,
-        },
-        tabBarLabelStyle: {
-          fontSize: 11,
-          fontWeight: '600',
-        },
       }}
     >
       <MainTab.Screen
         name="Home"
         component={HomeStackNavigator}
-        options={{
-          tabBarLabel: 'Home',
-          tabBarIcon: ({ focused, color, size }) => (
-            <Ionicons
-              name={focused ? "home" : "home-outline"}
-              size={size}
-              color={color}
-            />
-          ),
-        }}
       />
       <MainTab.Screen
         name="MyDates"
         component={MyDatesScreen}
         options={{
           title: "My Dates",
-          tabBarLabel: 'My Dates',
           headerShown: true,
           ...headerOptions,
-          tabBarIcon: ({ focused, color, size }) => (
-            <Ionicons
-              name={focused ? "calendar" : "calendar-outline"}
-              size={size}
-              color={color}
-            />
-          ),
         }}
       />
       <MainTab.Screen
         name="Chat"
         component={ChatStackNavigator}
         options={{
-          tabBarLabel: 'Chat',
           tabBarBadge: unreadCount > 0 ? unreadCount : undefined,
-          tabBarBadgeStyle: { backgroundColor: colors.primary, fontSize: 10 },
-          tabBarIcon: ({ focused, color, size }) => (
-            <Ionicons
-              name={focused ? "chatbubble" : "chatbubble-outline"}
-              size={size}
-              color={color}
-            />
-          ),
         }}
       />
       <MainTab.Screen
         name="Profile"
         component={ProfileStackNavigator}
-        options={{
-          tabBarLabel: 'Profile',
-          tabBarIcon: ({ focused, color, size }) => (
-            <Ionicons
-              name={focused ? "person" : "person-outline"}
-              size={size}
-              color={color}
-            />
-          ),
-        }}
       />
     </MainTab.Navigator>
   );
@@ -316,7 +270,7 @@ export default function AppNavigator() {
   if (!hasProfile) {
     return (
       <RootStack.Navigator screenOptions={{ headerShown: false }}>
-        <RootStack.Screen name="ProfileSetup" component={ProfileSetupScreen} />
+        <RootStack.Screen name="ProfileSetup" component={OnboardingScreen} />
         <RootStack.Screen name="MainTabs" component={MainNavigator} />
       </RootStack.Navigator>
     );

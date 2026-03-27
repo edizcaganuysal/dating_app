@@ -14,6 +14,11 @@ jest.mock("../../src/context/AuthContext", () => ({
   }),
 }));
 
+jest.mock("../../src/api/client", () => ({
+  API_BASE_URL: "http://localhost:8000",
+  default: { get: jest.fn(), post: jest.fn() },
+}));
+
 const mockNavigation = {
   navigate: jest.fn(),
   goBack: jest.fn(),
@@ -36,13 +41,13 @@ describe("LoginScreen", () => {
     expect(screen.getByTestId("password-input")).toBeTruthy();
   });
 
-  it("renders login button", () => {
-    render(<LoginScreen navigation={mockNavigation} route={mockRoute} />);
-    expect(screen.getByTestId("login-button")).toBeTruthy();
-  });
-
   it("renders register link", () => {
     render(<LoginScreen navigation={mockNavigation} route={mockRoute} />);
     expect(screen.getByTestId("register-link")).toBeTruthy();
+  });
+
+  it("renders the Yuni tagline", () => {
+    render(<LoginScreen navigation={mockNavigation} route={mockRoute} />);
+    expect(screen.getByText(/university students/i)).toBeTruthy();
   });
 });

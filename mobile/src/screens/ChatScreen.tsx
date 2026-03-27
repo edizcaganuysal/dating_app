@@ -9,7 +9,6 @@ import {
   KeyboardAvoidingView,
   Platform,
   Modal,
-  Animated,
   Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -20,6 +19,7 @@ import { askYuniAi } from '../api/chat';
 import { getMyMatches, getSecondDateSuggestions, proposeSecondDate } from '../api/dates';
 import { ChatMessage, YUNI_AI_USER_ID, SecondDateSuggestion, Match } from '../types';
 import { colors, spacing, typography, radii } from '../theme';
+import { fontFamilies } from '../theme';
 import { UserAvatar, RelativeTimestamp, PressableScale, BouncingDots, DateSuggestionCard } from '../components';
 import { markRoomRead } from '../hooks/useUnreadCount';
 import { useFadeIn } from '../utils/animations';
@@ -187,7 +187,7 @@ export default function ChatScreen() {
             <View style={styles.yuniAiTypingRow}>
               <Text style={styles.yuniAiTypingEmoji}>✨</Text>
               <Text style={styles.yuniAiTypingText}>Yuni AI</Text>
-              <BouncingDots color="#7B1FA2" />
+              <BouncingDots color={colors.yuniAiPrimary} />
             </View>
           ) : (
             <View style={styles.typingRow}>
@@ -259,15 +259,15 @@ export default function ChatScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.surfaceElevated },
   connectionBanner: { backgroundColor: colors.warning, padding: 4, alignItems: 'center' },
-  connectionText: { color: '#fff', fontSize: 12 },
+  connectionText: { color: '#fff', fontSize: 12, fontFamily: fontFamilies.inter.regular },
   messageList: { flex: 1, paddingHorizontal: 12 },
   messageRow: { flexDirection: 'row', alignItems: 'flex-start', marginVertical: 2, justifyContent: 'flex-start' },
   messageRowOwn: { justifyContent: 'flex-end' },
   messageBubble: { maxWidth: '70%', padding: 10, borderRadius: 16, marginVertical: 2 },
   ownMessage: { backgroundColor: colors.primary, alignSelf: 'flex-end', borderBottomRightRadius: 4 },
   otherMessage: { backgroundColor: colors.otherMessage, alignSelf: 'flex-start', borderBottomLeftRadius: 4 },
-  senderName: { fontSize: 11, fontWeight: '600', color: colors.primary, marginBottom: 2 },
-  messageText: { fontSize: 15, color: colors.dark },
+  senderName: { fontSize: 11, fontFamily: fontFamilies.inter.semiBold, color: colors.primary, marginBottom: 2 },
+  messageText: { fontSize: 15, color: colors.dark, fontFamily: fontFamilies.inter.regular },
   ownMessageText: { color: '#fff' },
   timestamp: { fontSize: 10, color: colors.gray, marginTop: 4, alignSelf: 'flex-end' },
   ownTimestamp: { color: 'rgba(255,255,255,0.7)' },
@@ -278,14 +278,14 @@ const styles = StyleSheet.create({
   },
   yuniAiHeader: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 },
   yuniAiEmoji: { fontSize: 16 },
-  yuniAiName: { fontSize: 12, fontWeight: '700', color: colors.yuniAiPrimary },
-  yuniAiText: { fontSize: 14, color: colors.dark, lineHeight: 20 },
-  yuniAiTimestamp: { fontSize: 10, color: '#9E9E9E', marginTop: 6, alignSelf: 'flex-end' },
+  yuniAiName: { fontSize: 12, fontFamily: fontFamilies.inter.bold, color: colors.yuniAiPrimary },
+  yuniAiText: { fontSize: 14, color: colors.dark, lineHeight: 20, fontFamily: fontFamilies.inter.regular },
+  yuniAiTimestamp: { fontSize: 10, color: colors.gray, marginTop: 6, alignSelf: 'flex-end' },
   typingContainer: { paddingHorizontal: 16, paddingVertical: 4 },
-  typingText: { fontSize: 12, color: colors.gray, fontStyle: 'italic' },
+  typingText: { fontSize: 12, color: colors.gray, fontStyle: 'italic', fontFamily: fontFamilies.inter.regular },
   yuniAiTypingRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   yuniAiTypingEmoji: { fontSize: 14 },
-  yuniAiTypingText: { fontSize: 12, color: colors.yuniAiPrimary, fontStyle: 'italic', marginRight: 4 },
+  yuniAiTypingText: { fontSize: 12, color: colors.yuniAiPrimary, fontStyle: 'italic', marginRight: 4, fontFamily: fontFamilies.inter.regular },
   typingRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   inputContainer: {
     flexDirection: 'row', padding: 8, borderTopWidth: 1, borderTopColor: colors.border,
@@ -299,6 +299,7 @@ const styles = StyleSheet.create({
   input: {
     flex: 1, borderWidth: 1, borderColor: colors.border, borderRadius: 20,
     paddingHorizontal: 14, paddingVertical: 8, maxHeight: 100, fontSize: 15,
+    fontFamily: fontFamilies.inter.regular,
   },
   sendButton: {
     backgroundColor: colors.primary, paddingHorizontal: 16, paddingVertical: 10,
@@ -315,13 +316,13 @@ const styles = StyleSheet.create({
     width: 40, height: 4, borderRadius: 2, backgroundColor: colors.border,
     alignSelf: 'center', marginBottom: 16,
   },
-  yuniAiSheetTitle: { fontSize: 20, fontWeight: '700', color: colors.dark, marginBottom: 4 },
-  yuniAiSheetSub: { fontSize: 14, color: colors.darkSecondary, marginBottom: 16 },
+  yuniAiSheetTitle: { fontSize: 20, fontFamily: fontFamilies.inter.bold, color: colors.dark, marginBottom: 4 },
+  yuniAiSheetSub: { fontSize: 14, color: colors.darkSecondary, marginBottom: 16, fontFamily: fontFamilies.inter.regular },
   yuniAiPreset: {
     backgroundColor: colors.yuniAiBubble, paddingVertical: 14, paddingHorizontal: 16,
     borderRadius: 12, marginBottom: 8,
   },
-  yuniAiPresetText: { fontSize: 15, color: '#4A148C', fontWeight: '600' },
+  yuniAiPresetText: { fontSize: 15, color: colors.yuniAiPrimary, fontFamily: fontFamilies.inter.semiBold },
   yuniAiCancel: { paddingVertical: 14, alignItems: 'center', marginTop: 4 },
-  yuniAiCancelText: { fontSize: 15, color: colors.gray },
+  yuniAiCancelText: { fontSize: 15, color: colors.gray, fontFamily: fontFamilies.inter.regular },
 });

@@ -2,22 +2,20 @@ import React, { useState } from "react";
 import {
   View,
   Text,
-  TextInput,
   TouchableOpacity,
   StyleSheet,
   Alert,
   KeyboardAvoidingView,
   Platform,
-  Animated,
 } from "react-native";
+import Animated from "react-native-reanimated";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useAuth } from "../context/AuthContext";
 import { AuthStackParamList } from "../navigation/AppNavigator";
-import { colors, typography, spacing, radii } from '../theme';
-import { AnimatedButton } from '../components';
+import { colors, typography, fontFamilies, spacing, radii } from '../theme';
+import { AnimatedButton, Logo, ParticleEffect, WarmInput } from '../components';
 import { haptic } from '../utils/haptics';
 import { useFadeIn } from '../utils/animations';
-import { API_BASE_URL } from '../api/client';
 
 type Props = NativeStackScreenProps<AuthStackParamList, "Login">;
 
@@ -29,11 +27,11 @@ export default function LoginScreen({ navigation, route }: Props) {
 
   const successMessage = route.params?.message;
 
-  const titleFade = useFadeIn({ delay: 100 });
-  const subtitleFade = useFadeIn({ delay: 200 });
-  const emailFade = useFadeIn({ delay: 300 });
-  const passwordFade = useFadeIn({ delay: 400 });
-  const buttonFade = useFadeIn({ delay: 500 });
+  const logoFade = useFadeIn({ delay: 100, direction: 'none' });
+  const subtitleFade = useFadeIn({ delay: 250 });
+  const emailFade = useFadeIn({ delay: 350 });
+  const passwordFade = useFadeIn({ delay: 450 });
+  const buttonFade = useFadeIn({ delay: 550 });
 
   async function handleLogin() {
     if (!email.trim() || !password.trim()) {
@@ -47,11 +45,11 @@ export default function LoginScreen({ navigation, route }: Props) {
       let message = error.response?.data?.detail;
       if (!message) {
         if (error.code === "ECONNABORTED" || error.message?.includes("timeout")) {
-          message = "Request timed out. Check your internet connection and try again.";
+          message = "Request timed out. Check your internet connection.";
         } else if (error.code === "ERR_NETWORK" || error.message?.includes("Network")) {
-          message = "Cannot reach the server. Check your connection or try again later.";
+          message = "Cannot reach the server. Check your connection.";
         } else {
-          message = `Unexpected error: ${error.message || String(error)}\n\nAPI URL: ${API_BASE_URL}`;
+          message = `Login failed: ${error.message || String(error)}`;
         }
       }
       haptic.error();
@@ -62,48 +60,58 @@ export default function LoginScreen({ navigation, route }: Props) {
   }
 
   return (
+    <View style={styles.rootBg}>
     <KeyboardAvoidingView
       style={styles.container}
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
+      {/* Subtle background particles */}
+      <ParticleEffect count={6} intensity="subtle" />
+
       <View style={styles.inner}>
-        <Animated.View style={titleFade}>
-          <Text style={styles.title}>Yuni</Text>
+        {/* Logo */}
+        <Animated.View style={[styles.logoContainer, logoFade]}>
+          <Logo size="lg" />
         </Animated.View>
+
+        {/* Tagline */}
         <Animated.View style={subtitleFade}>
-          <Text style={styles.subtitle}>Group dating for university students</Text>
+          <Text style={styles.subtitle}>
+            The group dating app{'\n'}for university students
+          </Text>
         </Animated.View>
-        <Text style={{ fontSize: 10, color: colors.gray, textAlign: 'center', marginBottom: 8 }}>
-          API: {API_BASE_URL}
-        </Text>
 
         {successMessage && (
           <Text style={styles.successMessage}>{successMessage}</Text>
         )}
 
+        {/* Email input */}
         <Animated.View style={emailFade}>
-          <TextInput
-            style={styles.input}
+          <WarmInput
             placeholder="Email"
             value={email}
             onChangeText={setEmail}
             keyboardType="email-address"
             autoCapitalize="none"
             autoCorrect={false}
+            leftIcon="mail-outline"
             testID="email-input"
           />
         </Animated.View>
+
+        {/* Password input */}
         <Animated.View style={passwordFade}>
-          <TextInput
-            style={styles.input}
+          <WarmInput
             placeholder="Password"
             value={password}
             onChangeText={setPassword}
             secureTextEntry
+            leftIcon="lock-closed-outline"
             testID="password-input"
           />
         </Animated.View>
 
+        {/* Login button */}
         <Animated.View style={buttonFade}>
           <AnimatedButton
             label="Log In"
@@ -115,6 +123,7 @@ export default function LoginScreen({ navigation, route }: Props) {
           />
         </Animated.View>
 
+        {/* Register link */}
         <TouchableOpacity
           onPress={() => navigation.navigate("Register")}
           testID="register-link"
@@ -125,20 +134,45 @@ export default function LoginScreen({ navigation, route }: Props) {
         </TouchableOpacity>
       </View>
     </KeyboardAvoidingView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.surface },
-  inner: { flex: 1, justifyContent: "center", paddingHorizontal: spacing.xxxl },
-  title: { ...typography.displayLarge, textAlign: "center", color: colors.primary, marginBottom: spacing.sm },
-  subtitle: { ...typography.bodyLarge, textAlign: "center", color: colors.darkSecondary, marginBottom: spacing.xxxxl },
-  successMessage: { ...typography.bodySmall, color: colors.success, textAlign: "center", marginBottom: spacing.lg },
-  input: {
-    borderWidth: 1, borderColor: colors.border, borderRadius: radii.sm,
-    padding: spacing.md + 2, fontSize: 16, marginBottom: spacing.lg,
-    backgroundColor: colors.surfaceElevated,
+  rootBg: { flex: 1, backgroundColor: colors.cream },
+  container: { flex: 1, backgroundColor: colors.cream },
+  inner: {
+    flex: 1, justifyContent: "center",
+    paddingHorizontal: spacing.xxxl,
+    zIndex: 2,
   },
-  linkText: { textAlign: "center", color: colors.darkSecondary, fontSize: 14, marginTop: spacing.xl },
-  link: { color: colors.primary, fontWeight: "600" },
+  logoContainer: {
+    alignItems: 'center',
+    marginBottom: spacing.lg,
+  },
+  subtitle: {
+    fontFamily: fontFamilies.playfair.italic,
+    fontSize: 18, lineHeight: 26,
+    textAlign: "center",
+    color: colors.darkSecondary,
+    marginBottom: spacing.xxxxl,
+    opacity: 0.7,
+  },
+  successMessage: {
+    ...typography.bodySmall,
+    color: colors.success,
+    textAlign: "center",
+    marginBottom: spacing.lg,
+  },
+  linkText: {
+    textAlign: "center",
+    color: colors.darkSecondary,
+    fontFamily: fontFamilies.inter.regular,
+    fontSize: 14,
+    marginTop: spacing.xl,
+  },
+  link: {
+    color: colors.primary,
+    fontFamily: fontFamilies.inter.semiBold,
+  },
 });

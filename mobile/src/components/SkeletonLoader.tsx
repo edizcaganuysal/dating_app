@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, StyleSheet, Animated, ViewStyle } from 'react-native';
+import { View, StyleSheet, ViewStyle } from 'react-native';
+import Animated from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
 import { colors, radii, spacing } from '../theme';
 import { useShimmer } from '../utils/animations';
@@ -34,7 +35,7 @@ export function SkeletonLoader({
     >
       <Animated.View style={[StyleSheet.absoluteFill, shimmerStyle]}>
         <LinearGradient
-          colors={['transparent', 'rgba(255,255,255,0.4)', 'transparent']}
+          colors={['transparent', 'rgba(247, 240, 231, 0.5)', 'transparent']}
           start={{ x: 0, y: 0.5 }}
           end={{ x: 1, y: 0.5 }}
           style={{ width: 200, height: '100%' }}
@@ -44,7 +45,6 @@ export function SkeletonLoader({
   );
 }
 
-/** Pre-composed skeleton for a card with photo + text lines */
 export function SkeletonCard() {
   return (
     <View style={skeletonStyles.card}>
@@ -61,7 +61,6 @@ export function SkeletonCard() {
   );
 }
 
-/** Pre-composed skeleton for a chat room row */
 export function SkeletonRow() {
   return (
     <View style={skeletonStyles.row2}>
