@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, useCallback } from "react";
-import Logo from "@/components/Logo";
+import Image from "next/image";
 
 interface PreloaderProps {
   onComplete: () => void;
@@ -30,16 +30,9 @@ export default function Preloader({ onComplete }: PreloaderProps) {
   useEffect(() => {
     if (phase !== "counting") return;
 
-    // Start with enter animation
     setNumberAnim("enter");
-
-    // After enter completes, go idle
     const idleTimer = setTimeout(() => setNumberAnim("idle"), 400);
-
-    // After idle hold, start exit
     const exitTimer = setTimeout(() => setNumberAnim("exit"), 1100);
-
-    // After exit animation, move to next number or reveal
     const nextTimer = setTimeout(() => {
       if (currentCount <= 1) {
         setPhase("reveal");
@@ -71,7 +64,6 @@ export default function Preloader({ onComplete }: PreloaderProps) {
     const el = containerRef.current;
     if (!el) { onComplete(); return; }
 
-    // Elegant curtain-close exit
     el.style.transition = "clip-path 0.9s cubic-bezier(0.76, 0, 0.24, 1)";
     el.style.clipPath = "inset(50% 0 50% 0)";
 
@@ -111,43 +103,54 @@ export default function Preloader({ onComplete }: PreloaderProps) {
       {/* Countdown number */}
       {phase === "counting" && (
         <div className="relative flex flex-col items-center">
-          {/* Pulse ring behind number */}
-          <div
-            className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-40 h-40 md:w-56 md:h-56 rounded-full border transition-all duration-500 ${
-              numberAnim === "idle"
-                ? "border-accent/10 scale-100"
-                : "border-accent/0 scale-150"
-            }`}
-          />
+          {/* Number wrapper - ring is centered on this */}
+          <div className="relative flex items-center justify-center">
+            {/* Pulse ring - centered on the number */}
+            <div
+              className={`absolute inset-0 m-auto w-40 h-40 md:w-56 md:h-56 rounded-full border transition-all duration-500 ${
+                numberAnim === "idle"
+                  ? "border-accent/10 scale-100"
+                  : "border-accent/0 scale-150"
+              }`}
+            />
 
-          <div
-            className={`font-display text-[9rem] md:text-[14rem] font-bold leading-none text-accent transition-all duration-400 ease-out ${numberAnimClass}`}
-            style={{ transitionDuration: numberAnim === "enter" ? "500ms" : "350ms" }}
-          >
-            {currentCount}
+            <div
+              className={`font-display text-[9rem] md:text-[14rem] font-bold leading-none text-accent transition-all ease-out ${numberAnimClass}`}
+              style={{ transitionDuration: numberAnim === "enter" ? "500ms" : "350ms" }}
+            >
+              {currentCount}
+            </div>
           </div>
 
           {/* Teaser text */}
           <p
-            className={`mt-6 text-sm md:text-base tracking-[0.2em] text-muted uppercase font-display transition-all duration-400 ${
+            className={`mt-6 text-sm md:text-base tracking-[0.2em] text-muted uppercase font-display transition-all ${
               numberAnim === "idle"
                 ? "opacity-60 translate-y-0"
                 : "opacity-0 translate-y-3"
             }`}
-            style={{ transitionDelay: numberAnim === "idle" ? "100ms" : "0ms" }}
+            style={{
+              transitionDuration: "400ms",
+              transitionDelay: numberAnim === "idle" ? "100ms" : "0ms",
+            }}
           >
             {TEASERS[3 - currentCount]}
           </p>
         </div>
       )}
 
-      {/* Intro: just the ambient glow, nothing else */}
-
       {/* Reveal: logo with staggered entrance */}
       {phase === "reveal" && (
         <div className="flex flex-col items-center">
           <div className="preloader-logo-enter">
-            <Logo size="xl" />
+            <Image
+              src="/logo.png"
+              alt="Yuni Social"
+              width={240}
+              height={112}
+              className="h-20 md:h-28 w-auto object-contain"
+              priority
+            />
           </div>
           <p className="preloader-tagline-enter mt-6 text-sm tracking-[0.25em] text-muted/50 uppercase font-display">
             The group dating app

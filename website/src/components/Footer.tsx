@@ -1,6 +1,6 @@
 "use client";
 
-import Logo from "@/components/Logo";
+import Image from "next/image";
 
 export default function Footer() {
   return (
@@ -9,7 +9,13 @@ export default function Footer() {
         <div className="flex flex-col md:flex-row items-center justify-between gap-8">
           {/* Brand */}
           <div className="flex flex-col items-center md:items-start">
-            <Logo size="sm" inverted />
+            <Image
+              src="/logo.png"
+              alt="Yuni Social"
+              width={100}
+              height={47}
+              className="h-10 w-auto object-contain brightness-0 invert"
+            />
             <p className="text-xs tracking-wide text-cream/50 mt-2">
               Group dating for university students
             </p>

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Logo from "@/components/Logo";
+import Image from "next/image";
 
 export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
@@ -24,7 +24,14 @@ export default function Navbar() {
     >
       <div className="max-w-6xl mx-auto flex items-center justify-between px-6 py-3">
         <a href="/" className="flex items-center">
-          <Logo size="sm" />
+          <Image
+            src="/logo.png"
+            alt="Yuni Social"
+            width={120}
+            height={56}
+            className="h-12 w-auto object-contain"
+            priority
+          />
         </a>
 
         <button
