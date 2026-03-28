@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Image from "next/image";
 import Preloader from "@/components/Preloader";
+import Logo from "@/components/Logo";
 import Navbar from "@/components/Navbar";
 import WaitlistFlow from "@/components/WaitlistFlow";
 import WhyYuni from "@/components/WhyYuni";
@@ -41,14 +41,7 @@ export default function Home() {
 
       {/* ── Hero ── */}
       <section className="min-h-screen flex flex-col items-center justify-center px-6 pt-24 pb-16 bg-cream text-center">
-        <Image
-          src="/logo.png"
-          alt="Yuni"
-          width={280}
-          height={130}
-          className="h-24 md:h-36 w-auto object-contain mb-8"
-          priority
-        />
+        <Logo size="xl" className="mb-8" />
 
         <h1 className="font-display text-4xl md:text-6xl lg:text-7xl font-bold text-coal tracking-tight leading-[1.1] max-w-4xl">
           The group dating app for{" "}
