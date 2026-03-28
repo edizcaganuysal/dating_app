@@ -65,7 +65,7 @@ export default function Preloader({ onComplete }: PreloaderProps) {
     if (!el) { onComplete(); return; }
 
     el.style.transition = "clip-path 0.9s cubic-bezier(0.76, 0, 0.24, 1)";
-    el.style.clipPath = "inset(50% 0 50% 0)";
+    el.style.clipPath = "inset(0 0 100% 0)";
 
     setTimeout(onComplete, 950);
   }, [onComplete]);
