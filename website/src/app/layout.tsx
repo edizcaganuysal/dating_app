@@ -14,7 +14,7 @@ const playfair = Playfair_Display({
 });
 
 export const metadata: Metadata = {
-  title: "Yuni — The Group Dating App for University Students",
+  title: "Yuni | The Group Dating App for University Students",
   description:
     "Stop swiping. Start meeting. Yuni matches university students into groups of 4-6 for real activities with real people from your campus. Join the waitlist.",
 };

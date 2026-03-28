@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Image from "next/image";
+import Preloader from "@/components/Preloader";
 import Navbar from "@/components/Navbar";
 import WaitlistFlow from "@/components/WaitlistFlow";
 import WhyYuni from "@/components/WhyYuni";
@@ -12,6 +13,7 @@ import Footer from "@/components/Footer";
 
 export default function Home() {
   const [submitted, setSubmitted] = useState(false);
+  const [preloaderDone, setPreloaderDone] = useState(false);
 
   // Scroll reveal observer
   useEffect(() => {
@@ -32,16 +34,19 @@ export default function Home() {
 
   return (
     <>
+      {/* Countdown Preloader */}
+      {!preloaderDone && <Preloader onComplete={() => setPreloaderDone(true)} />}
+
       <Navbar />
 
       {/* ── Hero ── */}
       <section className="min-h-screen flex flex-col items-center justify-center px-6 pt-24 pb-16 bg-cream text-center">
         <Image
-          src="/logo.jpeg"
+          src="/logo.png"
           alt="Yuni"
-          width={220}
-          height={120}
-          className="h-20 md:h-28 w-auto object-contain mb-8"
+          width={280}
+          height={130}
+          className="h-24 md:h-36 w-auto object-contain mb-8"
           priority
         />
 

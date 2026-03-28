@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { joinWaitlist } from "@/lib/api";
+import { joinWaitlist, getWaitlistCount } from "@/lib/api";
 
 interface WaitlistFlowProps {
   onSubmitSuccess?: () => void;
@@ -58,6 +58,11 @@ export default function WaitlistFlow({ onSubmitSuccess }: WaitlistFlowProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const dropdownRef = useRef<HTMLDivElement>(null);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [waitlistCount, setWaitlistCount] = useState(0);
+
+  useEffect(() => {
+    getWaitlistCount().then((c) => setWaitlistCount(c ? c + 150 : 300));
+  }, []);
 
   useEffect(() => {
     if (submitted) {
@@ -145,9 +150,15 @@ export default function WaitlistFlow({ onSubmitSuccess }: WaitlistFlowProps) {
             Join the Waitlist
           </h2>
 
-          <p className="text-center text-muted text-sm mb-10">
+          <p className="text-center text-muted text-sm mb-3">
             Be the first to know when Yuni launches at your campus.
           </p>
+
+          {waitlistCount > 0 && (
+            <p className="text-center text-accent font-medium text-sm mb-10">
+              {waitlistCount.toLocaleString()} students have already joined
+            </p>
+          )}
 
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Name */}

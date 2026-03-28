@@ -10,11 +10,11 @@ export default function Footer() {
           {/* Brand */}
           <div className="flex flex-col items-center md:items-start">
             <Image
-              src="/logo.jpeg"
+              src="/logo.png"
               alt="Yuni"
-              width={80}
-              height={35}
-              className="h-7 w-auto object-contain brightness-0 invert"
+              width={100}
+              height={45}
+              className="h-9 w-auto object-contain brightness-0 invert"
             />
             <p className="text-xs tracking-wide text-cream/50 mt-2">
               Group dating for university students

@@ -25,11 +25,11 @@ export default function Navbar() {
       <div className="max-w-6xl mx-auto flex items-center justify-between px-6 py-4">
         <a href="/" className="flex items-center">
           <Image
-            src="/logo.jpeg"
+            src="/logo.png"
             alt="Yuni"
-            width={90}
-            height={40}
-            className="h-8 w-auto object-contain"
+            width={120}
+            height={55}
+            className="h-10 w-auto object-contain"
             priority
           />
         </a>
