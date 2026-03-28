@@ -103,23 +103,11 @@ export default function Preloader({ onComplete }: PreloaderProps) {
       {/* Countdown number */}
       {phase === "counting" && (
         <div className="relative flex flex-col items-center">
-          {/* Number wrapper - ring is centered on this */}
-          <div className="relative flex items-center justify-center">
-            {/* Pulse ring - centered on the number */}
-            <div
-              className={`absolute inset-0 m-auto w-40 h-40 md:w-56 md:h-56 rounded-full border transition-all duration-500 ${
-                numberAnim === "idle"
-                  ? "border-accent/10 scale-100"
-                  : "border-accent/0 scale-150"
-              }`}
-            />
-
-            <div
-              className={`font-display text-[9rem] md:text-[14rem] font-bold leading-none text-accent transition-all ease-out ${numberAnimClass}`}
-              style={{ transitionDuration: numberAnim === "enter" ? "500ms" : "350ms" }}
-            >
-              {currentCount}
-            </div>
+          <div
+            className={`font-display text-[9rem] md:text-[14rem] font-bold leading-none text-accent transition-all ease-out ${numberAnimClass}`}
+            style={{ transitionDuration: numberAnim === "enter" ? "500ms" : "350ms" }}
+          >
+            {currentCount}
           </div>
 
           {/* Teaser text */}
