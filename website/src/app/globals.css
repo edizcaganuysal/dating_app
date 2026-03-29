@@ -4,80 +4,66 @@
 
 html,
 body {
-  background: #F7F0E7;
-  color: #241C1A;
+  background: #241C1A;
+  color: #ffffff;
   overflow-x: hidden;
 }
 
+html.lenis {
+  height: auto;
+}
+
+.lenis.lenis-smooth {
+  scroll-behavior: auto;
+}
+
 ::-webkit-scrollbar {
-  width: 6px;
+  width: 4px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #F7F0E7;
+  background: #241C1A;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #D4C9BE;
-  border-radius: 3px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: #C40018;
+  background: #4a3e3a;
+  border-radius: 2px;
 }
 
 ::selection {
-  background: rgba(196, 0, 24, 0.15);
-  color: #241C1A;
+  background: rgba(196, 0, 24, 0.3);
+  color: #fff;
 }
 
-/* Scroll reveal animation */
-.reveal {
-  opacity: 0;
-  transform: translateY(24px);
-  transition: opacity 0.7s ease-out, transform 0.7s ease-out;
+/* Marquee infinite scroll */
+@keyframes marquee {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-33.333%); }
 }
 
-.reveal.visible {
-  opacity: 1;
-  transform: translateY(0);
+.animate-marquee {
+  animation: marquee 30s linear infinite;
 }
 
-/* Staggered children */
-.reveal-children > * {
-  opacity: 0;
-  transform: translateY(20px);
-  transition: opacity 0.5s ease-out, transform 0.5s ease-out;
+/* Smooth gradient border animation */
+@keyframes gradient-shift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
 }
 
-.reveal-children.visible > *:nth-child(1) { transition-delay: 0ms; opacity: 1; transform: translateY(0); }
-.reveal-children.visible > *:nth-child(2) { transition-delay: 100ms; opacity: 1; transform: translateY(0); }
-.reveal-children.visible > *:nth-child(3) { transition-delay: 200ms; opacity: 1; transform: translateY(0); }
-.reveal-children.visible > *:nth-child(4) { transition-delay: 300ms; opacity: 1; transform: translateY(0); }
-
-/* Smooth FAQ accordion */
-.faq-answer {
-  overflow: hidden;
-  transition: max-height 0.4s ease-in-out, padding-bottom 0.4s ease-in-out;
+/* Scroll indicator dot animation */
+@keyframes scroll-dot {
+  0% { transform: translateY(0); opacity: 1; }
+  50% { transform: translateY(14px); opacity: 0.3; }
+  100% { transform: translateY(0); opacity: 1; }
 }
 
-/* Preloader animations */
-@keyframes preloader-logo-enter {
-  0% { opacity: 0; transform: scale(0.85) translateY(20px); filter: blur(4px); }
-  60% { opacity: 1; filter: blur(0); }
-  100% { opacity: 1; transform: scale(1) translateY(0); filter: blur(0); }
+.animate-scroll-dot {
+  animation: scroll-dot 1.8s ease-in-out infinite;
 }
 
-@keyframes preloader-tagline-enter {
-  0% { opacity: 0; transform: translateY(12px); }
-  100% { opacity: 1; transform: translateY(0); }
-}
-
-.preloader-logo-enter {
-  animation: preloader-logo-enter 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-
-.preloader-tagline-enter {
-  opacity: 0;
-  animation: preloader-tagline-enter 0.6s ease-out 0.4s forwards;
+/* Hide cursor on touch devices */
+@media (hover: none) {
+  * { cursor: auto !important; }
 }

@@ -1,48 +1,66 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import Image from "next/image";
+import { useEffect, useRef, useState } from "react";
+import gsap from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
+
+gsap.registerPlugin(ScrollTrigger);
 
 export default function Navbar() {
-  const [scrolled, setScrolled] = useState(false);
-
+  const navRef = useRef<HTMLDivElement>(null);
+  const [scrollProgress, setScrollProgress] = useState(0);
   useEffect(() => {
-    function onScroll() {
-      setScrolled(window.scrollY > 50);
-    }
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
+    // Show navbar after scrolling past hero
+    ScrollTrigger.create({
+      trigger: document.body,
+      start: "200px top",
+      onEnter: () => {
+        gsap.fromTo(navRef.current, { y: -60 }, { y: 0, duration: 0.6, ease: "power3.out" });
+      },
+      onLeaveBack: () => {
+        gsap.to(navRef.current, { y: -60, duration: 0.3 });
+      },
+    });
+
+    // Track scroll progress
+    ScrollTrigger.create({
+      trigger: document.body,
+      start: "top top",
+      end: "bottom bottom",
+      onUpdate: (self) => setScrollProgress(self.progress),
+    });
   }, []);
 
   return (
-    <nav
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-        scrolled
-          ? "bg-cream/90 backdrop-blur-md shadow-sm"
-          : "bg-transparent"
-      }`}
+    <div
+      ref={navRef}
+      className="fixed top-0 left-0 right-0 z-[60]"
+      style={{ transform: "translateY(-60px)" }}
     >
-      <div className="max-w-6xl mx-auto flex items-center justify-between px-6 py-3">
-        <a href="/" className="flex items-center">
-          <Image
-            src="/logo.png"
-            alt="Yuni Social"
-            width={120}
-            height={56}
-            className="h-12 w-auto object-contain"
-            priority
-          />
-        </a>
+      {/* Scroll progress bar */}
+      <div className="h-[1px] bg-white/5">
+        <div
+          className="h-full bg-accent/50 transition-none"
+          style={{ width: `${scrollProgress * 100}%` }}
+        />
+      </div>
+
+      {/* Nav content */}
+      <div className="flex items-center justify-between px-6 md:px-12 py-4 bg-background/60 backdrop-blur-md border-b border-white/[0.10]">
+        <p className="font-display text-sm tracking-[0.3em] text-white/80 uppercase">
+          Yuni
+        </p>
 
         <button
           onClick={() => {
             document.querySelector("#waitlist")?.scrollIntoView({ behavior: "smooth" });
           }}
-          className="bg-accent text-cream font-display text-xs tracking-wide uppercase px-6 py-2.5 rounded-full hover:bg-accent/90 transition-colors duration-300 font-medium"
+          className="text-[10px] tracking-[0.25em] text-white/60 uppercase font-body hover:text-accent transition-colors duration-300"
+          data-cursor-hover
         >
           Join Waitlist
         </button>
       </div>
-    </nav>
+    </div>
   );
 }

@@ -6,11 +6,11 @@ export const metadata = {
 
 export default function PrivacyPage() {
   return (
-    <main className="min-h-screen bg-cream text-coal">
+    <main className="min-h-screen bg-background text-white">
       <div className="max-w-3xl mx-auto px-6 py-24">
         <Link
           href="/"
-          className="inline-flex items-center gap-2 text-xs tracking-wide text-muted hover:text-accent transition-colors duration-300 mb-12"
+          className="inline-flex items-center gap-2 text-xs tracking-wide text-white/60 hover:text-accent transition-colors duration-300 mb-12"
         >
           <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
@@ -21,13 +21,13 @@ export default function PrivacyPage() {
         <h1 className="font-display text-4xl md:text-5xl font-bold tracking-tight mb-4">
           Privacy Policy
         </h1>
-        <p className="text-muted text-sm mb-16">
+        <p className="text-white/60 text-sm mb-16">
           Last updated: March 2026
         </p>
 
-        <div className="space-y-10 text-muted text-sm leading-relaxed">
+        <div className="space-y-10 text-white/60 text-sm leading-relaxed">
           <section>
-            <h2 className="font-display text-xl font-semibold text-coal mb-4">
+            <h2 className="font-display text-xl font-semibold text-white/90 mb-4">
               1. Information We Collect
             </h2>
             <p className="mb-3">
@@ -44,7 +44,7 @@ export default function PrivacyPage() {
           </section>
 
           <section>
-            <h2 className="font-display text-xl font-semibold text-coal mb-4">
+            <h2 className="font-display text-xl font-semibold text-white/90 mb-4">
               2. How We Use Your Information
             </h2>
             <ul className="list-disc list-inside space-y-1 ml-2">
@@ -57,7 +57,7 @@ export default function PrivacyPage() {
           </section>
 
           <section>
-            <h2 className="font-display text-xl font-semibold text-coal mb-4">
+            <h2 className="font-display text-xl font-semibold text-white/90 mb-4">
               3. Data Storage & Security
             </h2>
             <p>
@@ -66,16 +66,16 @@ export default function PrivacyPage() {
           </section>
 
           <section>
-            <h2 className="font-display text-xl font-semibold text-coal mb-4">
+            <h2 className="font-display text-xl font-semibold text-white/90 mb-4">
               4. Your Private Preferences
             </h2>
             <p>
-              Yuni takes your privacy seriously. Your private preferences — including age range, dealbreakers, and attraction preferences — are <strong className="text-coal">never</strong> shared with or visible to other users. These are used exclusively by our matching algorithm to build compatible groups.
+              Yuni takes your privacy seriously. Your private preferences — including age range, dealbreakers, and attraction preferences — are <strong className="text-white/90">never</strong> shared with or visible to other users. These are used exclusively by our matching algorithm to build compatible groups.
             </p>
           </section>
 
           <section>
-            <h2 className="font-display text-xl font-semibold text-coal mb-4">
+            <h2 className="font-display text-xl font-semibold text-white/90 mb-4">
               5. Data Retention
             </h2>
             <p>
@@ -84,7 +84,7 @@ export default function PrivacyPage() {
           </section>
 
           <section>
-            <h2 className="font-display text-xl font-semibold text-coal mb-4">
+            <h2 className="font-display text-xl font-semibold text-white/90 mb-4">
               6. Your Rights
             </h2>
             <p>You have the right to:</p>
@@ -97,7 +97,7 @@ export default function PrivacyPage() {
           </section>
 
           <section>
-            <h2 className="font-display text-xl font-semibold text-coal mb-4">
+            <h2 className="font-display text-xl font-semibold text-white/90 mb-4">
               7. Contact Us
             </h2>
             <p>
