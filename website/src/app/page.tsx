@@ -12,7 +12,7 @@ import Marquee from "@/components/Marquee";
 import WaitlistFlow from "@/components/WaitlistFlow";
 import WhyYuni from "@/components/WhyYuni";
 import HowItWorks from "@/components/HowItWorks";
-import StatsCounter from "@/components/StatsCounter";
+import Founders from "@/components/Founders";
 import FAQ from "@/components/FAQ";
 import Footer from "@/components/Footer";
 
@@ -33,11 +33,10 @@ export default function Home() {
   const waitlistSectionRef = useRef<HTMLDivElement>(null);
   const whyYuniSectionRef = useRef<HTMLDivElement>(null);
   const howItWorksSectionRef = useRef<HTMLDivElement>(null);
-  const statsSectionRef = useRef<HTMLDivElement>(null);
+  const foundersSectionRef = useRef<HTMLDivElement>(null);
   const faqSectionRef = useRef<HTMLDivElement>(null);
-  const ctaSectionRef = useRef<HTMLDivElement>(null);
 
-  const [submitted, setSubmitted] = useState(false);
+  const [, setSubmitted] = useState(false);
   const [preloaderDone, setPreloaderDone] = useState(false);
 
   const getFramePath = useCallback(
@@ -227,14 +226,14 @@ export default function Home() {
       );
     }
 
-    // ── STATS ──
-    const statsInner = statsSectionRef.current?.querySelector(".stats-inner");
-    if (statsInner) {
-      gsap.fromTo(statsInner,
+    // ── FOUNDERS ──
+    const foundersInner = foundersSectionRef.current?.querySelector(".founders-inner");
+    if (foundersInner) {
+      gsap.fromTo(foundersInner,
         { opacity: 0, y: 40 },
         {
           opacity: 1, y: 0,
-          scrollTrigger: { trigger: statsSectionRef.current, start: "top 70%", end: "top 40%", scrub: 1 },
+          scrollTrigger: { trigger: foundersSectionRef.current, start: "top 70%", end: "top 40%", scrub: 1 },
         }
       );
     }
@@ -247,18 +246,6 @@ export default function Home() {
         {
           opacity: 1, y: 0,
           scrollTrigger: { trigger: faqSectionRef.current, start: "top 75%", end: "top 45%", scrub: 1 },
-        }
-      );
-    }
-
-    // ── CTA ──
-    const ctaInner = ctaSectionRef.current?.querySelector(".cta-inner");
-    if (ctaInner) {
-      gsap.fromTo(ctaInner,
-        { opacity: 0, scale: 0.95 },
-        {
-          opacity: 1, scale: 1,
-          scrollTrigger: { trigger: ctaSectionRef.current, start: "top 70%", end: "top 40%", scrub: 1 },
         }
       );
     }
@@ -372,8 +359,8 @@ export default function Home() {
         </section>
 
         {/* ── Waitlist ── */}
-        <section ref={waitlistSectionRef} className="min-h-screen flex items-center justify-center py-24 md:py-32 relative">
-          <div className="absolute inset-0 bg-background/80 backdrop-blur-md" />
+        <section ref={waitlistSectionRef} className="min-h-screen flex items-center justify-center py-24 md:py-32 relative bg-[#241C1A]">
+          <div className="absolute inset-0" />
           <div className="waitlist-card relative z-10 w-full max-w-lg mx-auto px-6">
             <div className="relative p-8 md:p-12 border border-white/[0.15] bg-white/[0.08] backdrop-blur-xl overflow-hidden"
               style={{
@@ -403,83 +390,30 @@ export default function Home() {
         <Marquee />
 
         {/* ── Why Yuni ── */}
-        <section ref={whyYuniSectionRef} className="py-24 md:py-32 relative">
-          <div className="absolute inset-0 bg-background/70" />
+        <section ref={whyYuniSectionRef} className="py-24 md:py-32 relative bg-[#1a1412]">
           <div className="why-inner relative z-10">
             <WhyYuni />
           </div>
         </section>
 
         {/* ── How It Works ── */}
-        <section ref={howItWorksSectionRef} className="py-24 md:py-32 relative">
-          <div className="absolute inset-0 bg-background/60" />
+        <section ref={howItWorksSectionRef} className="py-24 md:py-32 relative bg-[#241C1A]">
           <div className="how-inner relative z-10">
             <HowItWorks />
           </div>
         </section>
 
-        {/* ── Stats ── */}
-        <section ref={statsSectionRef} className="py-24 md:py-32 relative">
-          <div className="absolute inset-0 bg-background/60" />
-          <div className="stats-inner relative z-10">
-            <StatsCounter />
+        {/* ── Founders ── */}
+        <section ref={foundersSectionRef} className="py-24 md:py-32 relative bg-[#1a1412]">
+          <div className="founders-inner relative z-10">
+            <Founders />
           </div>
         </section>
 
         {/* ── FAQ ── */}
-        <section ref={faqSectionRef} className="py-24 md:py-32 relative">
-          <div className="absolute inset-0 bg-background/70" />
+        <section ref={faqSectionRef} className="py-24 md:py-32 relative bg-[#241C1A]">
           <div className="faq-inner relative z-10">
             <FAQ />
-          </div>
-        </section>
-
-        {/* ── Final CTA ── */}
-        <section ref={ctaSectionRef} className="min-h-[60vh] flex items-center justify-center py-24 md:py-32 relative">
-          <div className="absolute inset-0 bg-background/60 backdrop-blur-sm" />
-          <div className="cta-inner relative z-10 text-center px-6">
-            <p className="text-[9px] uppercase tracking-[0.4em] text-accent/70 mb-8 font-body">
-              Built by students, for students
-            </p>
-            <h2 className="font-display text-3xl md:text-5xl lg:text-7xl font-extralight tracking-cinematic mb-6 leading-tight">
-              The app that wants you<br />
-              to <span className="text-accent/90">delete it</span>
-            </h2>
-            <p className="text-white/50 text-sm md:text-base max-w-lg mx-auto mb-12 font-light leading-relaxed">
-              We don&apos;t profit from keeping you single. Find your person, have fun, and leave.
-              That&apos;s the opposite of how dating apps make money &mdash; and that&apos;s the point.
-            </p>
-
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-              {/* Waitlist CTA */}
-              <div className="inline-block group" data-cursor-hover>
-                <button
-                  onClick={() => {
-                    document.querySelector("#waitlist")?.scrollIntoView({ behavior: "smooth" });
-                  }}
-                  className="relative px-10 py-4 font-display text-[10px] tracking-[0.3em] uppercase overflow-hidden border border-white/30 group-hover:border-accent/50 transition-colors duration-700"
-                >
-                  <span className="absolute inset-0 bg-accent/0 group-hover:bg-accent transition-all duration-700" />
-                  <span className="relative text-white/90 group-hover:text-white transition-colors duration-500">
-                    {submitted ? "You\u2019re on the list" : "Join the Waitlist"}
-                  </span>
-                </button>
-              </div>
-
-              {/* Instagram CTA */}
-              <a
-                href="https://www.instagram.com/yuni.social"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 px-8 py-4 font-display text-[10px] tracking-[0.3em] uppercase text-white/50 hover:text-accent/80 transition-colors duration-500"
-                data-cursor-hover
-              >
-                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z" />
-                </svg>
-                Follow our journey
-              </a>
-            </div>
           </div>
         </section>
 
